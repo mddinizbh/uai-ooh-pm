@@ -36,22 +36,24 @@ springdoc:
     path: /api/swagger-ui.html
 
 # GTFS feed downloader (task_02)
-# ⚠ OPEN QUESTION: exact PBH GTFS ZIP URL is an unconfirmed external dependency.
-#   Set GTFS_FEED_URL environment variable at deploy time.
-#   See TechSpec "Technical Dependencies" and PRD Open Questions.
+# Official PBH/BHTRANS GTFS feed (CKAN dataset "gtfs" -> S3). WGS84, ~53MB.
+# Override with GTFS_FEED_URL at deploy time if the resource URL changes.
 gtfs:
   feed:
-    url: ${GTFS_FEED_URL:https://dadosabertos.pbh.gov.br/dataset/gtfs-bhtrans}
+    url: ${GTFS_FEED_URL:https://s3.amazonaws.com/mobilibus-uploads/gtfs/GTFSBHTRANS.zip}
     max-retries: 3
     retry-delay-ms: 2000
     request-timeout-seconds: 60
 
 # Neighbourhood boundary downloader (task_03)
-# ⚠ OPEN QUESTION: exact PBH boundary GeoJSON URL is an unconfirmed external dependency.
-#   Set BOUNDARY_URL environment variable at deploy time.
-#   See TechSpec "Technical Dependencies" and ADR-003.
+# Real source: PBH CKAN "Bairro Popular" GeoJSON (487 bairros, NOME/CODIGO).
+# ⚠ PRODUCTION GAPS (validated 2026-05-26, not yet handled in code):
+#   1. CRS: this file is EPSG:32723 (UTM 23S), but the classifier requires WGS84.
+#      Reprojection UTM->WGS84 must be added (or serve a pre-reprojected file).
+#   2. WAF: ckan.pbh.gov.br returns 403 without a browser User-Agent header.
+#   Locally this was bypassed by serving a pre-reprojected WGS84 GeoJSON.
 boundary:
-  url: ${BOUNDARY_URL:https://geoportal.pbh.gov.br/sad69-22-bh/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sad69-22-bh:BAIRROS_BH&outputFormat=application/json}
+  url: ${BOUNDARY_URL:https://ckan.pbh.gov.br/dataset/6e2f98ef-78bb-465a-af75-a48dca879de6/resource/1579c16d-7aec-4ff8-a873-2fd03917d557/download/bairro_popular_lei1069814012014.geojson}
   request-timeout-seconds: 60
 
 # Import orchestration (task_05)
