@@ -1,0 +1,67 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:uai_buslines}
+    username: ${DB_USER:uai}
+    password: ${DB_PASSWORD:uai}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      # Schema is owned by Flyway — Hibernate must NOT modify it (ADR-003/004)
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+# Actuator — expose health for uAI DoD liveness/readiness
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
+# OpenAPI — served at /api/docs (populated in task_06)
+springdoc:
+  api-docs:
+    path: /api/docs
+  swagger-ui:
+    path: /api/swagger-ui.html
+
+# GTFS feed downloader (task_02)
+# ⚠ OPEN QUESTION: exact PBH GTFS ZIP URL is an unconfirmed external dependency.
+#   Set GTFS_FEED_URL environment variable at deploy time.
+#   See TechSpec "Technical Dependencies" and PRD Open Questions.
+gtfs:
+  feed:
+    url: ${GTFS_FEED_URL:https://dadosabertos.pbh.gov.br/dataset/gtfs-bhtrans}
+    max-retries: 3
+    retry-delay-ms: 2000
+    request-timeout-seconds: 60
+
+# Neighbourhood boundary downloader (task_03)
+# ⚠ OPEN QUESTION: exact PBH boundary GeoJSON URL is an unconfirmed external dependency.
+#   Set BOUNDARY_URL environment variable at deploy time.
+#   See TechSpec "Technical Dependencies" and ADR-003.
+boundary:
+  url: ${BOUNDARY_URL:https://geoportal.pbh.gov.br/sad69-22-bh/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sad69-22-bh:BAIRROS_BH&outputFormat=application/json}
+  request-timeout-seconds: 60
+
+# Import orchestration (task_05)
+buslines:
+  import:
+    # Cron schedule for the automated GTFS import (default: 3 AM daily).
+    # Override with IMPORT_SCHEDULE environment variable at deploy time.
+    schedule: ${IMPORT_SCHEDULE:0 0 3 * * *}
+    # Set to false to disable the scheduled trigger without removing the bean.
+    # Overridden to false in application-test.yml to avoid interference with IT tests.
+    scheduler:
+      enabled: true
+  internal:
+    # API key that protects POST /api/internal/import.
+    # Must be set via UAI_INTERNAL_API_KEY environment variable in production.
+    # If blank, all requests to /api/internal/** are rejected (fail-safe).
+    api-key: ${UAI_INTERNAL_API_KEY:}

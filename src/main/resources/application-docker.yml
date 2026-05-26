@@ -1,0 +1,17 @@
+# Docker profile — activated via SPRING_PROFILES_ACTIVE=docker in docker-compose.
+# All sensitive values MUST come from environment variables (see deploy/uai-infra/docker-compose.snippet.yml).
+# No hardcoded defaults here — fail fast if env vars are missing in production.
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+# Structured logging for container environments (Loki / journald)
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%level] [%X{traceId:-}] %logger{36} - %msg%n"
+  level:
+    root: INFO
+    com.uai.buslines: INFO

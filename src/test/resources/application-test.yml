@@ -1,0 +1,22 @@
+# Test profile — overrides for unit/integration tests.
+# Datasource is overridden automatically by @ServiceConnection (Testcontainers).
+
+spring:
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: WARN
+    com.uai.buslines: INFO
+    org.flywaydb: INFO
+    org.testcontainers: WARN
+
+# Disable the scheduled import trigger in tests.
+# The ImportNetworkScheduler bean is excluded via @ConditionalOnProperty;
+# this prevents it from firing during the Testcontainers container startup window
+# and interfering with IT test expectations.
+buslines:
+  import:
+    scheduler:
+      enabled: false
