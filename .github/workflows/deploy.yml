@@ -1,0 +1,139 @@
+# CI/CD — BH Bus Lines
+#
+# Trigger: every push to main (full pipeline) or PR to main (test only).
+#
+# Jobs:
+#   test        → runs backend (mvn verify) + frontend (vitest) tests.
+#                 If any test fails the pipeline stops here (no image built).
+#   build-push  → builds both Docker images, pushes to GHCR with :latest + :<sha> tags.
+#                 Runs only on push to main, only after test passes.
+#   deploy      → SSHes into the VPS and restarts the two services.
+#                 Runs only after build-push succeeds.
+#
+# User-defined secrets required (Settings → Secrets and variables → Actions):
+#   VPS_HOST      — VPS IP address or hostname
+#   VPS_PASSWORD  — root SSH password
+#
+# GITHUB_TOKEN is provided automatically by GitHub Actions (no manual secret needed).
+
+name: CI/CD — BH Bus Lines
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE: ghcr.io/mddinizbh/uai-buslines
+  WEB_IMAGE: ghcr.io/mddinizbh/uai-buslines-web
+
+jobs:
+  # ── 1. Test ── gates every downstream job ─────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Java 21 — JaCoCo 0.8.12 fails on Java 25 (major version 69)
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      # mvn verify = unit tests (Surefire) + integration tests (Failsafe) + JaCoCo check
+      - name: Backend tests (mvn verify)
+        run: mvn verify -B
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: web
+        run: npm ci --silent
+
+      # vitest run — exits non-zero if any test fails, failing the job
+      - name: Frontend tests (vitest)
+        working-directory: web
+        run: npm test
+
+  # ── 2. Build + Push ── only on push to main, after tests pass ─────────────
+  build-push:
+    name: Build & Push
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write  # required to push to GHCR
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── API image ──────────────────────────────────────────────────────────
+      - name: Build and push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ env.API_IMAGE }}:latest
+            ${{ env.API_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── SPA image ─────────────────────────────────────────────────────────
+      - name: Build and push SPA image
+        uses: docker/build-push-action@v5
+        with:
+          context: web
+          file: web/Dockerfile
+          push: true
+          tags: |
+            ${{ env.WEB_IMAGE }}:latest
+            ${{ env.WEB_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── 3. Deploy ── SSH to VPS, pull new images, restart services ────────────
+  deploy:
+    name: Deploy
+    needs: build-push
+    runs-on: ubuntu-latest
+    # Inherits the push-to-main guard from build-push (needs it)
+
+    steps:
+      # appleboy/ssh-action: password-based SSH — only VPS_HOST + VPS_PASSWORD needed.
+      # Never edit the VPS directly (uAI RULE-OPS-01): all changes flow through this pipeline.
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            set -e
+            cd ~/uai-infra
+            docker compose pull uai-buslines uai-buslines-web
+            docker compose up -d --no-build uai-buslines uai-buslines-web
+            docker image prune -f
