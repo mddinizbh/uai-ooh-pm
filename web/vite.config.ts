@@ -4,6 +4,12 @@ import react from '@vitejs/plugin-react';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // Dev server: proxy same-origin /api calls to the backend (prod uses Nginx).
+  server: {
+    proxy: {
+      '/api': 'http://localhost:8085',
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
