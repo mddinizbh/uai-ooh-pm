@@ -8,12 +8,16 @@ import com.uai.buslines.domain.model.GtfsRouteShape;
 import com.uai.buslines.domain.model.GtfsStop;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +40,15 @@ import java.util.zip.ZipInputStream;
 @Component
 public class GtfsParser {
 
-    private static final Set<String> REQUIRED_FILES = Set.of(
-            "routes.txt", "trips.txt", "stops.txt", "stop_times.txt", "shapes.txt");
+    /**
+     * Small files read fully into memory. {@code stop_times.txt} is intentionally
+     * excluded — it can be hundreds of MB, so it is streamed and filtered separately
+     * (see {@link #parseStopTimesStreaming}) to keep the import within a small heap.
+     */
+    private static final Set<String> MATERIALIZED_FILES = Set.of(
+            "routes.txt", "trips.txt", "stops.txt", "shapes.txt");
+
+    private static final String STOP_TIMES_FILE = "stop_times.txt";
 
     // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -50,13 +61,25 @@ public class GtfsParser {
      * @throws GtfsParseException on any structural or coordinate error
      */
     public GtfsDataset parse(byte[] zipContent, String feedEtag) {
-        Map<String, List<String>> entries = readZipEntries(zipContent);
+        Map<String, List<String>> entries = readMaterializedEntries(zipContent);
 
-        List<GtfsRoute>               routes      = parseRoutes(entries.get("routes.txt"));
-        Map<String, TripInfo>         trips       = parseTrips(entries.get("trips.txt"));
-        List<GtfsStop>                stops       = parseStops(entries.get("stops.txt"));
-        Map<String, List<String>>     tripStopIds = parseStopTimes(entries.get("stop_times.txt"));
-        Map<String, List<Coordinate>> shapes      = parseShapes(entries.get("shapes.txt"));
+        List<GtfsRoute>               routes = parseRoutes(entries.get("routes.txt"));
+        Map<String, TripInfo>         trips  = parseTrips(entries.get("trips.txt"));
+        List<GtfsStop>                stops  = parseStops(entries.get("stops.txt"));
+        Map<String, List<Coordinate>> shapes = parseShapes(entries.get("shapes.txt"));
+
+        // Only the first trip per (route, direction) contributes a route shape, so we
+        // only need stop_times for that small set of trips. Computing it up front lets
+        // us stream stop_times and discard the ~99% of rows we never use.
+        Map<String, Map<Integer, TripInfo>> routeDirFirstTrip = groupFirstTripPerDirection(trips);
+        Set<String> neededTripIds = new HashSet<>();
+        for (Map<Integer, TripInfo> dirTrips : routeDirFirstTrip.values()) {
+            for (TripInfo trip : dirTrips.values()) {
+                neededTripIds.add(trip.tripId());
+            }
+        }
+
+        Map<String, List<String>> tripStopIds = parseStopTimesStreaming(zipContent, neededTripIds);
 
         Map<String, GtfsStop> stopById = new LinkedHashMap<>();
         for (GtfsStop s : stops) {
@@ -64,22 +87,26 @@ public class GtfsParser {
         }
 
         List<GtfsRouteShape> routeShapes =
-                buildRouteShapes(routes, trips, tripStopIds, shapes, stopById);
+                buildRouteShapes(routes, routeDirFirstTrip, tripStopIds, shapes, stopById);
 
         return new GtfsDataset(feedEtag, Instant.now(), routes, stops, routeShapes);
     }
 
     // ── ZIP reading ─────────────────────────────────────────────────────────────
 
-    private static Map<String, List<String>> readZipEntries(byte[] zipContent) {
+    private static Map<String, List<String>> readMaterializedEntries(byte[] zipContent) {
         Map<String, List<String>> contents = new LinkedHashMap<>();
+        boolean stopTimesPresent = false;
 
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipContent))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 String name = entry.getName();
-                if (REQUIRED_FILES.contains(name)) {
+                if (MATERIALIZED_FILES.contains(name)) {
                     contents.put(name, readLines(zis));
+                } else if (STOP_TIMES_FILE.equals(name)) {
+                    // Presence only — content is streamed later, never held in memory.
+                    stopTimesPresent = true;
                 }
                 zis.closeEntry();
             }
@@ -87,10 +114,13 @@ public class GtfsParser {
             throw new GtfsParseException("Failed to read GTFS ZIP: " + e.getMessage(), e);
         }
 
-        for (String required : REQUIRED_FILES) {
+        for (String required : MATERIALIZED_FILES) {
             if (!contents.containsKey(required)) {
                 throw new GtfsParseException("Required GTFS file missing from ZIP: " + required);
             }
+        }
+        if (!stopTimesPresent) {
+            throw new GtfsParseException("Required GTFS file missing from ZIP: " + STOP_TIMES_FILE);
         }
 
         return contents;
@@ -184,22 +214,70 @@ public class GtfsParser {
     // ── stop_times.txt ──────────────────────────────────────────────────────────
 
     /**
-     * Returns {@code trip_id → ordered list of stop_ids} (ordered by stop_sequence).
+     * Streams {@code stop_times.txt} from the ZIP and returns
+     * {@code trip_id → ordered list of stop_ids} (ordered by stop_sequence),
+     * keeping only the trips in {@code neededTripIds}.
+     *
+     * <p>The file is read line-by-line straight from the ZIP entry stream and never
+     * materialised in full — essential because {@code stop_times.txt} can exceed
+     * 500 MB. Filtering to the handful of representative trips keeps the resulting
+     * map tiny.
      */
-    private static Map<String, List<String>> parseStopTimes(List<String> lines) {
-        requireNonEmpty(lines, "stop_times.txt");
-        Map<String, Integer> header = parseHeader(lines.get(0), "stop_times.txt",
+    private static Map<String, List<String>> parseStopTimesStreaming(
+            byte[] zipContent, Set<String> neededTripIds) {
+
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipContent))) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if (STOP_TIMES_FILE.equals(entry.getName())) {
+                    return streamStopTimes(zis, neededTripIds);
+                }
+                zis.closeEntry();
+            }
+        } catch (IOException e) {
+            throw new GtfsParseException("Failed to read " + STOP_TIMES_FILE + ": " + e.getMessage(), e);
+        }
+        throw new GtfsParseException("Required GTFS file missing from ZIP: " + STOP_TIMES_FILE);
+    }
+
+    private static Map<String, List<String>> streamStopTimes(
+            ZipInputStream zis, Set<String> neededTripIds) throws IOException {
+
+        // Reader over the current ZIP entry; readLine() returns null at entry end.
+        // Not closed here on purpose — closing it would close the shared ZipInputStream.
+        BufferedReader reader = new BufferedReader(new InputStreamReader(zis, StandardCharsets.UTF_8));
+
+        String headerLine = reader.readLine();
+        if (headerLine == null) {
+            throw new GtfsParseException(STOP_TIMES_FILE + " is empty");
+        }
+        if (headerLine.startsWith("﻿")) {
+            headerLine = headerLine.substring(1); // strip UTF-8 BOM
+        }
+        Map<String, Integer> header = parseHeader(headerLine, STOP_TIMES_FILE,
                 "trip_id", "stop_id", "stop_sequence");
 
-        // TreeMap ensures stop_sequence ascending order automatically
-        Map<String, TreeMap<Integer, String>> raw = new LinkedHashMap<>();
-        for (int i = 1; i < lines.size(); i++) {
-            List<String> fields = parseCsvLine(lines.get(i));
-            String tripId = field(fields, header, "trip_id",       "stop_times.txt", i);
-            String stopId = field(fields, header, "stop_id",       "stop_times.txt", i);
-            int seq       = parseIntField(
-                    field(fields, header, "stop_sequence", "stop_times.txt", i),
-                    "stop_sequence", "stop_times.txt", i);
+        // TreeMap keeps stop_sequence ascending; only needed trips are retained.
+        Map<String, TreeMap<Integer, String>> raw = new HashMap<>();
+        String line;
+        int lineNum = 1;
+        while ((line = reader.readLine()) != null) {
+            lineNum++;
+            if (line.endsWith("\r")) {
+                line = line.substring(0, line.length() - 1);
+            }
+            if (line.isBlank()) {
+                continue;
+            }
+            List<String> fields = parseCsvLine(line);
+            String tripId = field(fields, header, "trip_id", STOP_TIMES_FILE, lineNum);
+            if (!neededTripIds.contains(tripId)) {
+                continue;
+            }
+            String stopId = field(fields, header, "stop_id", STOP_TIMES_FILE, lineNum);
+            int seq = parseIntField(
+                    field(fields, header, "stop_sequence", STOP_TIMES_FILE, lineNum),
+                    "stop_sequence", STOP_TIMES_FILE, lineNum);
             raw.computeIfAbsent(tripId, k -> new TreeMap<>()).put(seq, stopId);
         }
 
@@ -240,20 +318,24 @@ public class GtfsParser {
 
     // ── Route-shape assembly ────────────────────────────────────────────────────
 
-    private static List<GtfsRouteShape> buildRouteShapes(
-            List<GtfsRoute> routes,
-            Map<String, TripInfo> trips,
-            Map<String, List<String>> tripStopIds,
-            Map<String, List<Coordinate>> shapes,
-            Map<String, GtfsStop> stopById) {
-
-        // Group trips: routeId → directionId → first TripInfo seen (insertion order)
+    /** Groups trips: routeId → directionId → first {@link TripInfo} seen (insertion order). */
+    private static Map<String, Map<Integer, TripInfo>> groupFirstTripPerDirection(
+            Map<String, TripInfo> trips) {
         Map<String, Map<Integer, TripInfo>> routeDirFirstTrip = new LinkedHashMap<>();
         for (TripInfo trip : trips.values()) {
             routeDirFirstTrip
                     .computeIfAbsent(trip.routeId(), k -> new LinkedHashMap<>())
                     .putIfAbsent(trip.directionId(), trip);   // first one wins per direction
         }
+        return routeDirFirstTrip;
+    }
+
+    private static List<GtfsRouteShape> buildRouteShapes(
+            List<GtfsRoute> routes,
+            Map<String, Map<Integer, TripInfo>> routeDirFirstTrip,
+            Map<String, List<String>> tripStopIds,
+            Map<String, List<Coordinate>> shapes,
+            Map<String, GtfsStop> stopById) {
 
         List<GtfsRouteShape> result = new ArrayList<>();
         for (GtfsRoute route : routes) {
