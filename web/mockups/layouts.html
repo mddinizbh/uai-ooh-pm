@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Linhas BH — Mockups de layout</title>
+<style>
+  /* ── Design tokens (extraídos do app + ajustes de contraste) ─────────────── */
+  :root {
+    --c-bg:        #f7fafc;
+    --c-surface:   #ffffff;
+    --c-border:    #e2e8f0;
+    --c-border-2:  #cbd5e0;
+    --c-text:      #1a202c;
+    --c-text-2:    #4a5568;
+    --c-muted:     #5a677a;   /* era #718096 — subido p/ contraste */
+    --c-primary:   #2b6cb0;
+    --c-primary-bg:#ebf8ff;
+    --c-focus:     #2b6cb0;
+    /* cores das linhas no mapa (LINE_COLORS do app) */
+    --l0:#e74c3c; --l1:#3498db; --l2:#2ecc71; --l3:#f39c12; --l4:#9b59b6;
+    --d-passes:#3498db; --d-departs:#2ecc71; --d-arrives:#e74c3c;
+  }
+
+  * , *::before, *::after { box-sizing: border-box; }
+  html, body { margin:0; height:100%; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--c-text); background:#e9edf2; }
+
+  /* ── Top switcher ──────────────────────────────────────────────────────────*/
+  .switcher {
+    position: fixed; top:0; left:0; right:0; height:52px; z-index:100;
+    display:flex; align-items:center; gap:8px; padding:0 16px;
+    background:#1a202c; color:#fff;
+  }
+  .switcher strong { font-size:14px; margin-right:8px; }
+  .switcher button {
+    font:inherit; font-size:13px; padding:6px 14px; border-radius:6px;
+    border:1px solid #2d3748; background:#2d3748; color:#cbd5e0; cursor:pointer;
+    transition: background .15s, color .15s;
+  }
+  .switcher button:hover { background:#3a4a5e; }
+  .switcher button.active { background:#4299e1; border-color:#4299e1; color:#fff; }
+  .switcher button:focus-visible { outline:2px solid #90cdf4; outline-offset:2px; }
+  .switcher .note { margin-left:auto; font-size:12px; color:#a0aec0; }
+
+  /* ── Stage ─────────────────────────────────────────────────────────────────*/
+  .stage { position:absolute; inset:52px 0 0 0; overflow:hidden; }
+  .layout { display:none; width:100%; height:100%; }
+  .layout.active { display:flex; }
+
+  /* ── Mapa fake (fundo de "mapa") ───────────────────────────────────────────*/
+  .map {
+    position:relative; flex:1 1 auto; overflow:hidden;
+    background:
+      linear-gradient(0deg, rgba(255,255,255,.6) 1px, transparent 1px) 0 0/40px 40px,
+      linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px) 0 0/40px 40px,
+      radial-gradient(circle at 30% 40%, #dbeafe, #eef2f7 70%);
+  }
+  .map__lines { position:absolute; inset:0; }
+  .map__attrib {
+    position:absolute; bottom:24px; right:8px; z-index:5;
+    background:rgba(255,255,255,.88); backdrop-filter:blur(4px);
+    padding:4px 8px; border-radius:4px; font-size:11px; color:var(--c-text-2);
+  }
+  .map__ctrls { position:absolute; top:12px; right:12px; display:flex; flex-direction:column; gap:1px; }
+  .map__ctrls button { width:30px; height:30px; border:none; background:#fff; color:#2d3748; font-size:18px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+  .map__ctrls button:first-child { border-radius:4px 4px 0 0; }
+  .map__ctrls button:last-child { border-radius:0 0 4px 4px; }
+
+  /* ── Sidebar genérica ──────────────────────────────────────────────────────*/
+  .side {
+    flex:0 0 320px; width:320px; height:100%;
+    background:var(--c-surface); border-right:1px solid var(--c-border);
+    box-shadow:2px 0 8px rgba(0,0,0,.08); display:flex; flex-direction:column;
+  }
+  .side__header {
+    padding:14px 16px; border-bottom:1px solid var(--c-border);
+    display:flex; align-items:center; gap:10px; flex:0 0 auto;
+  }
+  .side__header svg { color:var(--c-primary); }
+  .side__header h1 { margin:0; font-size:18px; font-weight:600; }
+  .side__scroll { flex:1 1 auto; overflow-y:auto; min-height:0; }
+  .side__footer {
+    flex:0 0 auto; border-top:2px solid var(--c-border); background:var(--c-bg);
+    padding:12px 16px;
+  }
+
+  /* ── Inputs ────────────────────────────────────────────────────────────────*/
+  .field { padding:12px 16px; }
+  .input {
+    width:100%; padding:10px 12px; border:1px solid var(--c-border-2);
+    border-radius:6px; font-size:14px; color:var(--c-text); background:var(--c-bg);
+    outline:none; transition:border-color .15s, box-shadow .15s;
+  }
+  .input:focus { border-color:var(--c-focus); box-shadow:0 0 0 3px rgba(43,108,176,.25); background:#fff; }
+
+  /* ── Tabs ──────────────────────────────────────────────────────────────────*/
+  .tabs { display:flex; padding:8px 16px 0; gap:4px; border-bottom:1px solid var(--c-border); }
+  .tabs button {
+    flex:1; font:inherit; font-size:13px; font-weight:600; padding:10px 8px;
+    border:none; background:none; color:var(--c-muted); cursor:pointer;
+    border-bottom:2px solid transparent; transition:color .15s, border-color .15s;
+  }
+  .tabs button:hover { color:var(--c-primary); }
+  .tabs button.active { color:var(--c-primary); border-bottom-color:var(--c-primary); }
+  .tabs button:focus-visible { outline:2px solid var(--c-focus); outline-offset:-2px; border-radius:4px; }
+
+  /* ── Listas / botões de linha (touch target 44px, foco visível) ────────────*/
+  .list { list-style:none; margin:0; padding:0; }
+  .row {
+    display:flex; align-items:center; gap:10px; width:100%;
+    padding:12px 16px; min-height:44px; background:transparent; border:none;
+    cursor:pointer; text-align:left; font:inherit; font-size:13px; color:var(--c-text);
+    border-bottom:1px solid #f0f0f0; transition:background .12s;
+  }
+  .row:hover { background:#edf2f7; }
+  .row:focus-visible { outline:2px solid var(--c-focus); outline-offset:-2px; }
+  .row--selected { background:var(--c-primary-bg); color:var(--c-primary); font-weight:500; }
+  .row__num { font-weight:600; min-width:46px; }
+  .row__name { color:var(--c-text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .row--selected .row__name { color:inherit; }
+  .swatch { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+  .count-pill { font-size:12px; color:var(--c-muted); background:#edf2f7; border-radius:10px; padding:2px 8px; margin-left:auto; }
+
+  /* ── Seções de relação ─────────────────────────────────────────────────────*/
+  .sec { border-bottom:1px solid #f0f0f0; }
+  .sec__head {
+    display:flex; align-items:center; gap:8px; width:100%; padding:12px 16px;
+    min-height:44px; background:transparent; border:none; cursor:pointer;
+    font:inherit; font-size:13px; font-weight:600; color:var(--c-text); text-align:left;
+  }
+  .sec__head:hover { background:var(--c-bg); }
+  .sec__head:focus-visible { outline:2px solid var(--c-focus); outline-offset:-2px; }
+  .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .sec__count { font-weight:400; color:var(--c-muted); font-size:12px; }
+  .chev { margin-left:auto; color:#a0aec0; display:flex; }
+
+  /* ── "Linhas no mapa" (chips/footer) ───────────────────────────────────────*/
+  .selected-title { margin:0 0 8px; font-size:12px; font-weight:600; color:var(--c-text-2); text-transform:uppercase; letter-spacing:.05em; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip {
+    display:inline-flex; align-items:center; gap:6px; padding:6px 8px 6px 8px;
+    background:#fff; border:1px solid var(--c-border); border-radius:16px; font-size:13px;
+  }
+  .chip__x {
+    display:grid; place-items:center; width:20px; height:20px; border:none;
+    background:none; color:var(--c-muted); cursor:pointer; border-radius:50%;
+  }
+  .chip__x:hover { background:#fff5f5; color:#e53e3e; }
+  .chip__x:focus-visible { outline:2px solid var(--c-focus); }
+
+  .empty-hint { padding:24px 16px; color:var(--c-muted); font-size:13px; text-align:center; line-height:1.6; }
+
+  /* chips sobre o mapa (layout B) */
+  .map__chipbar {
+    position:absolute; top:12px; left:12px; right:54px; z-index:6;
+    display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+    background:rgba(255,255,255,.92); backdrop-filter:blur(4px);
+    padding:8px 10px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.12);
+  }
+  .map__chipbar .selected-title { margin:0 6px 0 2px; }
+
+  /* legenda */
+  .legend {
+    position:absolute; bottom:24px; left:12px; z-index:6;
+    background:rgba(255,255,255,.92); backdrop-filter:blur(4px);
+    padding:10px 12px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,.12); font-size:12px;
+  }
+  .legend h4 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--c-muted); }
+  .legend div { display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .legend .bar { width:18px; height:3px; border-radius:2px; }
+</style>
+</head>
+<body>
+
+<nav class="switcher">
+  <strong>Linhas BH · mockups</strong>
+  <button data-target="A" class="active">A · Header + tabs + footer</button>
+  <button data-target="B">B · Chips no mapa</button>
+  <button data-target="C">C · Só ordem + scroll</button>
+  <span class="note">mockup estático — clique nas linhas pra ver estados</span>
+</nav>
+
+<div class="stage">
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════╗
+       ║  LAYOUT A — header sticky + tabs (bairro/linha) + footer fixo          ║
+       ╚══════════════════════════════════════════════════════════════════════╝ -->
+  <div class="layout active" id="layout-A">
+    <aside class="side">
+      <div class="side__header">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>
+        <h1>Linhas de BH</h1>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="active" role="tab" aria-selected="true" onclick="setTab('A',0)">Por bairro</button>
+        <button role="tab" aria-selected="false" onclick="setTab('A',1)">Por linha</button>
+      </div>
+
+      <div class="side__scroll">
+        <!-- tab: por bairro -->
+        <div data-tab="A-0">
+          <div class="field"><input class="input" type="search" placeholder="Buscar bairro…" value="Savassi" /></div>
+          <div class="sec">
+            <button class="sec__head"><span class="dot" style="background:var(--d-passes)"></span> Passa por aqui <span class="sec__count">(2)</span><span class="chev">▾</span></button>
+            <ul class="list">
+              <li><button class="row row--selected"><span class="swatch" style="background:var(--l0)"></span><span class="row__num">9400</span><span class="row__name">Estação Diamante / Savassi</span></button></li>
+              <li><button class="row"><span class="row__num">64</span><span class="row__name">Cidade Nova / Funcionários</span></button></li>
+            </ul>
+          </div>
+          <div class="sec">
+            <button class="sec__head"><span class="dot" style="background:var(--d-departs)"></span> Parte daqui <span class="sec__count">(1)</span><span class="chev">▾</span></button>
+            <ul class="list">
+              <li><button class="row row--selected"><span class="swatch" style="background:var(--l1)"></span><span class="row__num">SC02</span><span class="row__name">Savassi / Centro circular</span></button></li>
+            </ul>
+          </div>
+          <div class="sec">
+            <button class="sec__head"><span class="dot" style="background:var(--d-arrives)"></span> Chega aqui <span class="sec__count">(1)</span><span class="chev">▾</span></button>
+            <ul class="list">
+              <li><button class="row"><span class="row__num">8101</span><span class="row__name">Pampulha / Savassi</span></button></li>
+            </ul>
+          </div>
+        </div>
+        <!-- tab: por linha (oculta) -->
+        <div data-tab="A-1" style="display:none">
+          <div class="field"><input class="input" type="search" placeholder="Buscar linha (ex.: 9400)" /></div>
+          <ul class="list">
+            <li><button class="row"><span class="row__num">9400</span><span class="row__name">Estação Diamante / Savassi</span></button></li>
+            <li><button class="row"><span class="row__num">9401</span><span class="row__name">Estação Diamante / Centro</span></button></li>
+            <li><button class="row"><span class="row__num">9500</span><span class="row__name">Estação Barreiro / Savassi</span></button></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="side__footer">
+        <h2 class="selected-title">Linhas no mapa (3)</h2>
+        <div class="chips">
+          <span class="chip"><span class="swatch" style="background:var(--l0)"></span>9400 <button class="chip__x">✕</button></span>
+          <span class="chip"><span class="swatch" style="background:var(--l1)"></span>SC02 <button class="chip__x">✕</button></span>
+          <span class="chip"><span class="swatch" style="background:var(--l2)"></span>64 <button class="chip__x">✕</button></span>
+        </div>
+      </div>
+    </aside>
+    <div class="map"><div class="map__lines">
+      <svg width="100%" height="100%" style="position:absolute;inset:0"><path d="M120,420 C260,300 380,360 520,220 720,40 760,260 900,180" stroke="var(--l0)" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M80,160 C240,260 420,200 560,320 700,420 820,360 940,440" stroke="var(--l1)" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/><path d="M200,500 C320,420 460,460 600,400 760,330 820,460 980,420" stroke="var(--l2)" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/></svg>
+    </div>
+      <div class="map__ctrls"><button>+</button><button>−</button></div>
+      <div class="legend"><h4>Ênfase</h4><div><span class="bar" style="background:#1a202c;height:5px"></span> Linha em foco</div><div><span class="bar" style="background:#1a202c;opacity:.5"></span> Outras selecionadas</div></div>
+      <div class="map__attrib">Dados: PBH/GTFS · Atualizado em 26/05/2026</div>
+    </div>
+  </div>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════╗
+       ║  LAYOUT B — sidebar enxuta + chips sobrepostos no mapa                  ║
+       ╚══════════════════════════════════════════════════════════════════════╝ -->
+  <div class="layout" id="layout-B">
+    <aside class="side">
+      <div class="side__header">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>
+        <h1>Linhas de BH</h1>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="active" role="tab" onclick="setTab('B',0)">Por bairro</button>
+        <button role="tab" onclick="setTab('B',1)">Por linha</button>
+      </div>
+      <div class="side__scroll">
+        <div data-tab="B-0">
+          <div class="field"><input class="input" type="search" placeholder="Buscar bairro…" value="Savassi" /></div>
+          <div class="sec">
+            <button class="sec__head"><span class="dot" style="background:var(--d-passes)"></span> Passa por aqui <span class="sec__count">(2)</span><span class="chev">▾</span></button>
+            <ul class="list">
+              <li><button class="row row--selected"><span class="swatch" style="background:var(--l0)"></span><span class="row__num">9400</span><span class="row__name">Estação Diamante / Savassi</span></button></li>
+              <li><button class="row"><span class="row__num">64</span><span class="row__name">Cidade Nova / Funcionários</span></button></li>
+            </ul>
+          </div>
+          <div class="sec">
+            <button class="sec__head"><span class="dot" style="background:var(--d-departs)"></span> Parte daqui <span class="sec__count">(1)</span><span class="chev">▾</span></button>
+            <ul class="list">
+              <li><button class="row row--selected"><span class="swatch" style="background:var(--l1)"></span><span class="row__num">SC02</span><span class="row__name">Savassi / Centro circular</span></button></li>
+            </ul>
+          </div>
+          <div class="sec">
+            <button class="sec__head"><span class="dot" style="background:var(--d-arrives)"></span> Chega aqui <span class="sec__count">(1)</span><span class="chev">▾</span></button>
+            <ul class="list"><li><button class="row"><span class="row__num">8101</span><span class="row__name">Pampulha / Savassi</span></button></li></ul>
+          </div>
+        </div>
+        <div data-tab="B-1" style="display:none">
+          <div class="field"><input class="input" type="search" placeholder="Buscar linha (ex.: 9400)" /></div>
+          <ul class="list">
+            <li><button class="row"><span class="row__num">9400</span><span class="row__name">Estação Diamante / Savassi</span></button></li>
+            <li><button class="row"><span class="row__num">9401</span><span class="row__name">Estação Diamante / Centro</span></button></li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+    <div class="map">
+      <div class="map__chipbar">
+        <span class="selected-title">No mapa (3):</span>
+        <span class="chip"><span class="swatch" style="background:var(--l0)"></span>9400 <button class="chip__x">✕</button></span>
+        <span class="chip"><span class="swatch" style="background:var(--l1)"></span>SC02 <button class="chip__x">✕</button></span>
+        <span class="chip"><span class="swatch" style="background:var(--l2)"></span>64 <button class="chip__x">✕</button></span>
+      </div>
+      <div class="map__lines">
+        <svg width="100%" height="100%" style="position:absolute;inset:0"><path d="M120,420 C260,300 380,360 520,220 720,40 760,260 900,180" stroke="var(--l0)" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M80,160 C240,260 420,200 560,320 700,420 820,360 940,440" stroke="var(--l1)" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/><path d="M200,500 C320,420 460,460 600,400 760,330 820,460 980,420" stroke="var(--l2)" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/></svg>
+      </div>
+      <div class="map__ctrls"><button>+</button><button>−</button></div>
+      <div class="map__attrib">Dados: PBH/GTFS · Atualizado em 26/05/2026</div>
+    </div>
+  </div>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════╗
+       ║  LAYOUT C — mínimo: título no topo, scroll único, footer sticky        ║
+       ╚══════════════════════════════════════════════════════════════════════╝ -->
+  <div class="layout" id="layout-C">
+    <aside class="side">
+      <div class="side__header">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>
+        <h1>Linhas de BH</h1>
+      </div>
+      <div class="side__scroll">
+        <div class="field" style="padding-bottom:6px"><input class="input" type="search" placeholder="Buscar bairro…" value="Savassi" /></div>
+        <div class="field" style="padding-top:6px"><input class="input" type="search" placeholder="Buscar linha (ex.: 9400)" /></div>
+        <div class="sec">
+          <button class="sec__head"><span class="dot" style="background:var(--d-passes)"></span> Passa por aqui <span class="sec__count">(2)</span><span class="chev">▾</span></button>
+          <ul class="list">
+            <li><button class="row row--selected"><span class="swatch" style="background:var(--l0)"></span><span class="row__num">9400</span><span class="row__name">Estação Diamante / Savassi</span></button></li>
+            <li><button class="row"><span class="row__num">64</span><span class="row__name">Cidade Nova / Funcionários</span></button></li>
+          </ul>
+        </div>
+        <div class="sec">
+          <button class="sec__head"><span class="dot" style="background:var(--d-departs)"></span> Parte daqui <span class="sec__count">(1)</span><span class="chev">▾</span></button>
+          <ul class="list"><li><button class="row row--selected"><span class="swatch" style="background:var(--l1)"></span><span class="row__num">SC02</span><span class="row__name">Savassi / Centro circular</span></button></li></ul>
+        </div>
+        <div class="sec">
+          <button class="sec__head"><span class="dot" style="background:var(--d-arrives)"></span> Chega aqui <span class="sec__count">(1)</span><span class="chev">▾</span></button>
+          <ul class="list"><li><button class="row"><span class="row__num">8101</span><span class="row__name">Pampulha / Savassi</span></button></li></ul>
+        </div>
+      </div>
+      <div class="side__footer">
+        <h2 class="selected-title">Linhas no mapa (3)</h2>
+        <div class="chips">
+          <span class="chip"><span class="swatch" style="background:var(--l0)"></span>9400 <button class="chip__x">✕</button></span>
+          <span class="chip"><span class="swatch" style="background:var(--l1)"></span>SC02 <button class="chip__x">✕</button></span>
+          <span class="chip"><span class="swatch" style="background:var(--l2)"></span>64 <button class="chip__x">✕</button></span>
+        </div>
+      </div>
+    </aside>
+    <div class="map"><div class="map__lines">
+      <svg width="100%" height="100%" style="position:absolute;inset:0"><path d="M120,420 C260,300 380,360 520,220 720,40 760,260 900,180" stroke="var(--l0)" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M80,160 C240,260 420,200 560,320 700,420 820,360 940,440" stroke="var(--l1)" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/><path d="M200,500 C320,420 460,460 600,400 760,330 820,460 980,420" stroke="var(--l2)" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/></svg>
+    </div>
+      <div class="map__ctrls"><button>+</button><button>−</button></div>
+      <div class="map__attrib">Dados: PBH/GTFS · Atualizado em 26/05/2026</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // troca de layout
+  document.querySelectorAll('.switcher button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.switcher button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.layout').forEach(l => l.classList.remove('active'));
+      document.getElementById('layout-' + btn.dataset.target).classList.add('active');
+    });
+  });
+  // troca de tab (bairro/linha) dentro de A e B
+  function setTab(layout, idx) {
+    const tabs = document.querySelectorAll('#layout-' + layout + ' .tabs button');
+    tabs.forEach((t,i) => t.classList.toggle('active', i === idx));
+    document.querySelector('#layout-' + layout + ' [data-tab="'+layout+'-0"]').style.display = idx === 0 ? '' : 'none';
+    document.querySelector('#layout-' + layout + ' [data-tab="'+layout+'-1"]').style.display = idx === 1 ? '' : 'none';
+  }
+</script>
+</body>
+</html>
