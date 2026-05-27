@@ -152,6 +152,35 @@ class GeoJsonBoundaryParserTest {
                 .isInstanceOf(BoundaryParseException.class);
     }
 
+    // ── 3.1b' CRS reprojection (UTM → WGS84) ─────────────────────────────────────
+
+    @Test
+    void reprojectsUtm23SBoundaryToWgs84() {
+        // crs EPSG:32723 (WGS84 / UTM zone 23S) with a polygon in projected metres
+        // near Belo Horizonte. Must be reprojected to WGS84 lon/lat at parse time.
+        String json = "{\"type\":\"FeatureCollection\"," +
+                "\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"urn:ogc:def:crs:EPSG::32723\"}}," +
+                "\"features\":[{\"type\":\"Feature\",\"properties\":{\"NOME\":\"Ipiranga\"}," +
+                "\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[" +
+                "[612191.10,7801958.38],[612300.00,7801958.38]," +
+                "[612300.00,7802100.00],[612191.10,7801958.38]]]}}]}";
+
+        List<Neighborhood> result = parser.parse(json.getBytes(StandardCharsets.UTF_8));
+
+        assertThat(result).hasSize(1);
+        String geo = result.get(0).boundaryGeoJson();
+        // Reprojected to BH WGS84 range; raw UTM eastings/northings must be gone.
+        assertThat(geo).contains("-43.9").contains("-19.8");
+        assertThat(geo).doesNotContain("612191").doesNotContain("7801958");
+    }
+
+    @Test
+    void extractEpsgCodeParsesUrnAndShortForms() {
+        assertThat(GeoJsonBoundaryParser.extractEpsgCode("urn:ogc:def:crs:EPSG::32723")).isEqualTo(32723);
+        assertThat(GeoJsonBoundaryParser.extractEpsgCode("EPSG:4326")).isEqualTo(4326);
+        assertThat(GeoJsonBoundaryParser.extractEpsgCode("CRS84")).isNull();
+    }
+
     // ── 3.1c Structural error cases ──────────────────────────────────────────────
 
     @Test

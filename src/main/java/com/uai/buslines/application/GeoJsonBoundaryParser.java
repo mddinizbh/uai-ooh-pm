@@ -2,6 +2,8 @@ package com.uai.buslines.application;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.DoubleNode;
 import com.uai.buslines.domain.model.BoundaryParseException;
 import com.uai.buslines.domain.model.Neighborhood;
 import org.springframework.stereotype.Component;
@@ -9,6 +11,8 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Stateless parser that converts a raw GeoJSON {@code FeatureCollection} byte array
@@ -47,6 +51,10 @@ public class GeoJsonBoundaryParser {
             "NOME", "nome", "Nome", "NAME", "name"
     );
 
+    /** Extracts the numeric EPSG code from a CRS name (e.g. "urn:ogc:def:crs:EPSG::32723"). */
+    private static final Pattern EPSG_PATTERN =
+            Pattern.compile("EPSG[^0-9]*([0-9]{4,6})", Pattern.CASE_INSENSITIVE);
+
     private final ObjectMapper objectMapper;
 
     public GeoJsonBoundaryParser(ObjectMapper objectMapper) {
@@ -73,11 +81,13 @@ public class GeoJsonBoundaryParser {
                     "Failed to parse boundary file as JSON: " + e.getMessage(), e);
         }
 
-        // Validate CRS if present (old-style GeoJSON 2008 CRS member)
+        // Determine the source CRS (old-style GeoJSON 2008 CRS member). RFC 7946
+        // GeoJSON has no CRS member and defaults to WGS84. Non-WGS84 sources are
+        // reprojected to WGS84 at parse time (ADR-003).
         JsonNode crsNode = root.get("crs");
-        if (crsNode != null && !crsNode.isNull()) {
-            validateCrs(crsNode);
-        }
+        CrsReprojector reproj = (crsNode != null && !crsNode.isNull())
+                ? buildReprojector(crsNode)
+                : CrsReprojector.identity();
 
         String type = root.path("type").asText("");
         if (!"FeatureCollection".equals(type)) {
@@ -93,7 +103,7 @@ public class GeoJsonBoundaryParser {
 
         List<Neighborhood> neighborhoods = new ArrayList<>();
         for (int i = 0; i < features.size(); i++) {
-            Neighborhood n = parseFeature(features.get(i), i);
+            Neighborhood n = parseFeature(features.get(i), i, reproj);
             if (n != null) {
                 neighborhoods.add(n);
             }
@@ -101,20 +111,33 @@ public class GeoJsonBoundaryParser {
         return neighborhoods;
     }
 
-    // ── CRS validation ──────────────────────────────────────────────────────────
+    // ── CRS handling ──────────────────────────────────────────────────────────
 
-    private void validateCrs(JsonNode crsNode) {
+    /**
+     * Builds a {@link CrsReprojector} from a GeoJSON 2008 CRS member. WGS84 CRS
+     * names yield an identity reprojector; recognised projected CRS yield a real
+     * transform; unreadable or unsupported names fail.
+     */
+    private CrsReprojector buildReprojector(JsonNode crsNode) {
         // Old GeoJSON CRS object: {"type": "name", "properties": {"name": "..."}}
         String crsName = crsNode.path("properties").path("name").asText("").trim();
-        if (crsName.isEmpty()) {
-            // Present but unreadable format — treat as lenient (do not reject)
-            return;
+        if (crsName.isEmpty() || isWgs84Crs(crsName)) {
+            // Absent/unreadable or already WGS84 — pass coordinates through unchanged.
+            return CrsReprojector.identity();
         }
-        if (!isWgs84Crs(crsName)) {
+        Integer epsg = extractEpsgCode(crsName);
+        if (epsg == null) {
             throw new BoundaryParseException(
-                    "Boundary file CRS is not WGS84 (EPSG:4326). Found: '" + crsName
-                    + "'. Only WGS84 boundaries are supported (ADR-003).");
+                    "Boundary file declares an unrecognised CRS '" + crsName
+                    + "'. Cannot determine how to reproject to WGS84 (ADR-003).");
         }
+        return CrsReprojector.forEpsg(epsg);
+    }
+
+    /** Extracts the EPSG numeric code from a CRS name, or {@code null} if none. */
+    static Integer extractEpsgCode(String crsName) {
+        Matcher m = EPSG_PATTERN.matcher(crsName);
+        return m.find() ? Integer.parseInt(m.group(1)) : null;
     }
 
     /**
@@ -133,7 +156,7 @@ public class GeoJsonBoundaryParser {
 
     // ── Feature parsing ─────────────────────────────────────────────────────────
 
-    private Neighborhood parseFeature(JsonNode feature, int index) {
+    private Neighborhood parseFeature(JsonNode feature, int index, CrsReprojector reproj) {
         JsonNode geometry = feature.path("geometry");
 
         // Skip features with null or missing geometry (common in PBH summary rows)
@@ -150,6 +173,11 @@ public class GeoJsonBoundaryParser {
 
         String name = extractName(feature.path("properties"), index);
 
+        // Reproject coordinates to WGS84 in place when the source CRS is projected.
+        if (!reproj.isIdentity()) {
+            reprojectCoordinates(geometry.path("coordinates"), reproj);
+        }
+
         String boundaryGeoJson;
         try {
             boundaryGeoJson = objectMapper.writeValueAsString(geometry);
@@ -160,6 +188,30 @@ public class GeoJsonBoundaryParser {
         }
 
         return new Neighborhood(name, boundaryGeoJson);
+    }
+
+    /**
+     * Recursively reprojects a GeoJSON {@code coordinates} node to WGS84 in place.
+     * Leaf positions ({@code [x, y]}) are transformed; nested arrays are recursed.
+     */
+    private void reprojectCoordinates(JsonNode coordinates, CrsReprojector reproj) {
+        if (!coordinates.isArray()) {
+            return;
+        }
+        ArrayNode arr = (ArrayNode) coordinates;
+        if (arr.size() >= 2 && arr.get(0).isNumber() && arr.get(1).isNumber()) {
+            double[] lonLat = reproj.toWgs84(arr.get(0).asDouble(), arr.get(1).asDouble());
+            arr.set(0, DoubleNode.valueOf(round7(lonLat[0])));
+            arr.set(1, DoubleNode.valueOf(round7(lonLat[1])));
+            return;
+        }
+        for (JsonNode child : arr) {
+            reprojectCoordinates(child, reproj);
+        }
+    }
+
+    private static double round7(double v) {
+        return Math.round(v * 1e7) / 1e7;
     }
 
     /**
