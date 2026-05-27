@@ -26,6 +26,72 @@ cobertura de transporte.
 
 ---
 
+## 1.1 Posicionamento comercial & personas
+
+A ferramenta deixa de ser um "explorador cívico genérico" e passa a ter um propósito
+comercial: **sales enablement para venda de mídia OOH (out-of-home) em ônibus**. O
+argumento de venda de mídia em ônibus é **alcance + perfil de audiência**, e é exatamente
+isso que o cruzamento linha × densidade × renda entrega.
+
+### Personas
+| Persona | Quem é | Dor | Ganho com a ferramenta |
+|---------|--------|-----|------------------------|
+| **Vívian (usuária principal)** | Vendedora de mídia OOH em ônibus | Justificar preço, se diferenciar, fechar campanhas | Argumento visual de alcance/perfil; "media kit" por linha como arma de fechamento |
+| **Empresa de mídia OOH (compradora)** | Empregadora da Vívian | Aumentar ticket médio e taxa de conversão da equipe | Equipe inteira vende melhor; diferenciação no mercado |
+| **Anunciante / agência (usuário indireto)** | Quem compra a campanha | Provar ROI/alcance do investimento | Vê quais bairros/perfis a campanha atinge |
+
+### Diferencial de venda
+Reposiciona a conversa de "compre um busdoor" para **"compre a linha que cobre o seu
+público-alvo"** — ex.: *"esta linha passa por X bairros de classe A/B somando Y mil
+habitantes de alta densidade"*. Justifica preço e dá poder de convencimento.
+
+### ⚠️ Honestidade sobre a métrica (importante para o roadmap)
+Densidade populacional = **demanda residencial**, não **exposição do anúncio**. Quem compra
+OOH quer **impressões / OTS** (quantas pessoas veem o anúncio = passageiros da mídia interna
++ fluxo de pedestres/carros do busdoor externo). Densidade é um ótimo *proxy* e gancho de
+venda, mas o número que fecha campanha é "impactos estimados". Evolução futura: cruzar
+densidade com ridership do GTFS / pontos de maior movimento. **A classe de renda (A/B/C/D)
+tende a ser o atributo mais vendável** — anunciante quer poder de compra do público; deixar
+bem visível e filtrável.
+
+### Entregável comercial adicional
+Além do mapa interativo, um **"media kit por linha" exportável (PDF/print)**: bairros
+servidos, população alcançada, perfil de renda — material de fechamento da Vívian.
+
+---
+
+## 1.2 Modelo de negócio & precificação
+
+**Recomendação: assinatura (SaaS), não venda única.** Os dados envelhecem (GTFS, censo,
+novas linhas) → o valor é contínuo, o que justifica recorrência, gera receita previsível e
+mantém a ferramenta viva. Precificação **por valor** (ancorada no tamanho da campanha), não
+por custo de desenvolvimento.
+
+> **Âncora de valor:** se uma campanha OOH em BH fecha em dezenas de milhares de reais, uma
+> mensalidade < ~5% de **uma** campanha fechada se paga facilmente ("fecha uma campanha a
+> mais no ano e já valeu").
+
+| Modelo | Faixa (BRL) | Quando usar |
+|--------|-------------|-------------|
+| Setup / onboarding (one-time) | R$ 3k – 8k | branding, carga de dados, treinamento |
+| Plano individual (só a Vívian) | R$ 300 – 500 /mês | validação inicial |
+| Plano equipe / empresa (multi-seller + export media kit + marca própria) | R$ 990 – 2.000 /mês | expansão para a empresa |
+| Venda sob medida (cliente quer ser dono do software) | R$ 25k – 50k + R$ 500 – 1k /mês manutenção | se exigirem propriedade |
+
+**Variáveis que alteram o preço:** tamanho da empresa / nº de vendedores; **exclusividade**
+(cidade ou segmento → cobra prêmio); responsabilidade pela atualização dos dados; SaaS
+(você dono) vs. venda (cliente dono).
+
+**Estratégia recomendada — land & expand:**
+1. Começar **barato ou 1–2 meses grátis com a Vívian**, em troca de feedback e de um **case**
+   de campanha fechada com a ferramenta.
+2. Levar à empresa dela com **plano de equipe + setup**, usando o resultado da Vívian como
+   prova de valor. (Vender direto à empresa "no escuro" é mais difícil.)
+
+**Nota:** dados de base (IBGE/PBH/GTFS) são abertos — sem custo de licenciamento de dados.
+
+---
+
 ## 2. Decisões já tomadas
 
 | Tema | Decisão |
