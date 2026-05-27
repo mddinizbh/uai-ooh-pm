@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { MapView } from './MapView';
+import { lineColor } from '../utils/mapLayers';
 import type { LineDetail } from '../api/types';
 
 // Use the __mocks__/maplibre-gl.ts manual mock
@@ -106,6 +107,61 @@ describe('MapView', () => {
 
     expect(map.removeLayer).toHaveBeenCalledWith('line-layer-1');
     expect(map.removeSource).toHaveBeenCalledWith('line-source-1');
+  });
+
+  describe('integration: deterministic color from lineId', () => {
+    it('each line is rendered with lineColor(lineId) — derived from identity, not position', () => {
+      const selected = makeSelectedLines(DETAIL_1, DETAIL_2);
+      render(<MapView selectedLines={selected} activeLineId={null} />);
+
+      const map = getMockMap();
+
+      const line1Call = map.addLayer.mock.calls.find(
+        (c: unknown[]) => (c[0] as { id: string }).id === 'line-layer-1',
+      );
+      const line2Call = map.addLayer.mock.calls.find(
+        (c: unknown[]) => (c[0] as { id: string }).id === 'line-layer-2',
+      );
+
+      expect(line1Call).toBeDefined();
+      expect(line2Call).toBeDefined();
+
+      const color1 = (line1Call![0] as { paint: Record<string, string> }).paint['line-color'];
+      const color2 = (line2Call![0] as { paint: Record<string, string> }).paint['line-color'];
+
+      expect(color1).toBe(lineColor(1));
+      expect(color2).toBe(lineColor(2));
+    });
+
+    it('line B color is unchanged after line A is deselected (stable on removal)', () => {
+      const { rerender } = render(
+        <MapView selectedLines={makeSelectedLines(DETAIL_1, DETAIL_2)} activeLineId={null} />,
+      );
+      const map = getMockMap();
+
+      // Capture line 2's color at the time it was first added
+      const line2Call = map.addLayer.mock.calls.find(
+        (c: unknown[]) => (c[0] as { id: string }).id === 'line-layer-2',
+      );
+      expect(line2Call).toBeDefined();
+      const colorWhenAdded = (line2Call![0] as { paint: Record<string, string> }).paint['line-color'];
+      expect(colorWhenAdded).toBe(lineColor(2));
+
+      // Deselect line 1 — only line 2 remains
+      map.getLayer.mockReturnValue({ id: 'exists' });
+      map.getSource.mockReturnValue({ type: 'geojson' });
+      const addLayerCallCountBefore = map.addLayer.mock.calls.length;
+
+      act(() => {
+        rerender(<MapView selectedLines={makeSelectedLines(DETAIL_2)} activeLineId={null} />);
+      });
+
+      // Line 2 should NOT have been re-added (already rendered — no color shift)
+      expect(map.addLayer).toHaveBeenCalledTimes(addLayerCallCountBefore);
+
+      // The color originally assigned is still the lineId-derived color — stable
+      expect(colorWhenAdded).toBe(lineColor(2));
+    });
   });
 
   describe('multi-line emphasis', () => {
