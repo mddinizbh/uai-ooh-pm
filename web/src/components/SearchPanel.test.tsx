@@ -40,6 +40,11 @@ describe('SearchPanel', () => {
       expect(screen.getByRole('searchbox')).toBeInTheDocument();
     });
 
+    it('does not render an h1 title', () => {
+      renderPanel();
+      expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+    });
+
     it('loads all lines on mount (empty query)', async () => {
       renderPanel();
       await waitFor(() => {
@@ -103,6 +108,31 @@ describe('SearchPanel', () => {
         expect(screen.getByText(/nenhuma linha encontrada/i)).toBeInTheDocument();
       });
     });
+
+    it('shows animated Lucide loader when fetching line detail', async () => {
+      // Block the line detail endpoint so loading state is visible
+      server.use(
+        http.get('/api/lines/:id', () => new Promise(() => {})),
+      );
+
+      const user = userEvent.setup();
+      renderPanel();
+
+      // Wait for results to load
+      await waitFor(() => screen.getByText(LINE_9400.shortName));
+
+      // Click a line to trigger detail fetch (will hang)
+      await user.click(screen.getByText(LINE_9400.shortName).closest('button')!);
+
+      // Spinner should appear: a Lucide SVG with aria-hidden
+      await waitFor(() => {
+        const spinner = document.querySelector('.search-panel__spinner');
+        expect(spinner).toBeTruthy();
+        expect(spinner?.getAttribute('aria-hidden')).toBe('true');
+        // No raw glyph text — it's an SVG, not a span with '…'
+        expect(spinner?.tagName.toLowerCase()).not.toBe('span');
+      });
+    });
   });
 
   describe('line selection', () => {
@@ -155,6 +185,40 @@ describe('SearchPanel', () => {
         expect(lineBtn).toHaveAttribute('aria-pressed', 'true');
       });
     });
+
+    it('shows a color swatch on selected line rows', async () => {
+      const selectedLines = new Map([[LINE_9400.id, LINE_9400_DETAIL]]);
+      renderPanel({ selectedLines });
+
+      // Wait for results to render
+      await waitFor(() => screen.getByText(LINE_9400.shortName));
+
+      // Swatch should be present on the selected row
+      const swatch = document.querySelector('.line-swatch');
+      expect(swatch).toBeTruthy();
+      expect(swatch?.getAttribute('aria-hidden')).toBe('true');
+      // Swatch has an inline background color
+      expect((swatch as HTMLElement)?.style.background).toBeTruthy();
+    });
+
+    it('does not show a swatch on non-selected line rows', async () => {
+      renderPanel(); // no selectedLines
+
+      await waitFor(() => screen.getByText(LINE_9400.shortName));
+
+      // No swatches when nothing is selected
+      expect(document.querySelector('.line-swatch')).toBeNull();
+    });
+  });
+
+  describe('selected lines list removed', () => {
+    it('does not render a "Linhas no mapa" section even when lines are selected', () => {
+      const selectedLines = new Map([[LINE_9400.id, LINE_9400_DETAIL]]);
+      renderPanel({ selectedLines });
+      // The selected-lines section has been moved to SelectedLinesBar (task_04/05)
+      expect(screen.queryByLabelText(/linhas selecionadas/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/linhas no mapa/i)).not.toBeInTheDocument();
+    });
   });
 
   describe('error handling', () => {
@@ -187,34 +251,6 @@ describe('SearchPanel', () => {
         // Error is shown, not blank
         expect(screen.getByRole('alert')).toBeInTheDocument();
       });
-    });
-  });
-
-  describe('selected lines list', () => {
-    it('shows selected lines section when lines are selected', () => {
-      const selectedLines = new Map([[LINE_9400.id, LINE_9400_DETAIL]]);
-      renderPanel({ selectedLines });
-
-      expect(screen.getByLabelText(/linhas selecionadas/i)).toBeInTheDocument();
-    });
-
-    it('does not show selected lines section when none are selected', () => {
-      renderPanel();
-      expect(screen.queryByLabelText(/linhas selecionadas/i)).not.toBeInTheDocument();
-    });
-
-    it('calls onDeselectLine when remove button is clicked', async () => {
-      const onDeselectLine = vi.fn();
-      const selectedLines = new Map([[LINE_9400.id, LINE_9400_DETAIL]]);
-      const user = userEvent.setup();
-      renderPanel({ selectedLines, onDeselectLine });
-
-      const removeBtn = screen.getByRole('button', {
-        name: new RegExp(`remover linha ${LINE_9400.shortName}`, 'i'),
-      });
-      await user.click(removeBtn);
-
-      expect(onDeselectLine).toHaveBeenCalledWith(LINE_9400.id);
     });
   });
 });
