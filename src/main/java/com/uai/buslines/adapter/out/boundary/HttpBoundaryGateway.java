@@ -28,6 +28,9 @@ class HttpBoundaryGateway implements BoundaryGateway {
 
     private static final Logger log = LoggerFactory.getLogger(HttpBoundaryGateway.class);
 
+    /** Identifies the app to data-provider WAFs (ckan.pbh.gov.br rejects the default Java UA). */
+    static final String USER_AGENT = "uai-buslines/1.0 (+https://linhas.uaiagencia.com.br)";
+
     private final BoundaryProperties props;
     private final GeoJsonBoundaryParser parser;
     private final RawBoundaryClient httpClient;
@@ -45,6 +48,7 @@ class HttpBoundaryGateway implements BoundaryGateway {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(Duration.ofSeconds(props.requestTimeoutSeconds()))
+                    .header("User-Agent", USER_AGENT)
                     .GET()
                     .build();
             HttpResponse<byte[]> resp =

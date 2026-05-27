@@ -31,6 +31,9 @@ class HttpGtfsFeedGateway implements GtfsFeedGateway {
 
     private static final Logger log = LoggerFactory.getLogger(HttpGtfsFeedGateway.class);
 
+    /** Identifies the app to data-provider WAFs that reject the default Java HTTP UA. */
+    static final String USER_AGENT = "uai-buslines/1.0 (+https://linhas.uaiagencia.com.br)";
+
     private final GtfsFeedProperties props;
     private final RawHttpClient      httpClient;
 
@@ -46,6 +49,7 @@ class HttpGtfsFeedGateway implements GtfsFeedGateway {
             HttpRequest.Builder rb = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(Duration.ofSeconds(props.requestTimeoutSeconds()))
+                    .header("User-Agent", USER_AGENT)
                     .GET();
             if (ifNoneMatch != null && !ifNoneMatch.isBlank()) {
                 rb.header("If-None-Match", ifNoneMatch);
