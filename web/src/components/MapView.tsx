@@ -97,9 +97,9 @@ export function MapView({
 
     // Add newly selected lines
     const entries = Array.from(selectedLines.entries());
-    entries.forEach(([id, detail], index) => {
+    entries.forEach(([id, detail]) => {
       if (!rendered.has(id)) {
-        addLineLayer(map, id, detail, id === activeLineId, index);
+        addLineLayer(map, id, detail, id === activeLineId);
         rendered.add(id);
       }
     });

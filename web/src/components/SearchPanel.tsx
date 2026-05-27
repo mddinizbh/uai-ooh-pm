@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Loader2 } from 'lucide-react';
 import { busLinesApi, ApiClientError } from '../api/client';
+import { lineColor } from '../utils/mapLayers';
 import type { LineSummary, LineDetail } from '../api/types';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -78,10 +80,6 @@ export function SearchPanel({
 
   return (
     <aside className="search-panel" aria-label="Painel de busca de linhas">
-      <div className="search-panel__header">
-        <h1 className="search-panel__title">Linhas de BH</h1>
-      </div>
-
       <div className="search-panel__search">
         <label htmlFor="line-search" className="sr-only">
           Buscar linha por número ou nome
@@ -105,6 +103,7 @@ export function SearchPanel({
 
       {loading && (
         <div aria-live="polite" className="search-panel__loading">
+          <Loader2 size={14} aria-hidden="true" className="spinner" />
           Carregando…
         </div>
       )}
@@ -128,6 +127,13 @@ export function SearchPanel({
                     .filter(Boolean)
                     .join(' ')}
                 >
+                  {isSelected && (
+                    <span
+                      className="line-swatch"
+                      style={{ background: lineColor(line.id) }}
+                      aria-hidden="true"
+                    />
+                  )}
                   <span className="search-panel__line-number">
                     {line.shortName}
                   </span>
@@ -135,9 +141,11 @@ export function SearchPanel({
                     {line.longName}
                   </span>
                   {isLoadingThis && (
-                    <span aria-hidden="true" className="search-panel__spinner">
-                      …
-                    </span>
+                    <Loader2
+                      size={14}
+                      aria-hidden="true"
+                      className="search-panel__spinner spinner"
+                    />
                   )}
                 </button>
               </li>
@@ -149,32 +157,6 @@ export function SearchPanel({
             </li>
           )}
         </ul>
-      )}
-
-      {selectedLines.size > 0 && (
-        <section
-          className="search-panel__selected"
-          aria-label="Linhas selecionadas"
-        >
-          <h2 className="search-panel__selected-title">
-            Linhas no mapa ({selectedLines.size})
-          </h2>
-          <ul>
-            {Array.from(selectedLines.values()).map((detail) => (
-              <li key={detail.line.id} className="search-panel__selected-item">
-                <span>{detail.line.shortName}</span>
-                <button
-                  type="button"
-                  onClick={() => onDeselectLine(detail.line.id)}
-                  aria-label={`Remover linha ${detail.line.shortName}`}
-                  className="search-panel__remove-btn"
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
       )}
     </aside>
   );

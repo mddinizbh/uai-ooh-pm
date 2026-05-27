@@ -27,8 +27,8 @@ const LINE_COLORS = [
   '#00bcd4', // cyan
 ];
 
-export function lineColor(colorIndex: number): string {
-  return LINE_COLORS[colorIndex % LINE_COLORS.length];
+export function lineColor(lineId: number): string {
+  return LINE_COLORS[lineId % LINE_COLORS.length];
 }
 
 // ── Source/layer ID helpers ───────────────────────────────────────────────────
@@ -53,7 +53,6 @@ export function addLineLayer(
   lineId: number,
   detail: LineDetail,
   isActive: boolean,
-  colorIndex: number,
 ): void {
   const sid = sourceId(lineId);
   const lid = layerId(lineId);
@@ -81,7 +80,7 @@ export function addLineLayer(
       'line-cap': 'round',
     },
     paint: {
-      'line-color': lineColor(colorIndex),
+      'line-color': lineColor(lineId),
       'line-width': isActive ? ACTIVE_LINE_WIDTH : DIMMED_LINE_WIDTH,
       'line-opacity': isActive ? ACTIVE_LINE_OPACITY : DIMMED_LINE_OPACITY,
     },

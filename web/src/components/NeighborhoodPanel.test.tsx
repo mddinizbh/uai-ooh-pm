@@ -4,11 +4,23 @@
  * Uses MSW for API stubs when the panel fetches line details on click.
  */
 import { describe, it, expect, vi } from 'vitest';
+import { useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NeighborhoodPanel } from './NeighborhoodPanel';
 import type { NeighborhoodPanelProps } from './NeighborhoodPanel';
 import type { LineDetail } from '../api/types';
+import { lineColor } from '../utils/mapLayers';
+
+// ── Color helper ──────────────────────────────────────────────────────────────
+// jsdom normalizes hex colors to rgb() in style.background — convert before comparing.
+
+function hexToRgb(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgb(${r}, ${g}, ${b})`;
+}
 import {
   NEIGHBORHOOD_BELVEDERE,
   NEIGHBORHOOD_SAVASSI,
@@ -145,7 +157,7 @@ describe('NeighborhoodPanel — three relation sections', () => {
     expect(screen.getAllByText('9401')).not.toHaveLength(0);
   });
 
-  it('section collapses and re-expands on header click', async () => {
+  it('section collapses and re-expands on header click (aria-expanded toggles)', async () => {
     const user = userEvent.setup();
     render(<NeighborhoodPanel {...propsWithSelection} />);
 
@@ -157,6 +169,20 @@ describe('NeighborhoodPanel — three relation sections', () => {
     // Expand again
     await user.click(header);
     expect(header).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('section header uses a Lucide ChevronDown icon (SVG), not ▲/▼ glyphs', () => {
+    render(<NeighborhoodPanel {...propsWithSelection} />);
+
+    // No raw glyph characters
+    expect(screen.queryByText('▲')).not.toBeInTheDocument();
+    expect(screen.queryByText('▼')).not.toBeInTheDocument();
+
+    // Each section header contains an SVG (Lucide ChevronDown)
+    const header = screen.getByRole('button', { name: /Passa por aqui/i });
+    const svg = header.querySelector('svg');
+    expect(svg).toBeTruthy();
+    expect(svg?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('clicking a line in a section calls onSelectLine with its LineDetail', async () => {
@@ -214,6 +240,151 @@ describe('NeighborhoodPanel — three relation sections', () => {
       .find((b) => b.getAttribute('aria-pressed') !== null);
     expect(btn9401).toBeDefined();
     expect(btn9401?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('shows a color swatch on selected line rows', () => {
+    const selectedLines = new Map([[LINE_9400_DETAIL.line.id, LINE_9400_DETAIL]]);
+
+    render(
+      <NeighborhoodPanel
+        {...propsWithSelection}
+        selectedLines={selectedLines}
+      />,
+    );
+
+    // LINE_9400 (id=1) is in passesThrough — should have a swatch
+    const swatch = document.querySelector('.line-swatch');
+    expect(swatch).toBeTruthy();
+    expect(swatch?.getAttribute('aria-hidden')).toBe('true');
+    // Swatch color matches lineColor(LINE_9400.id) — jsdom normalizes hex→rgb
+    expect((swatch as HTMLElement)?.style.background).toBe(
+      hexToRgb(lineColor(LINE_9400_DETAIL.line.id)),
+    );
+  });
+
+  it('does not show a swatch on non-selected line rows', () => {
+    render(<NeighborhoodPanel {...propsWithSelection} />);
+    // No selectedLines — no swatches
+    expect(document.querySelector('.line-swatch')).toBeNull();
+  });
+});
+
+// ── Empty / first-run hint ────────────────────────────────────────────────────
+
+describe('NeighborhoodPanel — empty hint', () => {
+  it('shows the empty hint when there are no neighborhoods and nothing selected', () => {
+    render(
+      <NeighborhoodPanel
+        {...makeProps({
+          neighborhoods: [],
+          filteredNeighborhoods: [],
+          selectedLines: new Map(),
+          selectedNeighborhoodId: null,
+        })}
+      />,
+    );
+    expect(screen.getByText(/busque um bairro/i)).toBeInTheDocument();
+  });
+
+  it('does not show the empty hint when neighborhoods are available', () => {
+    render(<NeighborhoodPanel {...makeProps()} />);
+    expect(screen.queryByText(/busque um bairro/i)).not.toBeInTheDocument();
+  });
+
+  it('does not show the empty hint when a neighborhood is selected', () => {
+    render(
+      <NeighborhoodPanel
+        {...makeProps({
+          neighborhoods: [],
+          filteredNeighborhoods: [],
+          selectedNeighborhoodId: NEIGHBORHOOD_BELVEDERE.id,
+          neighborhoodLines: NEIGHBORHOOD_BELVEDERE_LINES,
+        })}
+      />,
+    );
+    expect(screen.queryByText(/busque um bairro/i)).not.toBeInTheDocument();
+  });
+
+  it('does not show the empty hint when lines are selected', () => {
+    render(
+      <NeighborhoodPanel
+        {...makeProps({
+          neighborhoods: [],
+          filteredNeighborhoods: [],
+          selectedLines: new Map([[LINE_9400_DETAIL.line.id, LINE_9400_DETAIL]]),
+        })}
+      />,
+    );
+    expect(screen.queryByText(/busque um bairro/i)).not.toBeInTheDocument();
+  });
+});
+
+// ── Integration: select/deselect cycle with swatch ───────────────────────────
+
+describe('NeighborhoodPanel — integration: select/deselect with swatch', () => {
+  it('selecting a line shows its swatch; deselecting removes it', async () => {
+    const user = userEvent.setup();
+
+    // Stateful wrapper to simulate App-level state management
+    function PanelWithState() {
+      const [selectedLines, setSelectedLines] = useState(
+        new Map<number, LineDetail>(),
+      );
+
+      const onSelectLine = (detail: LineDetail) => {
+        setSelectedLines((prev) => new Map(prev).set(detail.line.id, detail));
+      };
+
+      const onDeselectLine = (id: number) => {
+        setSelectedLines((prev) => {
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
+      };
+
+      return (
+        <NeighborhoodPanel
+          {...makeProps({
+            selectedNeighborhoodId: NEIGHBORHOOD_BELVEDERE.id,
+            neighborhoodLines: NEIGHBORHOOD_BELVEDERE_LINES,
+            selectedLines,
+            onSelectLine,
+            onDeselectLine,
+          })}
+        />
+      );
+    }
+
+    render(<PanelWithState />);
+
+    // Before selection: no swatch
+    expect(document.querySelector('.line-swatch')).toBeNull();
+
+    // Click to select LINE_9400
+    const lineBtn = screen.getAllByRole('button', { name: /9400/i })[0];
+    await user.click(lineBtn);
+
+    // After selection: swatch appears with correct color
+    await waitFor(() => {
+      const swatch = document.querySelector('.line-swatch');
+      expect(swatch).toBeTruthy();
+      // jsdom normalizes hex→rgb when reading back from style
+      expect((swatch as HTMLElement)?.style.background).toBe(
+        hexToRgb(lineColor(LINE_9400_DETAIL.line.id)),
+      );
+      // Button is aria-pressed
+      expect(lineBtn).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    // Click again to deselect
+    await user.click(lineBtn);
+
+    // After deselection: swatch gone, aria-pressed=false
+    await waitFor(() => {
+      expect(document.querySelector('.line-swatch')).toBeNull();
+      expect(lineBtn).toHaveAttribute('aria-pressed', 'false');
+    });
   });
 });
 
@@ -274,5 +445,13 @@ describe('NeighborhoodPanel — states', () => {
   it('shows loading indicator when isLoadingLines is true', () => {
     render(<NeighborhoodPanel {...makeProps({ isLoadingLines: true })} />);
     expect(screen.getByText(/Carregando linhas/i)).toBeInTheDocument();
+  });
+
+  it('loading indicator contains a Lucide spinner (aria-hidden SVG)', () => {
+    render(<NeighborhoodPanel {...makeProps({ isLoadingLines: true })} />);
+    const loadingEl = document.querySelector('.neighborhood-panel__loading');
+    expect(loadingEl).toBeTruthy();
+    const svg = loadingEl?.querySelector('svg[aria-hidden="true"]');
+    expect(svg).toBeTruthy();
   });
 });

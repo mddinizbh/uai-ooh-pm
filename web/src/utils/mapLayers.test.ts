@@ -80,12 +80,32 @@ describe('sourceId / layerId helpers', () => {
 });
 
 describe('lineColor', () => {
-  it('returns a color string for index 0', () => {
+  it('returns a color string for lineId 0', () => {
     expect(lineColor(0)).toMatch(/^#[0-9a-f]{6}$/i);
   });
 
-  it('cycles through the palette for large indices', () => {
-    expect(lineColor(0)).toBe(lineColor(10));
+  it('lineColor(0) returns LINE_COLORS[0] (first palette entry)', () => {
+    // The first color in the palette is red (#e74c3c)
+    expect(lineColor(0)).toBe('#e74c3c');
+  });
+
+  it('lineColor(10) wraps and returns the same as lineColor(0)', () => {
+    expect(lineColor(10)).toBe(lineColor(0));
+  });
+
+  it('is stable: same lineId always returns the same color', () => {
+    const id = 7;
+    const first = lineColor(id);
+    const second = lineColor(id);
+    const third = lineColor(id);
+    expect(first).toBe(second);
+    expect(second).toBe(third);
+  });
+
+  it('derives color from lineId modulo palette length', () => {
+    // IDs 4 and 14 are congruent mod 10 — accepted collision per ADR-008
+    expect(lineColor(4)).toBe(lineColor(14));
+    expect(lineColor(3)).toBe(lineColor(13));
   });
 });
 
@@ -97,7 +117,7 @@ describe('addLineLayer', () => {
   });
 
   it('adds a GeoJSON source and line layer for the line', () => {
-    addLineLayer(map as never, 1, LINE_DETAIL, true, 0);
+    addLineLayer(map as never, 1, LINE_DETAIL, true);
 
     expect(map.addSource).toHaveBeenCalledOnce();
     expect(map.addSource).toHaveBeenCalledWith(
@@ -112,7 +132,7 @@ describe('addLineLayer', () => {
   });
 
   it('creates a FeatureCollection from all shapes', () => {
-    addLineLayer(map as never, 1, LINE_DETAIL, true, 0);
+    addLineLayer(map as never, 1, LINE_DETAIL, true);
 
     const sourceCall = map.addSource.mock.calls[0];
     const sourceData = sourceCall[1] as { data: { type: string; features: unknown[] } };
@@ -120,8 +140,31 @@ describe('addLineLayer', () => {
     expect(sourceData.data.features).toHaveLength(2); // two directions
   });
 
+  it('sets line-color equal to lineColor(lineId) — color derived from identity', () => {
+    const testLineId = 3;
+    addLineLayer(map as never, testLineId, LINE_DETAIL, true);
+
+    const layerCall = map.addLayer.mock.calls[0][0] as {
+      paint: Record<string, string>;
+    };
+    expect(layerCall.paint['line-color']).toBe(lineColor(testLineId));
+  });
+
+  it('two different lineIds get different colors (no collision for nearby IDs)', () => {
+    addLineLayer(map as never, 1, LINE_DETAIL, true);
+    const firstColor = (map.addLayer.mock.calls[0][0] as { paint: Record<string, string> }).paint['line-color'];
+
+    const map2 = createMockMap();
+    addLineLayer(map2 as never, 2, LINE_DETAIL, true);
+    const secondColor = (map2.addLayer.mock.calls[0][0] as { paint: Record<string, string> }).paint['line-color'];
+
+    expect(firstColor).toBe(lineColor(1));
+    expect(secondColor).toBe(lineColor(2));
+    expect(firstColor).not.toBe(secondColor);
+  });
+
   it('adds active line with full opacity and larger width', () => {
-    addLineLayer(map as never, 1, LINE_DETAIL, true, 0);
+    addLineLayer(map as never, 1, LINE_DETAIL, true);
 
     const layerCall = map.addLayer.mock.calls[0][0] as {
       paint: Record<string, number>;
@@ -131,7 +174,7 @@ describe('addLineLayer', () => {
   });
 
   it('adds non-active line with reduced opacity and narrower width', () => {
-    addLineLayer(map as never, 1, LINE_DETAIL, false, 0);
+    addLineLayer(map as never, 1, LINE_DETAIL, false);
 
     const layerCall = map.addLayer.mock.calls[0][0] as {
       paint: Record<string, number>;
@@ -142,7 +185,7 @@ describe('addLineLayer', () => {
 
   it('is a no-op if the source already exists', () => {
     map.getSource.mockReturnValue({ type: 'geojson' }); // source exists
-    addLineLayer(map as never, 1, LINE_DETAIL, true, 0);
+    addLineLayer(map as never, 1, LINE_DETAIL, true);
 
     expect(map.addSource).not.toHaveBeenCalled();
     expect(map.addLayer).not.toHaveBeenCalled();
@@ -150,12 +193,27 @@ describe('addLineLayer', () => {
 
   it('skips shapes with null geometry', () => {
     const noShapesDetail = LINE_DETAIL_NO_SHAPES;
-    addLineLayer(map as never, 2, noShapesDetail, true, 0);
+    addLineLayer(map as never, 2, noShapesDetail, true);
 
     // Source is still added, but with zero features
     const sourceCall = map.addSource.mock.calls[0];
     const data = sourceCall[1] as { data: { features: unknown[] } };
     expect(data.data.features).toHaveLength(0);
+  });
+
+  it('color is stable: same lineId added multiple times (idempotent no-op after first) keeps same color', () => {
+    // First add — should succeed
+    addLineLayer(map as never, 5, LINE_DETAIL, true);
+    const color1 = (map.addLayer.mock.calls[0][0] as { paint: Record<string, string> }).paint['line-color'];
+
+    // Simulate re-add with source already existing (no-op)
+    map.getSource.mockReturnValue({ type: 'geojson' });
+    addLineLayer(map as never, 5, LINE_DETAIL, true);
+    // addLayer should still have been called only once
+    expect(map.addLayer).toHaveBeenCalledTimes(1);
+
+    // The color from the first call is stable (lineId-derived)
+    expect(color1).toBe(lineColor(5));
   });
 });
 

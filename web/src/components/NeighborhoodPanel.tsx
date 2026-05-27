@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import { busLinesApi, ApiClientError } from '../api/client';
+import { lineColor } from '../utils/mapLayers';
 import type {
   NeighborhoodSummary,
   NeighborhoodLines,
@@ -86,12 +88,15 @@ function RelationSection({
         <span className={`neighborhood-section__dot neighborhood-section__dot--${colorClass}`} />
         <span className="neighborhood-section__title">{title}</span>
         <span className="neighborhood-section__count">({lines.length})</span>
-        <span
-          className="neighborhood-section__chevron"
+        <ChevronDown
+          size={14}
           aria-hidden="true"
-        >
-          {open ? '▲' : '▼'}
-        </span>
+          className="neighborhood-section__chevron"
+          style={{
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s',
+          }}
+        />
       </button>
 
       {open && (
@@ -121,6 +126,13 @@ function RelationSection({
                   disabled={isLoadingThis}
                   aria-pressed={isSelected}
                 >
+                  {isSelected && (
+                    <span
+                      className="line-swatch"
+                      style={{ background: lineColor(line.id) }}
+                      aria-hidden="true"
+                    />
+                  )}
                   <span className="neighborhood-section__line-number">
                     {line.shortName}
                   </span>
@@ -128,9 +140,11 @@ function RelationSection({
                     {line.longName}
                   </span>
                   {isLoadingThis && (
-                    <span aria-hidden="true" className="neighborhood-section__spinner">
-                      …
-                    </span>
+                    <Loader2
+                      size={14}
+                      aria-hidden="true"
+                      className="neighborhood-section__spinner spinner"
+                    />
                   )}
                 </button>
               </li>
@@ -173,6 +187,10 @@ export function NeighborhoodPanel({
   };
 
   const hasSelection = selectedNeighborhoodId !== null;
+  const showEmptyHint =
+    neighborhoods.length === 0 &&
+    !hasSelection &&
+    selectedLines.size === 0;
 
   return (
     <div className="neighborhood-panel" aria-label="Filtro por bairro">
@@ -240,6 +258,13 @@ export function NeighborhoodPanel({
         )}
       </div>
 
+      {/* ── Empty / first-run hint ── */}
+      {showEmptyHint && (
+        <p className="empty-hint">
+          Busque um bairro acima para ver as linhas que o atendem.
+        </p>
+      )}
+
       {/* ── Neighborhood list (always-visible) ── */}
       {!hasSelection && !listOpen && neighborhoods.length > 0 && (
         <ul
@@ -276,6 +301,7 @@ export function NeighborhoodPanel({
       {/* ── Loading lines ── */}
       {isLoadingLines && (
         <div aria-live="polite" className="neighborhood-panel__loading">
+          <Loader2 size={14} aria-hidden="true" className="spinner" />
           Carregando linhas…
         </div>
       )}

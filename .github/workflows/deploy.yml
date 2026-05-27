@@ -1,22 +1,18 @@
-# CI/CD — BH Bus Lines
+# CI — BH Bus Lines (build & publish only)
 #
-# Trigger: every push to main (full pipeline) or PR to main (test only).
+# Trigger: every push to main (test + build/push) or PR to main (test only).
 #
 # Jobs:
 #   test        → runs backend (mvn verify) + frontend (vitest) tests.
 #                 If any test fails the pipeline stops here (no image built).
 #   build-push  → builds both Docker images, pushes to GHCR with :latest + :<sha> tags.
 #                 Runs only on push to main, only after test passes.
-#   deploy      → SSHes into the VPS and restarts the two services.
-#                 Runs only after build-push succeeds.
 #
-# User-defined secrets required (Settings → Secrets and variables → Actions):
-#   VPS_HOST      — VPS IP address or hostname
-#   VPS_PASSWORD  — root SSH password
-#
-# GITHUB_TOKEN is provided automatically by GitHub Actions (no manual secret needed).
+# Deployment is centralized in the uai-infra pipeline (single place that SSHes the
+# VPS and runs docker compose). This repo never touches the VPS, so it needs no
+# VPS secrets — only the automatic GITHUB_TOKEN to push to GHCR.
 
-name: CI/CD — BH Bus Lines
+name: CI — BH Bus Lines
 
 on:
   push:
@@ -115,25 +111,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ── 3. Deploy ── SSH to VPS, pull new images, restart services ────────────
-  deploy:
-    name: Deploy
-    needs: build-push
-    runs-on: ubuntu-latest
-    # Inherits the push-to-main guard from build-push (needs it)
-
-    steps:
-      # appleboy/ssh-action: password-based SSH — only VPS_HOST + VPS_PASSWORD needed.
-      # Never edit the VPS directly (uAI RULE-OPS-01): all changes flow through this pipeline.
-      - name: Deploy to VPS via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: root
-          password: ${{ secrets.VPS_PASSWORD }}
-          script: |
-            set -e
-            cd /opt/uai
-            docker compose pull uai-buslines uai-buslines-web
-            docker compose up -d --no-build uai-buslines uai-buslines-web
-            docker image prune -f
+  # ── Deploy ── handled centrally by the uai-infra pipeline, not here ───────
+  # This repo only builds and publishes images to GHCR. Bringing the containers
+  # up on the VPS (docker compose pull/up in /opt/uai) is done by uai-infra's
+  # deploy, so SSH credentials live only in uai-infra (no VPS secrets here).
