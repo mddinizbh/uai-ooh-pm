@@ -1,13 +1,15 @@
 /**
- * Integration tests for the full App:
- *  - search → select → route rendered on map (existing)
+ * Integration tests for the full App (Layout B):
+ *  - tab switching: neighbourhood panel / line search panel
+ *  - search → select → route rendered on map
+ *  - SelectedLinesBar chip flow
  *  - neighbourhood filter → group sections → select line from section
  *  - URL state encode/restore
  *
  * Both the API (MSW) and maplibre-gl are mocked.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from './test/server';
@@ -51,8 +53,13 @@ beforeEach(() => {
   setLocationSearch('');
 });
 
+// Helper: switch to the 'Por linha' tab
+const switchToLineTab = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('tab', { name: /por linha/i }));
+};
+
 // Helper: find the line button in search results by its longName
-// (avoids confusion with the "shortName only" span in the selected section)
+// (avoids confusion with the "shortName only" span in the chip bar)
 const findLineButton = (longName: string) =>
   screen.findByRole('button', { name: new RegExp(longName, 'i') });
 
@@ -60,16 +67,125 @@ const findLineButton = (longName: string) =>
 const getLineSearchInput = () =>
   screen.getByRole('searchbox', { name: /buscar linha/i });
 
-describe('App — integration: search → select → route on map', () => {
-  it('renders the search panel and map region', async () => {
+// ── Tab switching and chip flow (Layout B) ───────────────────────────────────
+
+describe('App — tab switching and chip flow (Layout B)', () => {
+  it('app title renders in the sidebar header (not inside the line-search panel)', () => {
     render(<App />);
+    // Title is in the fixed sidebar header
+    const heading = screen.getByRole('heading', { name: /linhas de bh/i, level: 1 });
+    expect(heading).toBeInTheDocument();
+    // Default tab is neighborhood → SearchPanel is not rendered,
+    // so the h1 can only be in the sidebar header.
+    expect(screen.queryByRole('searchbox', { name: /buscar linha/i })).toBeNull();
+  });
+
+  it('default active tab renders neighborhood panel; line search panel is not rendered', () => {
+    render(<App />);
+    // Neighborhood panel search input is visible
+    expect(screen.getByLabelText(/buscar bairro/i)).toBeInTheDocument();
+    // Line search panel is NOT rendered
+    expect(screen.queryByRole('searchbox', { name: /buscar linha/i })).toBeNull();
+  });
+
+  it('clicking "Por linha" tab hides neighborhood panel and shows line search panel', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    // Default: neighborhood panel visible
+    expect(screen.getByLabelText(/buscar bairro/i)).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox', { name: /buscar linha/i })).toBeNull();
+
+    // Switch to 'line' tab
+    await switchToLineTab(user);
+
+    // Line search panel is now visible; neighborhood panel is gone
     expect(getLineSearchInput()).toBeInTheDocument();
+    expect(screen.queryByLabelText(/buscar bairro/i)).toBeNull();
+  });
+
+  it('clicking "Por bairro" tab after switching shows neighborhood panel again', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await switchToLineTab(user);
+    expect(getLineSearchInput()).toBeInTheDocument();
+
+    // Switch back to 'neighborhood' tab
+    await user.click(screen.getByRole('tab', { name: /por bairro/i }));
+
+    expect(screen.getByLabelText(/buscar bairro/i)).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox', { name: /buscar linha/i })).toBeNull();
+  });
+
+  it('selecting a line from the line panel creates a chip in SelectedLinesBar', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await switchToLineTab(user);
+
+    const lineBtn = await findLineButton(LINE_9400.longName);
+    await user.click(lineBtn);
+
+    await waitFor(() => {
+      const chipBar = screen.getByRole('region', { name: /linhas no mapa/i });
+      expect(chipBar).toBeInTheDocument();
+      expect(within(chipBar).getByText(LINE_9400.shortName)).toBeInTheDocument();
+    });
+  });
+
+  it('removing a chip from SelectedLinesBar deselects the line (chip disappears)', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await switchToLineTab(user);
+
+    // Select the line
+    const lineBtn = await findLineButton(LINE_9400.longName);
+    await user.click(lineBtn);
+
+    // Wait for chip to appear
+    const chipBar = await screen.findByRole('region', { name: /linhas no mapa/i });
+    expect(within(chipBar).getByText(LINE_9400.shortName)).toBeInTheDocument();
+
+    // Mock map layers so deselect removes them
+    const map = getMockMap();
+    map.getLayer.mockReturnValue({ id: `line-layer-${LINE_9400.id}` });
+    map.getSource.mockReturnValue({ type: 'geojson' });
+
+    // Click the remove button on the chip
+    const removeBtn = within(chipBar).getByRole('button', {
+      name: new RegExp(`remover linha ${LINE_9400.shortName}`, 'i'),
+    });
+    await user.click(removeBtn);
+
+    // Chip bar should disappear (no more selected lines → SelectedLinesBar returns null)
+    await waitFor(() => {
+      expect(screen.queryByRole('region', { name: /linhas no mapa/i })).toBeNull();
+    });
+  });
+});
+
+// ── Search → select → route on map ──────────────────────────────────────────
+
+describe('App — integration: search → select → route on map', () => {
+  it('renders the app layout with header, tabs, neighbourhood panel, and map region', async () => {
+    render(<App />);
+    // Title is in the sidebar header
+    expect(screen.getByRole('heading', { name: /linhas de bh/i })).toBeInTheDocument();
+    // Both tabs are rendered
+    expect(screen.getByRole('tab', { name: /por bairro/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /por linha/i })).toBeInTheDocument();
+    // Default tab: neighbourhood panel visible
+    expect(screen.getByLabelText(/buscar bairro/i)).toBeInTheDocument();
+    // Map region is visible
     expect(screen.getByRole('region', { name: /mapa/i })).toBeInTheDocument();
   });
 
   it('search "9400" lists the matching line', async () => {
     const user = userEvent.setup();
     render(<App />);
+
+    // SearchPanel is only rendered when 'line' tab is active
+    await switchToLineTab(user);
 
     await user.clear(getLineSearchInput());
     await user.type(getLineSearchInput(), '9400');
@@ -81,6 +197,7 @@ describe('App — integration: search → select → route on map', () => {
   it('selecting a search result causes its route to appear on the map', async () => {
     const user = userEvent.setup();
     render(<App />);
+    await switchToLineTab(user);
 
     // Wait for initial results, then click the LINE_9400 button
     const lineBtn = await findLineButton(LINE_9400.longName);
@@ -99,35 +216,38 @@ describe('App — integration: search → select → route on map', () => {
     });
   });
 
-  it('selected line appears in the "Linhas no mapa" section', async () => {
+  it('selected line chip appears in SelectedLinesBar', async () => {
     const user = userEvent.setup();
     render(<App />);
+    await switchToLineTab(user);
 
     const lineBtn = await findLineButton(LINE_9400.longName);
     await user.click(lineBtn);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/linhas selecionadas/i)).toBeInTheDocument();
+      expect(screen.getByRole('region', { name: /linhas no mapa/i })).toBeInTheDocument();
     });
   });
 
   it('deselecting a line removes it from the map', async () => {
     const user = userEvent.setup();
     render(<App />);
+    await switchToLineTab(user);
 
     // Select the line
     const lineBtn = await findLineButton(LINE_9400.longName);
     await user.click(lineBtn);
 
-    await waitFor(() => screen.getByLabelText(/linhas selecionadas/i));
+    // Wait for the chip bar to appear (SelectedLinesBar in <main>)
+    const chipBar = await screen.findByRole('region', { name: /linhas no mapa/i });
 
     const map = getMockMap();
     // Simulate layers being "present" on the map
     map.getLayer.mockReturnValue({ id: `line-layer-${LINE_9400.id}` });
     map.getSource.mockReturnValue({ type: 'geojson' });
 
-    // Deselect via the remove button in the selected list
-    const removeBtn = screen.getByRole('button', {
+    // Deselect via the remove button in the chip bar
+    const removeBtn = within(chipBar).getByRole('button', {
       name: new RegExp(`remover linha ${LINE_9400.shortName}`, 'i'),
     });
     await user.click(removeBtn);
@@ -146,7 +266,7 @@ describe('App — integration: search → select → route on map', () => {
     });
   });
 
-  it('API error renders error state, not blank screen', async () => {
+  it('API error renders error state in line search panel, not blank screen', async () => {
     server.use(
       http.get('/api/lines', () =>
         HttpResponse.json(
@@ -156,7 +276,14 @@ describe('App — integration: search → select → route on map', () => {
       ),
     );
 
+    const user = userEvent.setup();
     render(<App />);
+
+    // Default: neighbourhood panel renders fine — no blank screen despite /api/lines error
+    expect(screen.getByLabelText(/buscar bairro/i)).toBeInTheDocument();
+
+    // Switch to 'line' tab to see the error state in SearchPanel
+    await switchToLineTab(user);
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument();
@@ -176,6 +303,7 @@ describe('App — integration: search → select → route on map', () => {
 
     const user = userEvent.setup();
     render(<App />);
+    await switchToLineTab(user);
 
     const lineBtn = await findLineButton(LINE_9400.longName);
     await user.click(lineBtn);
@@ -261,7 +389,8 @@ describe('App — integration: neighbourhood filter', () => {
 
     const lineBtn = screen.getAllByRole('button', { name: /9400/i })[0];
     await user.click(lineBtn);
-    await waitFor(() => screen.getByLabelText(/linhas selecionadas/i));
+    // Wait for chip bar to appear (SelectedLinesBar, always in <main>)
+    await waitFor(() => screen.getByRole('region', { name: /linhas no mapa/i }));
 
     // Simulate layers present on map
     const map = getMockMap();
@@ -276,8 +405,8 @@ describe('App — integration: neighbourhood filter', () => {
       // Boundary should be removed
       expect(map.removeLayer).toHaveBeenCalledWith('neighborhood-boundary-fill');
       expect(map.removeLayer).toHaveBeenCalledWith('neighborhood-boundary-outline');
-      // But selected lines section is still visible
-      expect(screen.getByLabelText(/linhas selecionadas/i)).toBeInTheDocument();
+      // But chip bar is still visible (line remains selected)
+      expect(screen.getByRole('region', { name: /linhas no mapa/i })).toBeInTheDocument();
     });
   });
 });
@@ -302,8 +431,9 @@ describe('App — integration: URL state', () => {
 
     render(<App />);
 
+    // SelectedLinesBar shows chips when lines are selected (always in <main>)
     await waitFor(() => {
-      expect(screen.getByLabelText(/linhas selecionadas/i)).toBeInTheDocument();
+      expect(screen.getByRole('region', { name: /linhas no mapa/i })).toBeInTheDocument();
     });
   });
 
@@ -314,7 +444,7 @@ describe('App — integration: URL state', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Passa por aqui')).toBeInTheDocument();
-      expect(screen.getByLabelText(/linhas selecionadas/i)).toBeInTheDocument();
+      expect(screen.getByRole('region', { name: /linhas no mapa/i })).toBeInTheDocument();
     });
   });
 
@@ -337,6 +467,9 @@ describe('App — integration: URL state', () => {
     const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
     const user = userEvent.setup();
     render(<App />);
+
+    // Switch to 'line' tab to access SearchPanel
+    await switchToLineTab(user);
 
     const lineBtn = await findLineButton(LINE_9400.longName);
     await user.click(lineBtn);
