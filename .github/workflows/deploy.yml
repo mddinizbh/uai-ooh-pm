@@ -133,7 +133,7 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
             set -e
-            cd ~/uai-infra
+            cd /opt/uai
             docker compose pull uai-buslines uai-buslines-web
             docker compose up -d --no-build uai-buslines uai-buslines-web
             docker image prune -f
