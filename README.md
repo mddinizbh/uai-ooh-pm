@@ -31,7 +31,7 @@ Fonte de verdade: banco `ooh` (schema `core`) + commits dos repos. Detalhe e ord
 | Fundação | T0a, T0b | pipeline / template | ✅ feito |
 | Épico 0 — ingestão raw | — | pipeline | ✅ raw populado |
 | Épico 1 — identidades | T1–T7 | pipeline | ✅ `core` materializado (line 304, stop 9.650, trip_pattern, line_shape, line_stop, vehicle) |
-| Épico 2 — contexto | T8, T9, T10 | pipeline | 🟡 em execução (census/poi/road → core) |
+| Épico 2 — contexto | T8, T9, T10 | pipeline | ✅ `core` materializado (census 5.166, poi 248.353, road 55.143) — validado no banco 2026-06-04 |
 | Épico 3 — métricas + score | T11–T16 | pipeline | 🔴 a fazer |
 | Épico 3 — materializar serving | T17 | pipeline | 🔴 a fazer (schema `serving` ainda não existe) |
 | Infra — `ooh-postgis` no VPS | T18 | infra | 🔴 a fazer |
