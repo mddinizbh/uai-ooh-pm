@@ -4,9 +4,11 @@
 > uAI-OOH (inteligência e metrificação de mídia em ônibus de BH). Os épicos, tasks, ADRs e apontamentos
 > de execução vivem aqui; o **código** dos serviços vive nos repos próprios (ver mapa abaixo).
 >
-> ⚠️ **App legado congelado:** este repo ainda contém o código do `uai-bus-lines-map` (API Java `uai-buslines`
-> + SPA `uai-buslines-web`), **congelado mas LIVE** em `linhas.uaiagencia.com.br` até o cutover pós-F1
-> (quando o `uai-ooh-intel` + `uai-ooh-web` assumem o domínio). Não evoluir esse código — ver `CLAUDE.md`.
+> ⚠️ **App legado removido (congelado na tag `legacy-frozen`):** o código do `uai-bus-lines-map`
+> (API Java `uai-buslines` + SPA `uai-buslines-web`) **foi removido deste repo** — agora é 100% PM.
+> O serviço segue **LIVE** em `linhas.uaiagencia.com.br` rodando a imagem GHCR `:latest` já publicada
+> (deploy pelo `uai-infra`), até o cutover pós-F1 quando `uai-ooh-intel` + `uai-ooh-web` assumem o domínio.
+> Para recuperar o código: `git checkout legacy-frozen -- src web pom.xml Dockerfile .dockerignore`.
 
 ## Mapa de repos do vertical OOH
 

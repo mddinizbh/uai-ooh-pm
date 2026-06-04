@@ -1,98 +1,40 @@
-# uai-buslines — CLAUDE.md
+# uai-ooh-pm — CLAUDE.md
 
-> ⚠️ **Repo renomeado para `uai-ooh-pm` (2026-06-04).** O papel primário deste repo passou a ser o
-> **hub de planejamento & tracking do vertical OOH** (épicos, tasks, ADRs, runs) — ver `README.md`.
-> O código Java/SPA abaixo é o **app LEGADO `uai-bus-lines-map`, CONGELADO mas LIVE** em
-> `linhas.uaiagencia.com.br` até o cutover pós-F1 (quando `uai-ooh-intel` + `uai-ooh-web` assumem).
-> **Não evoluir este código.** As specs abaixo valem apenas para manter o legado funcionando.
-> Trabalho novo de OOH acontece em `uai-ooh-pipeline` / `uai-ooh-intel` / `uai-ooh-web` / `uai-infra`.
+> **Papel deste repo:** hub de **planejamento & tracking** do vertical uAI-OOH (inteligência e
+> metrificação de mídia OOH em ônibus de BH). Aqui vivem épicos, tasks, ADRs e apontamentos de
+> execução (`runs/`). **Não há código de aplicação aqui** — o código dos serviços vive nos repos
+> próprios (`uai-ooh-pipeline`, `uai-ooh-intel`, `uai-ooh-web`, `uai-infra`). Ver `README.md`.
 
-Service: **BH Bus Lines — Neighborhood Bus Explorer** (legado congelado)  
-Package: `com.uai.buslines` · Port: `8085` · Stack: Java 21 / Spring Boot 3.3.6 / Maven
+## O que fazer / não fazer neste repo
 
-## Architecture
+- **Trabalho aqui = documentos**: épicos (`docs/epicos/`), tasks (`docs/epicos/bloco1/tarefas/`),
+  apontamentos de execução (`docs/epicos/runs/`), planos e ADRs. Nada de build/test de código.
+- **Validação de execução** é feita contra o banco `ooh` (via MCP `postgres-ooh`) e registrada no `run`
+  correspondente — counts reais vs. esperado, decisões, desvios, estado do `dataset_version`.
+- **Promoção pro vault** Obsidian via skill `/vault-update` ao fechar cada sessão (vault = canônico).
+- **Código novo de OOH não nasce aqui** — vai pro repo-alvo indicado na task (campo `Repo-alvo/cwd/stack`).
 
-Hexagonal (ports & adapters), single Maven module.
+## App legado `uai-bus-lines-map` — removido, congelado na tag `legacy-frozen`
 
-```
-com.uai.buslines
-├── domain/
-│   ├── model/          ← pure domain types, no framework deps
-│   ├── port/in/        ← driving ports (use case interfaces)
-│   └── port/out/       ← driven ports (repository / gateway interfaces)
-├── application/
-│   └── usecase/        ← use case implementations
-└── adapter/
-    ├── in/web/         ← REST controllers + DTOs
-    └── out/persistence/← JPA entities + repositories
-```
+O código do app legado (API Java `uai-buslines`, pacote `com.uai.buslines`, porta `8085`,
+Java 21 / Spring Boot 3.3.6 + SPA React/Vite `uai-buslines-web`) **foi removido deste repo em
+2026-06-04**. Ele continua **LIVE** em `linhas.uaiagencia.com.br` rodando a imagem GHCR
+`ghcr.io/mddinizbh/uai-buslines:latest` (+ `-web`) **já publicada**, deployada pelo `uai-infra`
+— este repo não rebuilda nem deploya nada.
 
-## Key Architectural Deviations
+- **Não evoluir o legado.** Ele será aposentado no cutover pós-F1 (quando `uai-ooh-intel` +
+  `uai-ooh-web` assumem o domínio).
+- **Recuperar o código** (se precisar de hotfix antes do cutover):
+  ```
+  git checkout legacy-frozen -- src web pom.xml Dockerfile .dockerignore
+  ```
+  Decisões arquiteturais do legado que importam ao recuperar: **sem `tenant_id`** (ADR-004, tool
+  civic público single-tenant) e **sem PostGIS** — geometria como `jsonb` GeoJSON, classificação
+  de bairro precomputada com JTS no import GTFS (ADR-003).
 
-### ⚠️ No `tenant_id` column (ADR-004)
+## Convenção de tracking
 
-**This is intentional.** uAI RULE-JAVA-03 mandates `tenant_id UUID NOT NULL` on all tables.
-BH Bus Lines is a **public, single-tenant civic tool** — no authentication, no per-user data.
-Adding `tenant_id` would be YAGNI for a product with no tenancy model.
-
-References: [ADR-004](../.compozy/tasks/bh-bus-lines/adrs/adr-004.md)
-
-### ⚠️ No PostGIS — geometry stored as `jsonb` GeoJSON (ADR-003)
-
-The shared uAI database is `postgres:16-alpine` (no PostGIS extension).
-Neighbourhood classification (PASSES_THROUGH / DEPARTS_FROM / ARRIVES_AT) is precomputed
-at GTFS import time using **JTS** (`org.locationtech.jts`) and stored in `line_neighborhood`.
-Runtime queries are plain indexed SQL joins — no spatial engine at query time.
-
-References: [ADR-003](../.compozy/tasks/bh-bus-lines/adrs/adr-003.md)
-
-## Rules
-
-- Sealed classes/interfaces MUST NOT have `default` in switch expressions (uAI RULE-JAVA-02).
-- `LineRelation` is the canonical sealed type for line↔neighborhood classification.
-- JPA entities (task_04) MUST match `V1__create_tables.sql` exactly — schema is the source of truth.
-- Never add PostGIS types or `tenant_id` to any table without an ADR update.
-- `hibernate.ddl-auto=validate` — schema is owned by Flyway, not Hibernate.
-
-## Configuration
-
-| Env var         | Description                    | Docker default |
-|-----------------|-------------------------------|----------------|
-| `DB_HOST`       | Postgres hostname              | `postgres`     |
-| `DB_PORT`       | Postgres port                  | `5432`         |
-| `DB_NAME`       | Database name                  | `uai_buslines` |
-| `DB_USER`       | Postgres user                  | `${PG_USER}`   |
-| `DB_PASSWORD`   | Postgres password              | `${PG_PASSWORD}` |
-| `UAI_INTERNAL_API_KEY` | Protects `POST /api/internal/import` | required |
-
-## OpenAPI
-
-Available at `/api/docs` (Swagger UI at `/api/swagger-ui.html`) — populated in task_06.
-
-## Testing
-
-- Integration tests use Testcontainers `postgres:16` — plain Postgres, no PostGIS needed.
-- Test profile: `@ActiveProfiles("test")` — `src/test/resources/application-test.yml`.
-- Coverage target: ≥80% lines (JaCoCo check in `mvn verify`).
-- Tests named `*IT.java` run under **Failsafe** (integration-test phase); `*Test.java`/`*Tests.java` run under Surefire.
-
-## Developer Notes
-
-### Running tests on macOS with Docker Desktop 29.x
-
-Docker Desktop 29.x sets `MinAPIVersion=1.44`. The shaded docker-java bundled with
-Testcontainers defaults to API 1.41, which Docker 29.x rejects with HTTP 400.
-
-**Fix already applied in `pom.xml`**: both `maven-surefire-plugin` and `maven-failsafe-plugin`
-set `<api.version>1.44</api.version>` via `systemPropertyVariables`. Do not remove this.
-
-Testcontainers is pinned to `1.21.3` (overrides Spring Boot BOM's 1.19.8) for the same reason.
-
-### Java version
-
-Always run Maven with Java 21. If Homebrew resolves to Java 25, JaCoCo 0.8.12 fails
-with "Unsupported class file major version 69". Use:
-
-```
-JAVA_HOME=/path/to/java-21 mvn verify
-```
+- Cada task executada (em qualquer repo OOH) deixa um apontamento em `docs/epicos/runs/`.
+- Tasks do Bloco 1 carregam o campo `Repo-alvo/cwd/stack` indicando onde o código é escrito.
+- Estado do F1: ver tabela em `README.md` + `docs/epicos/bloco1/plano-execucao.md` (fonte de
+  verdade = banco `ooh` schema `core` + commits dos repos).
