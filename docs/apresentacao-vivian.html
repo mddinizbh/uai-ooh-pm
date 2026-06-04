@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>uAI OOH — Mídia em ônibus com números</title>
+<style>
+  :root{
+    --bg:#0a0e17; --bg2:#0e1422; --panel:#121a2b; --panel2:#161f33;
+    --line:#21304d; --line2:#2c3f63;
+    --ink:#e8edf7; --mut:#9aa9c5; --mut2:#6f7f9e;
+    --brand:#ffb627; --brand2:#ff8a3d;
+    --cyan:#46d8c4; --blue:#5b9dff; --violet:#a98bff; --pink:#ff7aa8; --green:#5fd49b; --red:#ff6b6b;
+    --r:18px; --r2:12px;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.65;-webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(900px 500px at 85% -5%, rgba(255,182,39,.10), transparent 60%),
+      radial-gradient(800px 500px at 5% 8%, rgba(91,157,255,.10), transparent 55%);
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+    background:rgba(10,14,23,.82);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;gap:18px;height:60px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px}
+  .brand .dot{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1205;font-weight:900;font-size:15px}
+  .navlinks{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+  .navlinks a{font-size:13.5px;color:var(--mut);text-decoration:none;padding:7px 12px;border-radius:9px;transition:.18s}
+  .navlinks a:hover{color:var(--ink);background:var(--panel)}
+  @media(max-width:820px){.navlinks{display:none}}
+
+  header.hero{padding:90px 0 60px}
+  .kick{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600;letter-spacing:.6px;
+    text-transform:uppercase;color:var(--brand);background:rgba(255,182,39,.08);
+    border:1px solid rgba(255,182,39,.25);padding:7px 14px;border-radius:999px}
+  h1{font-size:clamp(36px,5.6vw,64px);line-height:1.04;margin:22px 0 0;font-weight:850;letter-spacing:-1.2px}
+  h1 .g{background:linear-gradient(120deg,var(--brand),var(--brand2) 60%,var(--pink));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:clamp(18px,2.3vw,22px);color:var(--mut);max-width:740px;margin:24px 0 0}
+  .sub b{color:var(--ink)}
+  .hero-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:32px}
+  .pill{font-size:13.5px;color:var(--mut);background:var(--panel);border:1px solid var(--line);padding:9px 15px;border-radius:999px}
+  .pill b{color:var(--ink)}
+
+  section{padding:64px 0;border-top:1px solid var(--line)}
+  .seclabel{font-size:12.5px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--brand)}
+  h2{font-size:clamp(28px,4vw,42px);margin:12px 0 0;font-weight:830;letter-spacing:-.8px}
+  h2+.lead{color:var(--mut);font-size:18px;max-width:760px;margin:18px 0 0}
+  h2+.lead b{color:var(--ink)}
+  h3{font-size:21px;margin:0 0 6px;font-weight:760}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:34px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px}
+  @media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:26px;position:relative;overflow:hidden}
+  .card.accent::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--accent,var(--brand))}
+  .card .ico{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;font-size:24px;
+    background:var(--panel2);border:1px solid var(--line2);margin-bottom:16px}
+  .card p{color:var(--mut);margin:8px 0 0;font-size:15px}
+  .card p b{color:var(--ink)}
+
+  /* 3 PILARES big */
+  .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px}
+  @media(max-width:820px){.pillars{grid-template-columns:1fr}}
+  .pillar{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);
+    border-radius:var(--r);padding:28px;text-align:center;text-decoration:none;color:inherit;transition:.2s;display:block}
+  .pillar:hover{transform:translateY(-4px);border-color:var(--accent)}
+  .pillar .big{font-size:40px;margin-bottom:10px}
+  .pillar .n{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent)}
+  .pillar h3{margin:8px 0 0;font-size:22px}
+  .pillar p{color:var(--mut);font-size:14.5px;margin:10px 0 0}
+
+  ul.clean{list-style:none;padding:0;margin:16px 0 0}
+  ul.clean li{position:relative;padding:9px 0 9px 30px;color:var(--mut);font-size:15px;border-bottom:1px dashed var(--line)}
+  ul.clean li:last-child{border-bottom:0}
+  ul.clean li::before{content:"✓";position:absolute;left:2px;top:9px;color:var(--green);font-weight:800}
+  ul.clean li b{color:var(--ink)}
+
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    padding:5px 10px;border-radius:6px;margin-bottom:12px}
+  .tag.int{color:var(--cyan);background:rgba(70,216,196,.1);border:1px solid rgba(70,216,196,.3)}
+  .tag.ext{color:var(--violet);background:rgba(169,139,255,.1);border:1px solid rgba(169,139,255,.3)}
+
+  .note{display:flex;gap:14px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent,var(--blue));
+    border-radius:12px;padding:18px 20px;margin-top:18px;font-size:15px;color:var(--mut)}
+  .note b{color:var(--ink)}
+  .note .em{font-size:22px;line-height:1.1}
+
+  /* stat band */
+  .band{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:34px}
+  @media(max-width:720px){.band{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;text-align:center}
+  .stat .n{font-size:34px;font-weight:850;letter-spacing:-1px;
+    background:linear-gradient(120deg,var(--brand),var(--brand2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat .l{font-size:13px;color:var(--mut);margin-top:5px}
+
+  /* honesty */
+  .honest{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:30px}
+  @media(max-width:720px){.honest{grid-template-columns:1fr}}
+  .hbox{border-radius:var(--r);padding:24px;border:1px solid}
+  .hbox.ok{background:rgba(95,212,155,.06);border-color:rgba(95,212,155,.3)}
+  .hbox.no{background:rgba(91,157,255,.05);border-color:rgba(91,157,255,.3)}
+  .hbox h3{display:flex;align-items:center;gap:9px}
+  .hbox.ok h3{color:var(--green)} .hbox.no h3{color:var(--blue)}
+  .hbox ul{list-style:none;padding:0;margin:14px 0 0}
+  .hbox li{padding:7px 0;font-size:15px;color:var(--mut)}
+  .hbox li b{color:var(--ink)}
+
+  /* example */
+  .ex{background:linear-gradient(135deg,var(--panel2),var(--panel));border:1px solid var(--line2);
+    border-radius:var(--r);padding:30px;margin-top:32px}
+  .ex h3{font-size:23px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .ex .route{font-family:ui-monospace,monospace;background:var(--brand);color:#1a1205;font-weight:800;padding:5px 14px;border-radius:9px;font-size:19px}
+  .exgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}
+  @media(max-width:720px){.exgrid{grid-template-columns:repeat(2,1fr)}}
+  .exgrid .m{background:var(--bg2);border:1px solid var(--line);border-radius:13px;padding:18px}
+  .exgrid .m .n{font-size:26px;font-weight:800;color:var(--ink);letter-spacing:-.5px}
+  .exgrid .m .l{font-size:12.5px;color:var(--mut);margin-top:4px}
+  .mapfig{margin:22px 0 0}
+  .mapfig img{width:100%;display:block;border-radius:14px;border:1px solid var(--line2);background:#0b0f14}
+  .mapfig figcaption{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;font-size:13px;color:var(--mut)}
+  .mapfig figcaption span{display:flex;align-items:center;gap:8px}
+  .mapfig .lg{width:14px;height:14px;border-radius:50%;display:inline-block;flex:none}
+
+  /* live mock */
+  .live{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:26px;margin-top:30px;
+    display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:center}
+  @media(max-width:820px){.live{grid-template-columns:1fr}}
+  .map{aspect-ratio:1.4;border-radius:14px;border:1px solid var(--line2);position:relative;overflow:hidden;
+    background:radial-gradient(circle at 30% 30%,#16203a,#0c1322)}
+  .road-l{position:absolute;background:var(--line2);height:3px;border-radius:3px}
+  .bus{position:absolute;width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--brand2));
+    display:grid;place-items:center;font-size:15px;box-shadow:0 4px 14px rgba(255,138,61,.5);transform:translate(-50%,-50%)}
+  .bus.live::after{content:"";position:absolute;inset:-6px;border-radius:12px;border:2px solid var(--brand);
+    animation:ping 1.8s ease-out infinite}
+  @keyframes ping{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.8);opacity:0}}
+  .live .lbl{position:absolute;top:12px;left:12px;font-size:12px;font-weight:700;color:var(--green);
+    background:rgba(95,212,155,.12);border:1px solid rgba(95,212,155,.3);padding:5px 10px;border-radius:8px;display:flex;align-items:center;gap:7px}
+  .live .lbl .d{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 1.4s infinite}
+  @keyframes blink{50%{opacity:.3}}
+  .livecard{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+  .livecard:last-child{margin-bottom:0}
+  .livecard .t{font-size:14px;color:var(--ink);font-weight:600}
+  .livecard .s{font-size:12.5px;color:var(--mut)}
+  .livecard .v{font-size:18px;font-weight:800;color:var(--green)}
+
+  /* exemplo de saída ao vivo — painel detalhado */
+  .feedwrap{margin-top:30px;border:1px solid var(--line2);border-radius:var(--r);overflow:hidden;background:var(--panel)}
+  .feedhead{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);background:var(--panel2);flex-wrap:wrap}
+  .feedhead .t{font-weight:750;font-size:15px}
+  .feedhead .upd{margin-left:auto;font-size:12.5px;color:var(--green);display:flex;align-items:center;gap:7px}
+  .feedhead .upd .d{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 1.4s infinite}
+  .feedbody{display:grid;grid-template-columns:1.15fr 1fr;gap:0}
+  @media(max-width:820px){.feedbody{grid-template-columns:1fr}}
+  .carlist{padding:8px 0;border-right:1px solid var(--line)}
+  @media(max-width:820px){.carlist{border-right:0;border-bottom:1px solid var(--line)}}
+  .carrow{display:flex;align-items:center;gap:14px;padding:13px 20px}
+  .carrow .code{font-family:ui-monospace,monospace;font-size:13px;font-weight:700;color:var(--ink);
+    background:var(--bg2);border:1px solid var(--line2);padding:5px 9px;border-radius:8px;white-space:nowrap}
+  .carrow .info{flex:1;min-width:0}
+  .carrow .info .road{font-size:14px;color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .carrow .info .meta{font-size:12.5px;color:var(--mut);margin-top:2px}
+  .carrow .status{font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:6px;white-space:nowrap}
+  .carrow .status.run{color:var(--green);background:rgba(95,212,155,.12)}
+  .carrow .status.idle{color:var(--mut);background:var(--bg2)}
+  .events{padding:14px 20px}
+  .events .h{font-size:11.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--mut2);margin-bottom:6px}
+  .evrow{display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+  .evrow:last-child{border-bottom:0}
+  .evrow .tm{font-family:ui-monospace,monospace;color:var(--mut2);font-size:12.5px;white-space:nowrap}
+  .evrow .tx{color:var(--mut)}
+  .evrow .tx b{color:var(--ink)}
+
+  /* fluxo de fontes */
+  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:14px;align-items:stretch;margin-top:30px}
+  @media(max-width:820px){.flow{grid-template-columns:1fr;gap:10px}}
+  .flow .ar{display:grid;place-items:center;font-size:24px;color:var(--mut2)}
+  @media(max-width:820px){.flow .ar{transform:rotate(90deg)}}
+  .fbox{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;text-align:center}
+  .fbox .ico{font-size:30px}
+  .fbox h3{font-size:17px;margin:10px 0 0}
+  .fbox p{font-size:13.5px;color:var(--mut);margin:8px 0 0}
+  .srcs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+  .srcs span{font-size:12px;color:var(--mut);background:var(--bg2);border:1px solid var(--line);padding:5px 11px;border-radius:999px}
+  .srcs span b{color:var(--ink)}
+
+  footer{padding:54px 0 72px;border-top:1px solid var(--line);color:var(--mut2);font-size:13.5px}
+  footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .disc{max-width:600px;line-height:1.75}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s}
+  .reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand"><span class="dot">u</span> uAI <span style="color:var(--mut);font-weight:600">OOH</span></div>
+    <div class="navlinks">
+      <a href="#oque">O que é</a>
+      <a href="#dados">Dados da linha</a>
+      <a href="#crm">CRM</a>
+      <a href="#tempo">Tempo real</a>
+      <a href="#fontes">Os dados</a>
+      <a href="#confianca">Confiança</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="kick">● Mídia em ônibus de Belo Horizonte</span>
+    <h1>Venda anúncio em ônibus<br>com <span class="g">números</span>, não achismo</h1>
+    <p class="sub">O uAI&nbsp;OOH mostra <b>quantas pessoas veem cada linha</b>, <b>quem são essas
+      pessoas</b> e <b>onde estão os clientes-alvo no trajeto</b> — e ainda acompanha os ônibus da
+      campanha <b>ao vivo</b> para provar a entrega. Tudo num só lugar.</p>
+
+    <div class="hero-meta">
+      <span class="pill"><b>304</b> linhas mapeadas</span>
+      <span class="pill"><b>Audiência</b> por linha</span>
+      <span class="pill"><b>Perfil</b> de quem vê</span>
+      <span class="pill"><b>Mapa ao vivo</b></span>
+      <span class="pill"><b>CRM</b> de campanhas</span>
+    </div>
+  </div>
+</header>
+
+<!-- O QUE É -->
+<section id="oque">
+  <div class="wrap reveal">
+    <span class="seclabel">O que o sistema faz</span>
+    <h2>Tira a venda de mídia em ônibus do escuro</h2>
+    <p class="lead">Hoje quem vende anúncio em ônibus em BH não tem <b>nenhum número</b> de audiência —
+      o preço é negociado no feeling. O uAI&nbsp;OOH dá a essa venda a mesma base que outdoor e mídia
+      digital já têm: <b>dados, comparação e comprovação</b>.</p>
+
+    <div class="grid3">
+      <div class="card accent" style="--accent:var(--brand)">
+        <div class="ico">📊</div>
+        <h3>Dados para vender</h3>
+        <p>Quantas pessoas veem cada linha, qual o perfil delas e uma <b>nota de 0 a 100</b> que
+          ranqueia as linhas — o argumento de venda que faltava.</p>
+      </div>
+      <div class="card accent" style="--accent:var(--cyan)">
+        <div class="ico">🤝</div>
+        <h3>CRM de campanhas</h3>
+        <p>Cadastro de clientes e campanhas, prospecção de quem está no trajeto e propostas com
+          números reais — a operação comercial organizada.</p>
+      </div>
+      <div class="card accent" style="--accent:var(--green)">
+        <div class="ico">📍</div>
+        <h3>Comprovação ao vivo</h3>
+        <p>Acompanhe os ônibus da campanha <b>em tempo real</b> no mapa e entregue ao cliente um
+          relatório do que de fato rodou. O diferencial que justifica a recorrência.</p>
+      </div>
+    </div>
+
+    <div class="band">
+      <div class="stat"><div class="n">304</div><div class="l">linhas de BH com audiência estimada</div></div>
+      <div class="stat"><div class="n">2</div><div class="l">formatos: dentro (assento) e fora (traseira)</div></div>
+      <div class="stat"><div class="n">0–100</div><div class="l">nota que ranqueia cada linha</div></div>
+      <div class="stat"><div class="n">ao vivo</div><div class="l">os ônibus da campanha no mapa</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 PILARES -->
+<section id="pilares">
+  <div class="wrap reveal">
+    <span class="seclabel">Como está organizado</span>
+    <h2>Três pilares</h2>
+    <p class="lead">Tudo no produto gira em torno de três coisas. Cada uma resolve uma parte da venda.</p>
+    <div class="pillars">
+      <a class="pillar" href="#dados" style="--accent:var(--brand)">
+        <div class="big">📊</div>
+        <div class="n">Pilar 1</div>
+        <h3>Dados da linha</h3>
+        <p>O que se sabe de cada uma das 304 linhas: audiência, perfil de público e a nota.</p>
+      </a>
+      <a class="pillar" href="#crm" style="--accent:var(--cyan)">
+        <div class="big">🤝</div>
+        <div class="n">Pilar 2</div>
+        <h3>CRM</h3>
+        <p>Clientes, campanhas, prospecção e propostas — a gestão comercial do dia a dia.</p>
+      </a>
+      <a class="pillar" href="#tempo" style="--accent:var(--green)">
+        <div class="big">📍</div>
+        <div class="n">Pilar 3</div>
+        <h3>Tempo real</h3>
+        <p>Os ônibus da campanha ao vivo no mapa e o relatório de entrega para o cliente.</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- PILAR 1 — DADOS DA LINHA -->
+<section id="dados">
+  <div class="wrap reveal">
+    <span class="seclabel">Pilar 1 · Dados básicos</span>
+    <h2>O que você sabe de cada linha</h2>
+    <p class="lead">Antes de vender, você abre a linha e vê tudo: <b>quanta gente passa por ela</b>,
+      <b>como é o público</b> e <b>quão boa ela é</b> comparada às outras.</p>
+
+    <div class="grid3">
+      <div class="card">
+        <div class="ico">👥</div>
+        <h3>Audiência</h3>
+        <p>Quantas pessoas <b>veem ou viajam</b> com a linha — por dia útil, sábado e domingo. É o
+          tamanho da plateia que o anunciante alcança.</p>
+      </div>
+      <div class="card">
+        <div class="ico">🏠</div>
+        <h3>Perfil do público</h3>
+        <p>A <b>renda e a classe social</b> (A a E) das regiões por onde a linha passa, e quais
+          <b>tipos de comércio</b> ficam no trajeto. "Essa linha passa por bairro mais nobre."</p>
+      </div>
+      <div class="card">
+        <div class="ico">⭐</div>
+        <h3>Nota 0–100</h3>
+        <p>Uma <b>nota única</b> que junta audiência, perfil e visibilidade — para ranquear as
+          linhas e mostrar ao cliente por que uma é melhor que a outra.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:42px">Dois formatos de anúncio</h3>
+    <div class="grid2">
+      <div class="card accent" style="--accent:var(--cyan)">
+        <span class="tag int">Dentro do ônibus</span>
+        <h3>🪑 Backseat — nos assentos</h3>
+        <p>Quem vê é <b>quem está viajando</b>. A audiência é o número de <b>passageiros</b> — dado
+          direto, medido. Vende-se a linha inteira ou carros específicos.</p>
+      </div>
+      <div class="card accent" style="--accent:var(--violet)">
+        <span class="tag ext">Fora do ônibus</span>
+        <h3>🚌 Back bus — na traseira</h3>
+        <p>Quem vê é <b>quem o ônibus passa na rua</b>: pedestres, motoristas, gente nos pontos.
+          A audiência é a <b>exposição</b> ao longo do trajeto.</p>
+      </div>
+    </div>
+
+    <div class="note" style="--accent:var(--brand)">
+      <span class="em">💡</span>
+      <div>Pense em <b>"quantas vezes o anúncio é visto no mês"</b> — uma mesma pessoa que pega a
+      linha todo dia conta várias vezes. É assim que mídia OOH funciona no mundo todo.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PILAR 2 — CRM -->
+<section id="crm">
+  <div class="wrap reveal">
+    <span class="seclabel">Pilar 2 · CRM</span>
+    <h2>A operação comercial num só lugar</h2>
+    <p class="lead">O CRM é onde a venda acontece: <b>clientes, campanhas e propostas</b>. E o
+      diferencial — ele usa os dados das linhas para gerar <b>prospecção automática</b>.</p>
+
+    <div class="grid2">
+      <div class="card accent" style="--accent:var(--cyan)">
+        <div class="ico">📋</div>
+        <h3>Clientes e campanhas</h3>
+        <ul class="clean">
+          <li>Cadastro de <b>clientes</b> e histórico de relacionamento</li>
+          <li>Criação de <b>campanhas</b>: período, orçamento, linhas e carros</li>
+          <li>Acompanhamento do <b>status</b> de cada campanha</li>
+          <li><b>Proposta com números</b> reais — audiência e perfil da linha escolhida</li>
+        </ul>
+      </div>
+      <div class="card accent" style="--accent:var(--green)">
+        <div class="ico">🎯</div>
+        <h3>Prospecção pelo trajeto</h3>
+        <p>Aqui está o ouro: como o sistema sabe <b>quais estabelecimentos estão no caminho de cada
+          linha</b>, ele vira um motor de leads.</p>
+        <ul class="clean">
+          <li>"Anuncie na linha que <b>passa na porta</b> da sua escola/loja"</li>
+          <li>Lista de <b>clientes-alvo</b> por trajeto para a equipe de vendas</li>
+          <li>Abordagem com <b>contexto</b>: a linha, o público, a audiência</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note" style="--accent:var(--cyan)">
+      <span class="em">🤝</span>
+      <div>O CRM é <b>multicampanha</b>: serve a mídia em ônibus e outros tipos de campanha da
+      agência no mesmo lugar — a gestão comercial não fica espalhada em planilhas.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PILAR 3 — TEMPO REAL -->
+<section id="tempo">
+  <div class="wrap reveal">
+    <span class="seclabel">Pilar 3 · Tempo real</span>
+    <h2>Veja os ônibus rodando — e prove a entrega</h2>
+    <p class="lead">É o que diferencia o uAI de qualquer concorrente: <b>você acompanha ao vivo</b> os
+      carros da campanha no mapa e entrega ao cliente a <b>comprovação</b> do que de fato rodou.</p>
+
+    <div class="live">
+      <div class="map">
+        <span class="lbl"><span class="d"></span> AO VIVO · Campanha Colégio X</span>
+        <div class="road-l" style="top:35%;left:10%;width:55%;transform:rotate(-12deg)"></div>
+        <div class="road-l" style="top:60%;left:25%;width:60%;transform:rotate(8deg)"></div>
+        <div class="road-l" style="top:20%;left:40%;width:3px;height:55%"></div>
+        <div class="bus live" style="top:36%;left:30%">🚌</div>
+        <div class="bus live" style="top:58%;left:60%">🚌</div>
+        <div class="bus" style="top:48%;left:75%">🚌</div>
+      </div>
+      <div>
+        <div class="livecard">
+          <div><div class="t">Carros ativos agora</div><div class="s">rodando com a mídia da campanha</div></div>
+          <div class="v">3</div>
+        </div>
+        <div class="livecard">
+          <div><div class="t">Viagens hoje</div><div class="s">trajetos concluídos</div></div>
+          <div class="v">42</div>
+        </div>
+        <div class="livecard">
+          <div><div class="t">Entrega da semana</div><div class="s">do que foi contratado</div></div>
+          <div class="v">98%</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:40px">Exemplo de saída ao vivo</h3>
+    <p style="color:var(--mut);font-size:15px;margin:6px 0 0">Foi assim que a tela ficaria agora, numa
+      campanha real — os ônibus com a mídia, onde cada um está e o que já entregaram hoje.</p>
+
+    <div class="feedwrap">
+      <div class="feedhead">
+        <span class="t">🚌 Campanha "Colégio Sagrado" · Linha 4107</span>
+        <span class="upd"><span class="d"></span> atualizado há 9 segundos</span>
+      </div>
+      <div class="feedbody">
+        <div class="carlist">
+          <div class="carrow">
+            <span class="code">4107·021</span>
+            <div class="info"><div class="road">Av. Afonso Pena, sentido Centro</div>
+              <div class="meta">22 km/h · 3ª viagem · 14 pontos passados</div></div>
+            <span class="status run">● rodando</span>
+          </div>
+          <div class="carrow">
+            <span class="code">4107·008</span>
+            <div class="info"><div class="road">R. dos Otoni, próximo ao Hospital</div>
+              <div class="meta">9 km/h · 2ª viagem · 31 pontos passados</div></div>
+            <span class="status run">● rodando</span>
+          </div>
+          <div class="carrow">
+            <span class="code">4107·014</span>
+            <div class="info"><div class="road">Av. Cristiano Machado</div>
+              <div class="meta">41 km/h · 4ª viagem · 7 pontos passados</div></div>
+            <span class="status run">● rodando</span>
+          </div>
+          <div class="carrow">
+            <span class="code">4107·030</span>
+            <div class="info"><div class="road">Terminal — aguardando saída</div>
+              <div class="meta">parado · próxima viagem em ~6 min</div></div>
+            <span class="status idle">garagem</span>
+          </div>
+        </div>
+        <div class="events">
+          <div class="h">Eventos de hoje</div>
+          <div class="evrow"><span class="tm">10:42</span><span class="tx">Carro <b>021</b> concluiu viagem Centro→Venda Nova · <b>19,4 km</b> · 38 pontos</span></div>
+          <div class="evrow"><span class="tm">10:31</span><span class="tx">Carro <b>014</b> iniciou viagem (4ª do dia)</span></div>
+          <div class="evrow"><span class="tm">10:18</span><span class="tx">Carro <b>008</b> concluiu viagem · <b>21,1 km</b> · 42 pontos</span></div>
+          <div class="evrow"><span class="tm">09:55</span><span class="tx">⚠️ Carro <b>030</b> entrou na garagem para troca de turno</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="band" style="margin-top:14px">
+      <div class="stat"><div class="n">3</div><div class="l">carros rodando agora</div></div>
+      <div class="stat"><div class="n">42</div><div class="l">viagens concluídas hoje</div></div>
+      <div class="stat"><div class="n">781 km</div><div class="l">rodados pela campanha hoje</div></div>
+      <div class="stat"><div class="n">98%</div><div class="l">da entrega contratada na semana</div></div>
+    </div>
+
+    <div class="grid3" style="margin-top:30px">
+      <div class="card">
+        <div class="ico">📡</div>
+        <h3>Mapa ao vivo</h3>
+        <p>Os ônibus da campanha aparecem <b>se movendo no mapa</b>, em tempo real. Cliente e
+          vendedor veem que a mídia está na rua.</p>
+      </div>
+      <div class="card">
+        <div class="ico">✅</div>
+        <h3>Relatório de entrega</h3>
+        <p>Quantas viagens, quantos km, em quais linhas — o <b>prometido versus entregue</b>, num
+          relatório que fecha a campanha com transparência.</p>
+      </div>
+      <div class="card">
+        <div class="ico">🔁</div>
+        <h3>Recorrência</h3>
+        <p>Essa comprovação contínua é o que faz o cliente <b>renovar</b> — a base do modelo de
+          assinatura mensal.</p>
+      </div>
+    </div>
+
+    <div class="note" style="--accent:var(--green)">
+      <span class="em">▶️</span>
+      <div>Funciona com o conceito de <b>"dar start no carro"</b>: quando a mídia é instalada num
+      ônibus, ele entra na campanha e passa a ser acompanhado. Só os carros realmente ativos contam.</div>
+    </div>
+  </div>
+</section>
+
+<!-- DE ONDE VÊM OS DADOS -->
+<section id="fontes">
+  <div class="wrap reveal">
+    <span class="seclabel">De onde vêm os dados</span>
+    <h2>Nada é chute — tudo vem de fontes oficiais</h2>
+    <p class="lead">O grande diferencial de credibilidade: o uAI não inventa números. Ele
+      <b>organiza dados públicos oficiais</b> que já existem, mas estão espalhados e difíceis de usar.
+      A gente faz o trabalho de juntar tudo e transformar em argumento de venda.</p>
+
+    <div class="flow">
+      <div class="fbox">
+        <div class="ico">🏛️</div>
+        <h3>Fontes públicas</h3>
+        <p>Dados abertos e oficiais sobre a cidade e o transporte.</p>
+        <div class="srcs">
+          <span><b>Prefeitura</b> / BHTrans</span>
+          <span><b>IBGE</b> (Censo)</span>
+          <span>OpenStreetMap</span>
+        </div>
+      </div>
+      <div class="ar">→</div>
+      <div class="fbox">
+        <div class="ico">⚙️</div>
+        <h3>O uAI organiza</h3>
+        <p>Junta, limpa e cruza tudo: cada linha ganha audiência, perfil e nota.</p>
+        <div class="srcs">
+          <span>cruzamento</span>
+          <span>atualização contínua</span>
+        </div>
+      </div>
+      <div class="ar">→</div>
+      <div class="fbox">
+        <div class="ico">💼</div>
+        <h3>Você vende</h3>
+        <p>Tela pronta com os números, prospecção de leads e mapa ao vivo.</p>
+        <div class="srcs">
+          <span>proposta</span>
+          <span>comprovação</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px">
+      <div class="card accent" style="--accent:var(--brand)">
+        <div class="ico">📚</div>
+        <h3>Dados das linhas (o planejamento)</h3>
+        <p>Para saber a audiência e o perfil de cada linha, usamos:</p>
+        <ul class="clean">
+          <li><b>Prefeitura / BHTrans</b> — itinerários de todas as linhas, pontos de ônibus e
+            <b>quantos passageiros</b> cada linha transporta (bilhetagem)</li>
+          <li><b>Censo do IBGE</b> — <b>população e renda</b> de cada região por onde a linha passa</li>
+          <li><b>OpenStreetMap</b> — os <b>comércios e estabelecimentos</b> no trajeto (a base da prospecção)</li>
+        </ul>
+      </div>
+      <div class="card accent" style="--accent:var(--green)">
+        <div class="ico">🛰️</div>
+        <h3>Tempo real (a entrega)</h3>
+        <p>Para acompanhar os ônibus ao vivo, a mágica é simples:</p>
+        <ul class="clean">
+          <li>A própria <b>Prefeitura publica o GPS dos ônibus</b>, atualizado a cada poucos segundos</li>
+          <li>O sistema <b>lê esse sinal o tempo todo</b> e identifica os carros da sua campanha</li>
+          <li>Mostra <b>onde cada um está</b> e monta o relatório de viagens e km rodados</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note" style="--accent:var(--blue)">
+      <span class="em">📅</span>
+      <div>Os dados têm <b>épocas diferentes</b> (alguns são da bilhetagem mais recente, o censo é de
+      2022) — e o sistema é <b>transparente sobre isso</b>. O tempo real, esse sim, é agora: o ônibus
+      está onde o mapa mostra.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CONFIANÇA -->
+<section id="confianca">
+  <div class="wrap reveal">
+    <span class="seclabel">O que nos torna confiáveis</span>
+    <h2>Transparência total com o cliente</h2>
+    <p class="lead">A regra da casa: <b>nunca prometer mais precisão do que temos</b>. Isso constrói
+      confiança e protege a reputação — o cliente sabe exatamente o que está comprando.</p>
+
+    <div class="honest">
+      <div class="hbox ok">
+        <h3>✅ O que afirmamos com segurança</h3>
+        <ul>
+          <li>O <b>ranking das linhas</b> e a comparação entre elas</li>
+          <li>O <b>perfil de público</b> (renda, classe, comércio do trajeto)</li>
+          <li>Tudo que foi <b>rodado de fato</b> em tempo real (a entrega)</li>
+        </ul>
+      </div>
+      <div class="hbox no">
+        <h3>ℹ️ O que apresentamos como estimativa</h3>
+        <ul>
+          <li>O <b>número absoluto</b> de visualizações — mostrado como faixa estimada</li>
+          <li>Refinado com o tempo e com um <b>estudo de campo</b></li>
+          <li>Sempre rotulado como <b>estimativa</b>, nunca como número fechado</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EXEMPLO -->
+<section id="exemplo">
+  <div class="wrap reveal">
+    <span class="seclabel">Exemplo real</span>
+    <h2>Uma linha, pronta para apresentar</h2>
+    <div class="ex">
+      <h3><span class="route">Linha 4107</span> · o que o vendedor mostra ao cliente</h3>
+
+      <figure class="mapfig">
+        <img src="img/mapa-4107.png" alt="Mapa do trajeto da linha 4107 com pontos de ônibus e estabelecimentos de saúde no corredor">
+        <figcaption>
+          <span><span class="lg" style="background:#ffd166"></span> Trajeto da linha</span>
+          <span><span class="lg" style="background:#19c3a8;border-radius:0;height:0;border-top:2px dashed #19c3a8"></span> Área de alcance (300m)</span>
+          <span><span class="lg" style="background:#0b0f14;border:1.5px solid #7fd1ff"></span> Pontos de ônibus</span>
+          <span><span class="lg" style="background:#ef4444"></span> Saúde no trajeto (leads)</span>
+        </figcaption>
+      </figure>
+
+      <div class="exgrid">
+        <div class="m"><div class="n">+182 mil</div><div class="l">pessoas vivem no trajeto</div></div>
+        <div class="m"><div class="n">R$ 7.810</div><div class="l">renda média (67% acima de BH)</div></div>
+        <div class="m"><div class="n">44%</div><div class="l">do público é classe A/B</div></div>
+        <div class="m"><div class="n">~524</div><div class="l">comércios no trajeto (leads)</div></div>
+        <div class="m"><div class="n">3.616</div><div class="l">passageiros por dia útil</div></div>
+        <div class="m"><div class="n">31</div><div class="l">ônibus na linha</div></div>
+        <div class="m"><div class="n">Alta</div><div class="l">passa por avenidas movimentadas</div></div>
+        <div class="m"><div class="n">⭐ boa</div><div class="l">nota acima da média da cidade</div></div>
+      </div>
+      <div class="note" style="--accent:var(--brand);margin-top:22px">
+        <span class="em">🗣️</span>
+        <div>O argumento de venda fica pronto: <b>"a 4107 passa por uma região de alta renda, tem
+        +180 mil moradores no trajeto e mais de 500 comércios — ideal para quem quer falar com
+        público A/B."</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="brand"><span class="dot">u</span> uAI OOH</div>
+    <div class="disc">
+      <b style="color:var(--mut)">Em uma frase:</b> o uAI&nbsp;OOH transforma os dados públicos da
+      cidade em argumento de venda para mídia em ônibus — mostra a audiência e o perfil de cada linha,
+      organiza clientes e campanhas no CRM, e acompanha os ônibus ao vivo para comprovar a entrega.
+      Os números de audiência são estimativas transparentes; o ranking e a entrega são o que vendemos
+      com segurança.
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); obs.unobserve(e.target);} });
+  }, {threshold:0.12});
+  document.querySelectorAll('.reveal').forEach(function(el){ obs.observe(el); });
+})();
+</script>
+</body>
+</html>

@@ -1,6 +1,13 @@
 # uai-buslines — CLAUDE.md
 
-Service: **BH Bus Lines — Neighborhood Bus Explorer**  
+> ⚠️ **Repo renomeado para `uai-ooh-pm` (2026-06-04).** O papel primário deste repo passou a ser o
+> **hub de planejamento & tracking do vertical OOH** (épicos, tasks, ADRs, runs) — ver `README.md`.
+> O código Java/SPA abaixo é o **app LEGADO `uai-bus-lines-map`, CONGELADO mas LIVE** em
+> `linhas.uaiagencia.com.br` até o cutover pós-F1 (quando `uai-ooh-intel` + `uai-ooh-web` assumem).
+> **Não evoluir este código.** As specs abaixo valem apenas para manter o legado funcionando.
+> Trabalho novo de OOH acontece em `uai-ooh-pipeline` / `uai-ooh-intel` / `uai-ooh-web` / `uai-infra`.
+
+Service: **BH Bus Lines — Neighborhood Bus Explorer** (legado congelado)  
 Package: `com.uai.buslines` · Port: `8085` · Stack: Java 21 / Spring Boot 3.3.6 / Maven
 
 ## Architecture

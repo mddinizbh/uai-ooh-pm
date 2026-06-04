@@ -12,3 +12,7 @@
 /.claude
 /target
 /.idea
+/.data
+
+# captura de prints (puppeteer)
+.cap/
