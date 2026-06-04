@@ -34,7 +34,8 @@
 - **Saída:** `core.trip_executed` (1 linha/viagem: vehicle, line, pattern, service_date, início/fim,
   duração, km, pontos_servidos, completude, campaign_id, divergencia_linha) + `core.trip_executed_track`
   (traçado **downsampled** ~1/30s, p/ replay) + `pattern_stop_exposure.v_real` por viagem/ponto.
-  Emite `ooh.trip.completed`.
+  Emite `ooh.trip.completed`. **O `campaign_id` carimbado é o token de correlação com o comercial
+  (ADR-052)** — o `ooh` permanece sem tenant; o `campaign_id` é opaco aqui.
 - **Pronto:** viagens da 4107 fecham com nº/dia ~ frequência e km ~ extensão×viagens; divergências sinalizadas.
 
 ## Tarefa 5.3 — Realtime read no `uai-ooh-intel`

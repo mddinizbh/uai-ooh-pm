@@ -25,6 +25,8 @@ Assim o cms cresce sem inchar. Os specifics OOH vão num backend próprio `uai-o
     `ooh.vehicle.activated/deactivated` (consome o registro mínimo do Épico 5.0, agora completo).
   - **relatório de entrega**: cruza `core.trip_executed`/alcance verificado (do Épico 5) com a campanha
     → veiculação (viagens/km/horas), alcance verificado vs estimado, divergências de linha.
+    **Por composição via `intel`** (agregação por `campaign_id`/conjunto de `vehicle_id`), **sem cross-DB
+    join** — correlação por `vehicle_code` (ADR-052).
 - Orquestrado pelo cms (não fala direto com o frontend).
 - **Pronto:** ativar carros de uma campanha, rastrear, e gerar relatório de entrega por campanha/tenant.
 

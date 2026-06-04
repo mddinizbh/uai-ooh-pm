@@ -44,7 +44,9 @@ auth delegada ao `uai-auth` (introspection); `tenant_id`+RLS só onde há dado d
   + `core` (normalizado + `trip_executed`/`trip_executed_track` + métricas materializadas).
 - **Redis:** última posição por veículo + estado de viagem em andamento + conjunto de carros ativos.
 - **Serving (ADR-003, sem PostGIS):** `intel` lê tabelas planas; nenhum `ST_*` em runtime.
-- **Comercial (tenant):** tabelas em `uai` com `tenant_id` + RLS.
+- **Comercial (tenant):** tabelas em `uai` com `tenant_id` + RLS. Cruzamento **campanha↔carro↔viagem**
+  por **`vehicle_code`** (correlação) + `campaign_id` carimbado no `trip_executed` + agregação de entrega
+  via `intel` — **sem cross-DB** (ADR-052).
 
 ## Fluxo de ativação e tracking ("dar start no carro")
 1. Comercial (cms→`uai-ooh-commercial`) marca carro V **ACTIVE** na campanha C (mídia plotada) →
@@ -113,4 +115,6 @@ Proxies e premissas: ver `proxies-e-premissas.md`.
 - `intel` herda ADR-003 (sem PostGIS no serving) e ADR-004 (dado de referência sem tenant).
 - `normalizer` é dono do schema `core` (migrations próprias).
 - Comercial (`uai-cms`/`uai-ooh-commercial`) com tenant_id + RLS.
+- Fronteira dados↔comercial (ADR-052): correlação por **`vehicle_code`**, `campaign_id` como token no
+  `trip_executed`, relatório por **composição via `intel`** — **sem cross-DB join**.
 - Deploy: container→GHCR→`uai-infra` compose; nunca tocar VPS direto.
