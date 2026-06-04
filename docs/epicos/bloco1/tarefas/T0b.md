@@ -11,7 +11,7 @@ Criar o `uai-ooh-service-template` como **GitHub Template Repository**, derivado
 Conteúdo do template: estrutura hexagonal `domain/{model,port/in,port/out}` + `application/usecase` + `adapter/{in/web,out/persistence}`; `pom.xml` com parent Spring Boot 3.3.6 + os fixes (`api.version=1.44`, Testcontainers 1.21.3, JaCoCo 80%, Java 21); Dockerfile multi-stage (Maven temurin-21 build → jre-alpine runtime, non-root); `.github/workflows/deploy.yml` (test → build-push GHCR, deploy delegado ao `uai-infra`); filtro `X-UAI-Internal-Key` para `/internal/**`; `OpenApiConfig`; `application.yml` com env vars padrão (`DB_HOST/PORT/NAME/USER/PASSWORD`) + actuator/health.
 
 ## Apontamentos a LER antes de começar
-- /Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/CLAUDE.md (Dockerfile, pom fixes, api.version=1.44, Java 21, Testcontainers 1.21.3)
+- `git show legacy-frozen:pom.xml` e `git show legacy-frozen:Dockerfile` — os fixes (api.version=1.44, Java 21, Testcontainers 1.21.3, JaCoCo 80%) vivem na tag `legacy-frozen` (código removido do HEAD do uai-ooh-pm; CLAUDE.md já não detalha os fixes)
 - /Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/arquitetura-servicos.md (Mapa de serviços; Regras-âncora; ADR-003/ADR-004)
 - decisão repos-topologia (template Java versionado em vez de copiar-colar)
 

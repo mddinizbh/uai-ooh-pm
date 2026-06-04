@@ -222,9 +222,8 @@ Evolução planejada do componente de trânsito, no mesmo padrão arquitetural d
   F1; o componente evolui quando houver massa de dados (~2 meses mínimo).
 
 ## Arquivos críticos
-- `src/main/resources/db/migration/V1__create_tables.sql` (referência) → futura
-  `V2__create_metrics_tables.sql`
+- `git show legacy-frozen:src/main/resources/db/migration/V1__create_tables.sql` (referência do schema do app legado — código removido do HEAD, vive na tag) → futura `V2__create_metrics_tables.sql`
 - `.data/scripts/load_csv_generic.py`, `load_osm.py` (reuso p/ Épico 0)
-- `src/main/java/com/uai/buslines/domain/port/in/QueryNetworkUseCase.java`
-- `src/main/java/com/uai/buslines/adapter/out/persistence/JpaNetworkQueryRepository.java`
+- `git show legacy-frozen:src/main/java/com/uai/buslines/domain/port/in/QueryNetworkUseCase.java`
+- `git show legacy-frozen:src/main/java/com/uai/buslines/adapter/out/persistence/JpaNetworkQueryRepository.java`
 - Novos scripts de pipeline PostGIS em `.data/scripts/` (raw→core no banco `ooh`)

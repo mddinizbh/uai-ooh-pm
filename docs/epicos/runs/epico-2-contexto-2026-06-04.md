@@ -30,6 +30,11 @@
    Alvo ~524 é pré-multi-fonte. Check informativo.
 3. **Exposição arterial 4107 = 23,5%** (alvo ~30,6%): dentro da faixa; proxy tipo+largura.
 4. **Porte/faturamento de POI ADIADO para v2** (decisão do dono) — `core.poi` de F1 sem coluna de porte.
+5. **`link_grupo_id` 100% nulo (verificado no banco 2026-06-04)** — o cross-source link por sinal forte
+   (etapa 4 do pipeline POI) **não foi populado**. Impacto: (a) pro **score**, somar fontes dupla-conta
+   (4107: ~40,8k bruto vs 18,8k só-Overture) → o Épico 3 usa **fonte única**; (b) pra **prospecção**,
+   ainda **não há dedup de leads** (mesmo dono pode aparecer 2-3×).
+   **Pendência:** popular `link_grupo_id` por telefone/website/endereço normalizado iguais (sinal forte).
 
 ## Estado do `dataset_version`
 - **1 / BUILDING** — permanece BUILDING até o fim do Bloco 1 (o `ChunkedBuild` resolve por
