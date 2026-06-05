@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>uAI OOH — Inteligência de mídia em ônibus de BH</title>
+<style>
+  :root{
+    --bg:#0a0e17; --bg2:#0e1422; --panel:#121a2b; --panel2:#161f33;
+    --line:#21304d; --line2:#2c3f63;
+    --ink:#e8edf7; --mut:#9aa9c5; --mut2:#6f7f9e;
+    --brand:#ffb627; --brand2:#ff8a3d;
+    --cyan:#46d8c4; --blue:#5b9dff; --violet:#a98bff; --pink:#ff7aa8; --green:#5fd49b; --red:#ff6b6b;
+    --r:16px; --r2:12px;
+    --mono:'SF Mono',ui-monospace,'JetBrains Mono',Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.6;-webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(900px 500px at 85% -5%, rgba(255,182,39,.10), transparent 60%),
+      radial-gradient(800px 500px at 5% 8%, rgba(91,157,255,.10), transparent 55%);
+  }
+  a{color:inherit}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+
+  /* NAV */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+    background:rgba(10,14,23,.82);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;gap:18px;height:60px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px}
+  .brand .dot{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1205;font-weight:900;font-size:15px}
+  .navlinks{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+  .navlinks a{font-size:13.5px;color:var(--mut);text-decoration:none;padding:7px 11px;border-radius:9px;transition:.18s}
+  .navlinks a:hover{color:var(--ink);background:var(--panel)}
+  @media(max-width:820px){.navlinks{display:none}}
+
+  /* HERO */
+  header.hero{padding:84px 0 56px;position:relative}
+  .kick{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600;letter-spacing:.6px;
+    text-transform:uppercase;color:var(--brand);background:rgba(255,182,39,.08);
+    border:1px solid rgba(255,182,39,.25);padding:7px 14px;border-radius:999px}
+  h1{font-size:clamp(34px,5.4vw,60px);line-height:1.05;margin:22px 0 0;font-weight:850;letter-spacing:-1px}
+  h1 .g{background:linear-gradient(120deg,var(--brand),var(--brand2) 60%,var(--pink));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:clamp(17px,2.2vw,21px);color:var(--mut);max-width:760px;margin:22px 0 0}
+  .hero-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:30px}
+  .pill{font-size:13px;color:var(--mut);background:var(--panel);border:1px solid var(--line);
+    padding:8px 14px;border-radius:999px}
+  .pill b{color:var(--ink)}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:42px}
+  @media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+  .stat .n{font-size:30px;font-weight:850;letter-spacing:-1px;
+    background:linear-gradient(120deg,var(--brand),var(--brand2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat .l{font-size:12.5px;color:var(--mut);margin-top:4px}
+
+  /* SECTIONS */
+  section{padding:62px 0;border-top:1px solid var(--line)}
+  .seclabel{font-size:12.5px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--brand)}
+  h2{font-size:clamp(26px,3.6vw,38px);margin:12px 0 0;font-weight:820;letter-spacing:-.6px}
+  h2+.lead{color:var(--mut);font-size:17px;max-width:780px;margin:16px 0 0}
+  h3{font-size:20px;margin:0 0 6px;font-weight:750}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:34px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}
+  @media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:24px;position:relative;overflow:hidden}
+  .card.accent::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--accent,var(--brand))}
+  .card .ico{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-size:21px;
+    background:var(--panel2);border:1px solid var(--line2);margin-bottom:14px}
+  .card p{color:var(--mut);margin:8px 0 0;font-size:14.5px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    padding:4px 9px;border-radius:6px;margin-bottom:10px}
+  .tag.int{color:var(--cyan);background:rgba(70,216,196,.1);border:1px solid rgba(70,216,196,.3)}
+  .tag.ext{color:var(--violet);background:rgba(169,139,255,.1);border:1px solid rgba(169,139,255,.3)}
+
+  ul.clean{list-style:none;padding:0;margin:14px 0 0}
+  ul.clean li{position:relative;padding:7px 0 7px 26px;color:var(--mut);font-size:14.5px;border-bottom:1px dashed var(--line)}
+  ul.clean li:last-child{border-bottom:0}
+  ul.clean li::before{content:"";position:absolute;left:4px;top:14px;width:7px;height:7px;border-radius:50%;
+    background:var(--brand)}
+  ul.clean li b{color:var(--ink)}
+
+  /* DATA SOURCES */
+  .srcgroup{margin-top:26px}
+  .srcgroup>h3{display:flex;align-items:center;gap:10px;font-size:16px;color:var(--mut);
+    text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:14px}
+  .srcgroup>h3 .swatch{width:14px;height:14px;border-radius:4px}
+  .srcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:12px}
+  .src{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:15px 16px}
+  .src .nm{font-family:var(--mono);font-size:13px;color:var(--ink);font-weight:600}
+  .src .ds{font-size:12.8px;color:var(--mut);margin-top:5px}
+  .src .mt{font-size:11.5px;color:var(--mut2);margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+  .src .mt span{background:var(--bg2);border:1px solid var(--line);border-radius:5px;padding:2px 7px}
+
+  /* FORMULA */
+  .formula{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);
+    border-radius:var(--r);padding:22px 24px;margin-top:18px;font-family:var(--mono);font-size:14.5px;
+    overflow-x:auto}
+  .formula .row{padding:6px 0;white-space:nowrap}
+  .formula .lhs{color:var(--brand);font-weight:700}
+  .formula .op{color:var(--mut2)}
+  .formula .var{color:var(--cyan)}
+  .formula .coef{color:var(--pink)}
+  .formula .cmt{color:var(--mut2);font-style:italic}
+  .formula .res{color:var(--green)}
+
+  .note{display:flex;gap:12px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent,var(--blue));
+    border-radius:10px;padding:14px 16px;margin-top:14px;font-size:14px;color:var(--mut)}
+  .note b{color:var(--ink)}
+  .note .em{font-size:18px;line-height:1.2}
+
+  /* HONESTY */
+  .honest{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:30px}
+  @media(max-width:720px){.honest{grid-template-columns:1fr}}
+  .hbox{border-radius:var(--r);padding:22px;border:1px solid}
+  .hbox.ok{background:rgba(95,212,155,.06);border-color:rgba(95,212,155,.3)}
+  .hbox.no{background:rgba(255,107,107,.05);border-color:rgba(255,107,107,.3)}
+  .hbox h3{display:flex;align-items:center;gap:9px}
+  .hbox.ok h3{color:var(--green)} .hbox.no h3{color:var(--red)}
+  .hbox ul{list-style:none;padding:0;margin:12px 0 0}
+  .hbox li{padding:6px 0;font-size:14px;color:var(--mut)}
+  .hbox li b{color:var(--ink)}
+
+  /* SCORE CALC */
+  .calc{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:26px;margin-top:30px}
+  .calc-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:30px;align-items:center}
+  @media(max-width:820px){.calc-grid{grid-template-columns:1fr}}
+  .slider{margin:14px 0}
+  .slider .top{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:6px}
+  .slider .top .nm{color:var(--ink);font-weight:600;display:flex;align-items:center;gap:8px}
+  .slider .top .nm .d{width:10px;height:10px;border-radius:3px}
+  .slider .top .w{font-family:var(--mono);color:var(--mut)}
+  input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:99px;background:var(--line2);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+    background:var(--brand);cursor:pointer;border:3px solid var(--bg);box-shadow:0 0 0 1px var(--brand)}
+  .gauge{text-align:center}
+  .gauge .ring{position:relative;width:200px;height:200px;margin:0 auto}
+  .gauge svg{transform:rotate(-90deg)}
+  .gauge .val{position:absolute;inset:0;display:grid;place-items:center;flex-direction:column}
+  .gauge .val .n{font-size:52px;font-weight:850;letter-spacing:-2px;line-height:1}
+  .gauge .val .x{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px}
+  .calc .hint{font-size:12.5px;color:var(--mut2);margin-top:14px;text-align:center}
+  .wsum{font-family:var(--mono);font-size:12px;color:var(--mut2);text-align:center;margin-top:6px}
+
+  /* PIPELINE */
+  .pipe{display:flex;flex-direction:column;gap:0;margin-top:30px}
+  .step{display:grid;grid-template-columns:54px 1fr;gap:18px;position:relative;padding-bottom:26px}
+  .step:not(:last-child)::before{content:"";position:absolute;left:26px;top:50px;bottom:0;width:2px;
+    background:linear-gradient(var(--line2),transparent)}
+  .step .num{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-weight:800;font-size:18px;
+    background:var(--panel2);border:1px solid var(--line2);color:var(--brand);z-index:1}
+  .step .body{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:16px 18px}
+  .step .body h3{font-size:16px}
+  .step .body p{color:var(--mut);font-size:14px;margin:5px 0 0}
+  .step .body code{font-family:var(--mono);font-size:12.5px;color:var(--cyan);background:var(--bg2);padding:2px 6px;border-radius:5px}
+
+  /* ARCH TABLE */
+  .tbl{margin-top:26px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}
+  th{background:var(--panel2);text-align:left;padding:13px 16px;font-weight:700;color:var(--mut);
+    text-transform:uppercase;letter-spacing:.6px;font-size:11.5px;border-bottom:1px solid var(--line)}
+  td{padding:13px 16px;border-bottom:1px solid var(--line);color:var(--mut)}
+  tr:last-child td{border-bottom:0}
+  td b,td .svc{color:var(--ink);font-weight:600}
+  td .svc{font-family:var(--mono);font-size:12.5px}
+  .chip{font-size:11px;padding:3px 8px;border-radius:6px;font-weight:600}
+  .chip.dados{color:var(--cyan);background:rgba(70,216,196,.1)}
+  .chip.com{color:var(--brand);background:rgba(255,182,39,.1)}
+
+  /* ROADMAP */
+  .road{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}
+  @media(max-width:820px){.road{grid-template-columns:1fr}}
+  .phase{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;position:relative}
+  .phase .ph{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;padding:4px 10px;border-radius:7px;display:inline-block}
+  .phase.f1 .ph{color:var(--green);background:rgba(95,212,155,.1)}
+  .phase.f2 .ph{color:var(--blue);background:rgba(91,157,255,.1)}
+  .phase.f3 .ph{color:var(--violet);background:rgba(169,139,255,.1)}
+  .phase h3{margin:14px 0 0;font-size:18px}
+  .phase ul{list-style:none;padding:0;margin:12px 0 0}
+  .phase li{font-size:13.5px;color:var(--mut);padding:5px 0 5px 20px;position:relative}
+  .phase li::before{content:"→";position:absolute;left:0;color:var(--mut2)}
+
+  /* example 4107 */
+  .ex{background:linear-gradient(135deg,var(--panel2),var(--panel));border:1px solid var(--line2);
+    border-radius:var(--r);padding:28px;margin-top:30px}
+  .ex h3{font-size:22px;display:flex;align-items:center;gap:12px}
+  .ex .route{font-family:var(--mono);background:var(--brand);color:#1a1205;font-weight:800;padding:4px 12px;border-radius:8px;font-size:18px}
+  .exgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:22px}
+  @media(max-width:720px){.exgrid{grid-template-columns:repeat(2,1fr)}}
+  .exgrid .m{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .exgrid .m .n{font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-.5px}
+  .exgrid .m .l{font-size:12px;color:var(--mut);margin-top:3px}
+
+  footer{padding:50px 0 70px;border-top:1px solid var(--line);color:var(--mut2);font-size:13px}
+  footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .disc{max-width:620px;line-height:1.7}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s}
+  .reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand"><span class="dot">u</span> uAI <span style="color:var(--mut);font-weight:600">OOH</span></div>
+    <div class="navlinks">
+      <a href="#problema">Problema</a>
+      <a href="#produtos">Produtos</a>
+      <a href="#bases">Bases de dados</a>
+      <a href="#calculos">Cálculos</a>
+      <a href="#score">Score</a>
+      <a href="#honestidade">Honestidade</a>
+      <a href="#arquitetura">Arquitetura</a>
+      <a href="#roadmap">Roadmap</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="kick">● Inteligência de mídia Out-Of-Home</span>
+    <h1>Quanto vale anunciar<br>num <span class="g">ônibus de BH?</span></h1>
+    <p class="sub">O uAI&nbsp;OOH transforma os dados abertos da Prefeitura de Belo Horizonte — GTFS,
+      bilhetagem, censo, malha viária — em <b style="color:var(--ink)">audiência mensurável por linha</b>:
+      quantas pessoas veem (ou viajam com) cada anúncio, o perfil socioeconômico do trajeto e um
+      <b style="color:var(--ink)">score 0–100</b> que ranqueia as 304 linhas da cidade.</p>
+
+    <div class="hero-meta">
+      <span class="pill"><b>304</b> linhas</span>
+      <span class="pill"><b>27</b> bases de dados cruas</span>
+      <span class="pill"><b>~9,6 mil</b> pontos de ônibus</span>
+      <span class="pill"><b>5.166</b> setores censitários</span>
+      <span class="pill">Java 21 · Spring · PostGIS</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="n">0</div><div class="l">números de audiência OOH em ônibus de BH existem hoje no mercado</div></div>
+      <div class="stat"><div class="n">2</div><div class="l">produtos: mídia interna (backseat) e externa (back bus)</div></div>
+      <div class="stat"><div class="n">96,7%</div><div class="l">das viagens ao vivo casam com o itinerário oficial (GTFS-RT ↔ estático)</div></div>
+      <div class="stat"><div class="n">5</div><div class="l">dimensões compõem o score: alcance, densidade, perfil, via, POIs</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- PROBLEMA -->
+<section id="problema">
+  <div class="wrap reveal">
+    <span class="seclabel">O problema</span>
+    <h2>Mídia em ônibus é vendida no escuro</h2>
+    <p class="lead">Outdoor tem fluxo de carros medido. TV tem IBOPE. Digital tem clique. Mas o
+      anúncio no ônibus que cruza a cidade inteira é vendido sem <b style="color:var(--ink)">nenhum
+      número</b> de audiência — só intuição. O uAI&nbsp;OOH preenche exatamente essa lacuna.</p>
+
+    <div class="grid3">
+      <div class="card accent" style="--accent:var(--red)">
+        <div class="ico">🕳️</div>
+        <h3>Zero métrica</h3>
+        <p>Não há audiência publicada para mídia em ônibus de BH. O preço hoje é negociado por
+          "feeling" — sem base comparável entre linhas.</p>
+      </div>
+      <div class="card accent" style="--accent:var(--brand)">
+        <div class="ico">🗺️</div>
+        <h3>Os dados existem — espalhados</h3>
+        <p>A PBH publica itinerários, bilhetagem, pontos, censo, malha viária. Mas em 27 arquivos
+          crus, com 3 sistemas de coordenadas e IDs que não se conversam.</p>
+      </div>
+      <div class="card accent" style="--accent:var(--green)">
+        <div class="ico">🎯</div>
+        <h3>A oportunidade</h3>
+        <p>Quem cruzar esses dados primeiro tem um <b>ativo proprietário</b>: o ranking de audiência
+          das linhas — e a base para precificar mídia OOH em BH com método.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUTOS -->
+<section id="produtos">
+  <div class="wrap reveal">
+    <span class="seclabel">O produto</span>
+    <h2>Dois formatos, duas formas de medir</h2>
+    <p class="lead">A mídia em ônibus tem duas naturezas — e cada uma exige uma medição diferente.
+      Confundir as duas é o erro que o produto evita por construção.</p>
+
+    <div class="grid2">
+      <div class="card accent" style="--accent:var(--cyan)">
+        <span class="tag int">Mídia interna</span>
+        <h3>🪑 Backseat — anúncio nos assentos</h3>
+        <p>Quem vê é <b>quem está a bordo</b>. A audiência é <b style="color:var(--cyan)">medida
+          diretamente</b> pelos passageiros transportados — não é proxy.</p>
+        <ul class="clean">
+          <li>Fonte principal: <b>MCO</b> (Mapa de Controle Operacional) — passageiros por veículo/viagem/dia</li>
+          <li>Instalado em <b>carros específicos</b> → soma-se os carros reais da campanha (a frota é desigual)</li>
+          <li>Perfil por faixa horária vem do <b>embarque por ponto</b> (distribuição, não volume)</li>
+          <li>Vende-se por <b>linha inteira</b> ou por <b>carros específicos</b></li>
+        </ul>
+      </div>
+
+      <div class="card accent" style="--accent:var(--violet)">
+        <span class="tag ext">Mídia externa</span>
+        <h3>🚌 Back bus — anúncio na traseira</h3>
+        <p>Quem vê é <b>quem o ônibus passa na rua</b>: pedestres, motoristas, gente nos pontos. A
+          audiência é <b style="color:var(--violet)">estimada por exposição</b>.</p>
+        <ul class="clean">
+          <li>Pessoas nos <b>pontos</b> do trajeto (embarque, modulado por velocidade de passagem)</li>
+          <li><b>Moradores na frontagem</b> (~30m do trajeto, via censo)</li>
+          <li><b>Exposição arterial</b>: quanto do trajeto roda em via de alto fluxo</li>
+          <li>Trânsito/congestionamento como dwell time → <b>v2</b> (coletor próprio)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note" style="--accent:var(--brand)">
+      <span class="em">⚖️</span>
+      <div><b>Impressões ≠ alcance.</b> O produto mede <b>impressões (OTS — contatos visuais)</b>: uma
+      mesma pessoa conta várias vezes no mês. <b>Alcance</b> (pessoas únicas) só seria mensurável
+      deduplicando pela matriz Origem-Destino da bilhetagem. Vender "impressões" é defensável hoje;
+      "alcance único" exige outra camada.</div>
+    </div>
+  </div>
+</section>
+
+<!-- BASES DE DADOS -->
+<section id="bases">
+  <div class="wrap reveal">
+    <span class="seclabel">As bases que o produto acessa</span>
+    <h2>27 fontes cruas, normalizadas em <code style="font-family:var(--mono);font-size:.7em;color:var(--cyan)">core</code></h2>
+    <p class="lead">Tudo vem de <b style="color:var(--ink)">dados abertos da PBH, IBGE e
+      OpenStreetMap</b>. Cada fonte tem sua vigência declarada — o produto mistura épocas e é honesto
+      sobre isso (GTFS mai/2026, MCO set/2025, embarque mai/2024, censo 2022).</p>
+
+    <div class="srcgroup">
+      <h3><span class="swatch" style="background:var(--brand)"></span> GTFS — itinerários oficiais</h3>
+      <div class="srcgrid">
+        <div class="src"><div class="nm">gtfs__routes / trips</div><div class="ds">As 304 linhas e suas viagens. Chave: <b>route_short_name</b>.</div><div class="mt"><span>mai/2026</span><span>WGS84</span></div></div>
+        <div class="src"><div class="nm">gtfs__shapes</div><div class="ds">Traçado de cada linha. Reconstruído com ST_MakeLine ordenado.</div><div class="mt"><span>itinerário</span></div></div>
+        <div class="src"><div class="nm">gtfs__stops / stop_times</div><div class="ds">Pontos e sequência de paradas por viagem.</div><div class="mt"><span>~9,6k pontos</span></div></div>
+        <div class="src"><div class="nm">gtfs__calendar</div><div class="ds">Tipo de dia. <b>Itinerário muda</b> útil/sábado/domingo.</div><div class="mt"><span>service_type</span></div></div>
+        <div class="src"><div class="nm">rt__vehicle_position</div><div class="ds">Posições ao vivo (GTFS-RT, protobuf). ~451 veículos/ciclo.</div><div class="mt"><span>tempo real</span><span>~15-20s</span></div></div>
+      </div>
+    </div>
+
+    <div class="srcgroup">
+      <h3><span class="swatch" style="background:var(--cyan)"></span> Demanda PBH — passageiros & embarque</h3>
+      <div class="srcgrid">
+        <div class="src"><div class="nm">pbh__mco_consolidado</div><div class="ds">Mapa de Controle Operacional — <b>passageiros transportados</b> por veículo/dia. Coração do backseat.</div><div class="mt"><span>set/2025</span><span>816k linhas</span><span>volume</span></div></div>
+        <div class="src"><div class="nm">pbh__embarque_ped_sublinha</div><div class="ds">Embarque por ponto × sublinha, por faixa horária 0-23. Usado como <b>distribuição</b>.</div><div class="mt"><span>mai/2024</span><span>perfil</span></div></div>
+        <div class="src"><div class="nm">pbh__matriz_od</div><div class="ds">Matriz Origem-Destino da bilhetagem (hexágonos H3). Habilita <b>alcance único</b> quando preciso.</div><div class="mt"><span>mai/2026</span><span>1,2M linhas</span></div></div>
+        <div class="src"><div class="nm">pbh__ponto_onibus</div><div class="ds">Cadastro de pontos (SIU). Reconciliado ao GTFS por geo (KNN ≤50m).</div><div class="mt"><span>70k pontos</span><span>UTM 31983</span></div></div>
+      </div>
+    </div>
+
+    <div class="srcgroup">
+      <h3><span class="swatch" style="background:var(--green)"></span> Censo IBGE 2022 — perfil socioeconômico</h3>
+      <div class="srcgrid">
+        <div class="src"><div class="nm">censo__setores_bh</div><div class="ds">Malha de 5.166 setores censitários de BH.</div><div class="mt"><span>2022</span><span>SIRGAS 4674</span></div></div>
+        <div class="src"><div class="nm">censo__agregados_basico_bh</div><div class="ds">População e domicílios por setor.</div><div class="mt"><span>100% cobertura</span></div></div>
+        <div class="src"><div class="nm">censo__renda_responsavel_bh</div><div class="ds"><b>Renda medida</b> (rendimento do responsável). Âncora da classe social A–E. Média BH: R$ 4.682.</div><div class="mt"><span>medido</span><span>5.137 setores</span></div></div>
+      </div>
+    </div>
+
+    <div class="srcgroup">
+      <h3><span class="swatch" style="background:var(--violet)"></span> Contexto viário & POIs</h3>
+      <div class="srcgrid">
+        <div class="src"><div class="nm">pbh__trecho_logradouro</div><div class="ds">Malha viária (tipo + largura) → classe <b>arterial/coletora/local</b>. Base da exposição arterial.</div><div class="mt"><span>55k trechos</span><span>atual</span></div></div>
+        <div class="src"><div class="nm">pbh__velocidade_corredores</div><div class="ds">35 Vias de Referência (carro-sonda). Refina a exposição arterial.</div><div class="mt"><span>2019-20</span><span>refinamento</span></div></div>
+        <div class="src"><div class="nm">osm__poi</div><div class="ds">2.478 POIs (alimentação, comércio, educação, saúde) no corredor das linhas.</div><div class="mt"><span>OpenStreetMap</span></div></div>
+        <div class="src"><div class="nm">pbh__estacao_onibus / fiscalizacao</div><div class="ds">52 estações MOVE + 287 radares (localização).</div><div class="mt"><span>contexto</span></div></div>
+      </div>
+    </div>
+
+    <div class="note" style="--accent:var(--violet)">
+      <span class="em">🧭</span>
+      <div><b>Três sistemas de coordenadas convivem no cru</b> — GTFS/OSM em WGS84, geo PBH em UTM
+      SIRGAS&nbsp;2000 (31983), censo em SIRGAS geográfico (4674). O pipeline unifica tudo em
+      <b>EPSG:31983</b> (métrico) para os cálculos e exporta <b>4326</b> para o mapa.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CÁLCULOS -->
+<section id="calculos">
+  <div class="wrap reveal">
+    <span class="seclabel">Como os cálculos são realizados</span>
+    <h2>Do traçado cru à impressão estimada</h2>
+    <p class="lead">O trabalho pesado é <b style="color:var(--ink)">geográfico</b>: o PostGIS cruza o
+      corredor de cada linha com as camadas de contexto e materializa tabelas planas. O app Java de
+      produção só faz <code style="font-family:var(--mono);color:var(--cyan)">SELECT</code> — nada de
+      geometria em tempo de consulta.</p>
+
+    <div class="pipe">
+      <div class="step"><div class="num">1</div><div class="body">
+        <h3>Corredor da linha</h3>
+        <p>Para cada linha, <code>ST_Buffer(shape, 300m)</code> desenha o corredor. O traçado é
+          <b>por tipo de dia</b> — a mesma linha desvia no domingo (ex.: a 4107 contorna a Feira Hippie).</p>
+      </div></div>
+      <div class="step"><div class="num">2</div><div class="body">
+        <h3>Cruzamento com o censo → população & renda</h3>
+        <p>Interseção corredor ∩ setores censitários, <b>ponderada por área</b> (não superestima):
+          <code>pop_pond = Σ pop × área_intersecção / área_setor</code>. Daí saem população do
+          corredor, renda média ponderada e a distribuição de classes A–E.</p>
+      </div></div>
+      <div class="step"><div class="num">3</div><div class="body">
+        <h3>POIs e exposição arterial</h3>
+        <p>POIs dentro do corredor por categoria. E <code>pct_arterial</code> = quanto do traçado roda
+          sobre via de alto fluxo — <b>onde</b> a linha passa, não volume de carros.</p>
+      </div></div>
+      <div class="step"><div class="num">4</div><div class="body">
+        <h3>Demanda</h3>
+        <p>MCO agregado por linha/tipo de dia → <b>passageiros/dia</b>. Embarque normalizado →
+          <b>curva horária</b> (distribuição).</p>
+      </div></div>
+      <div class="step"><div class="num">5</div><div class="body">
+        <h3>Impressões & score</h3>
+        <p>Combina tudo nas fórmulas abaixo e <b>normaliza entre as 304 linhas</b> para o score 0–100.</p>
+      </div></div>
+    </div>
+
+    <h3 style="margin-top:42px">📐 Modelo de impressões — back bus (por tipo de dia)</h3>
+    <div class="formula">
+      <div class="row"><span class="lhs">E_pop(d)</span> <span class="op">=</span> <span class="var">pop_corredor_pond</span> <span class="op">×</span> <span class="coef">f_exposicao(0,15)</span> <span class="op">×</span> <span class="var">freq_norm(d)</span></div>
+      <div class="row"><span class="lhs">E_pax(d)</span> <span class="op">=</span> <span class="var">passageiros_dia(d)</span> <span class="op">×</span> <span class="coef">p_vista_traseira(0,6)</span></div>
+      <div class="row"><span class="lhs">E_traf(d)</span> <span class="op">=</span> <span class="coef">0</span> <span class="cmt"># volume/congestionamento → v2</span></div>
+      <div class="row" style="border-top:1px solid var(--line2);margin-top:8px;padding-top:12px"><span class="res">Impressões(d)</span> <span class="op">=</span> <span class="lhs">E_pop</span> <span class="op">+</span> <span class="lhs">E_pax</span> <span class="op">+</span> <span class="lhs">E_traf</span></div>
+      <div class="row"><span class="res">Impressões/mês</span> <span class="op">=</span> <span class="op">Σ</span> <span class="lhs">Impressões(d)</span> <span class="op">×</span> <span class="var">dias(d)</span></div>
+    </div>
+    <div class="note" style="--accent:var(--pink)">
+      <span class="em">🎚️</span>
+      <div>Os coeficientes em <span style="color:var(--pink);font-family:var(--mono)">rosa</span>
+      (<b>f_exposicao</b>, <b>p_vista_traseira</b>…) são <b>chutes de mercado, não calibrados</b>.
+      Ficam parametrizados em <code style="font-family:var(--mono);color:var(--cyan)">core.model_params</code>
+      e um único estudo de campo estreita a faixa indicativa de ±35%.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SCORE INTERATIVO -->
+<section id="score">
+  <div class="wrap reveal">
+    <span class="seclabel">O score 0–100</span>
+    <h2>O que é realmente vendável: o ranking</h2>
+    <p class="lead">Cada uma das 5 dimensões é normalizada (min-max) entre as 304 linhas, virando um
+      sub-score 0–1. O score final é a média ponderada. Os pesos são <b style="color:var(--ink)">parametrizáveis</b>
+      — e por campanha o perfil pode favorecer A/B ou inverter para D/E. Experimente:</p>
+
+    <div class="calc">
+      <div class="calc-grid">
+        <div>
+          <div class="slider" data-key="alcance" data-color="var(--brand)">
+            <div class="top"><span class="nm"><span class="d" style="background:var(--brand)"></span>Alcance <span style="color:var(--mut2);font-weight:400">· impressões</span></span><span class="w"><b class="wv">35</b>%</span></div>
+            <input type="range" min="0" max="60" value="35">
+          </div>
+          <div class="slider" data-key="densidade" data-color="var(--cyan)">
+            <div class="top"><span class="nm"><span class="d" style="background:var(--cyan)"></span>Densidade <span style="color:var(--mut2);font-weight:400">· pop/km</span></span><span class="w"><b class="wv">15</b>%</span></div>
+            <input type="range" min="0" max="60" value="15">
+          </div>
+          <div class="slider" data-key="perfil" data-color="var(--green)">
+            <div class="top"><span class="nm"><span class="d" style="background:var(--green)"></span>Perfil <span style="color:var(--mut2);font-weight:400">· classe AB</span></span><span class="w"><b class="wv">20</b>%</span></div>
+            <input type="range" min="0" max="60" value="20">
+          </div>
+          <div class="slider" data-key="arterial" data-color="var(--violet)">
+            <div class="top"><span class="nm"><span class="d" style="background:var(--violet)"></span>Exposição arterial <span style="color:var(--mut2);font-weight:400">· via</span></span><span class="w"><b class="wv">20</b>%</span></div>
+            <input type="range" min="0" max="60" value="20">
+          </div>
+          <div class="slider" data-key="poi" data-color="var(--pink)">
+            <div class="top"><span class="nm"><span class="d" style="background:var(--pink)"></span>POIs <span style="color:var(--mut2);font-weight:400">· estabelecimentos</span></span><span class="w"><b class="wv">10</b>%</span></div>
+            <input type="range" min="0" max="60" value="10">
+          </div>
+          <div class="wsum">Σ pesos = <b id="wsum" style="color:var(--mut)">100%</b> · normalizado automaticamente</div>
+          <div class="hint">Sub-scores de exemplo (linha 4107): alcance 0,62 · densidade 0,48 · perfil 0,71 · arterial 0,31 · POI 0,55</div>
+        </div>
+
+        <div class="gauge">
+          <div class="ring">
+            <svg width="200" height="200" viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="86" fill="none" stroke="var(--line2)" stroke-width="14"></circle>
+              <circle id="arc" cx="100" cy="100" r="86" fill="none" stroke="url(#grad)" stroke-width="14"
+                stroke-linecap="round" stroke-dasharray="540" stroke-dashoffset="540"></circle>
+              <defs><linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#ff8a3d"></stop><stop offset="1" stop-color="#ffb627"></stop>
+              </linearGradient></defs>
+            </svg>
+            <div class="val"><div><div class="n" id="scoreN">—</div><div class="x">Score · linha 4107</div></div></div>
+          </div>
+          <div class="hint">Score = 100 × Σ(peso · sub-score)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="formula" style="margin-top:24px">
+      <div class="row"><span class="res">Score</span> <span class="op">=</span> <span class="op">100 ×</span> ( <span class="coef">0,35</span>·<span class="var">s_alcance</span> <span class="op">+</span> <span class="coef">0,15</span>·<span class="var">s_densidade</span> <span class="op">+</span> <span class="coef">0,20</span>·<span class="var">s_perfil</span> <span class="op">+</span> <span class="coef">0,20</span>·<span class="var">s_arterial</span> <span class="op">+</span> <span class="coef">0,10</span>·<span class="var">s_poi</span> )</div>
+    </div>
+  </div>
+</section>
+
+<!-- HONESTIDADE -->
+<section id="honestidade">
+  <div class="wrap reveal">
+    <span class="seclabel">O diferencial</span>
+    <h2>Honestidade de medição</h2>
+    <p class="lead">A regra do produto: <b style="color:var(--ink)">nenhum número é apresentado como
+      mais preciso do que sua fonte permite.</b> Isso separa o que pode ser vendido como métrica do
+      que é só ilustração — e é o que torna o produto confiável.</p>
+
+    <div class="honest">
+      <div class="hbox ok">
+        <h3>✅ Vendável hoje</h3>
+        <ul>
+          <li><b>O ranking / score 0–100</b> entre linhas — baseado em dados medidos (população, renda, POIs, exposição arterial)</li>
+          <li><b>A comparação relativa</b> "linha X &gt; linha Y para o público Z"</li>
+          <li><b>Fatos operacionais verificados</b> (tempo real): veiculação, km rodado, itinerário, pontos servidos</li>
+          <li><b>Renda por setor</b> — é dado <b>medido</b> do IBGE, não proxy</li>
+        </ul>
+      </div>
+      <div class="hbox no">
+        <h3>⚠️ Não vendável como número exato</h3>
+        <ul>
+          <li><b>O valor absoluto de impressões</b> — depende de coeficientes de mercado não calibrados</li>
+          <li>Reportado como <b>estimativa com faixa indicativa (±~35%)</b>, ilustrativa</li>
+          <li><b>Alcance de pessoas únicas</b> — só após passar pela matriz O-D</li>
+          <li>A margem ±35% é <b>faixa indicativa, não margem estatística</b></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note" style="--accent:var(--green)">
+      <span class="em">🧪</span>
+      <div><b>O caminho para vender o absoluto:</b> um estudo de campo calibra os coeficientes
+      (f_exposicao, p_vista_traseira…) e estreita a faixa. Até lá, o produto vende ranking — e é
+      transparente sobre por quê. <b>O tempo real é o chão sólido</b>: o que o carro de fato rodou é
+      verificado, não estimado.</div>
+    </div>
+  </div>
+</section>
+
+<!-- EXEMPLO 4107 -->
+<section id="exemplo">
+  <div class="wrap reveal">
+    <span class="seclabel">Prova de conceito</span>
+    <h2>Uma linha, medida de ponta a ponta</h2>
+    <div class="ex">
+      <h3><span class="route">4107</span> medida com dados reais (MCO set/2025 + censo + OSM)</h3>
+      <div class="exgrid">
+        <div class="m"><div class="n">182,5k</div><div class="l">residentes no corredor (300m)</div></div>
+        <div class="m"><div class="n">R$ 7.810</div><div class="l">renda média do trajeto (+67% vs BH)</div></div>
+        <div class="m"><div class="n">43,8%</div><div class="l">população classe A/B</div></div>
+        <div class="m"><div class="n">~524</div><div class="l">POIs no corredor</div></div>
+        <div class="m"><div class="n">30,6%</div><div class="l">do trajeto em via arterial</div></div>
+        <div class="m"><div class="n">3.616</div><div class="l">passageiros/dia útil (1.544 sáb · 920 dom)</div></div>
+        <div class="m"><div class="n">~776k</div><div class="l">impressões/mês <span style="color:var(--pink)">(ilustrativo)</span></div></div>
+        <div class="m"><div class="n">31</div><div class="l">carros na frota da linha</div></div>
+      </div>
+      <div class="note" style="--accent:var(--brand);margin-top:20px">
+        <span class="em">💡</span>
+        <div>A frota é <b>desigual</b>: carros titulares fazem 7–11k passageiros/mês, eventuais menos
+        de 500. Por isso o backseat soma os <b>carros reais</b> da campanha — nunca média × nº de carros.
+        A ficha visual da 4107 (<code style="font-family:var(--mono);color:var(--cyan)">docs/simulacao-linha-4107.html</code>)
+        é a referência de UI.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARQUITETURA -->
+<section id="arquitetura">
+  <div class="wrap reveal">
+    <span class="seclabel">Arquitetura</span>
+    <h2>Plano de dados + plano comercial</h2>
+    <p class="lead">O produto separa o <b style="color:var(--cyan)">plano de dados</b> (referência OOH,
+      sem cliente) do <b style="color:var(--brand)">plano comercial</b> (campanhas, com tenant).
+      Tudo em microsserviços hexagonais, Kafka como backbone, deploy só por GitHub Actions.</p>
+
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Serviço</th><th>Plano</th><th>Papel</th><th>Stack</th></tr></thead>
+        <tbody>
+          <tr><td><span class="svc">uai-ooh-pipeline</span></td><td><span class="chip dados">dados</span></td><td>Um repo, dois módulos: <b>ingestor</b> (GTFS/censo/OSM/PBH → <b>raw</b>, agendado) + <b>normalizer</b> (<b>raw → core</b> PostGIS + tabelas planas)</td><td>Python · PostGIS</td></tr>
+          <tr><td><span class="svc">uai-ooh-realtime-poller</span></td><td><span class="chip dados">dados</span></td><td>Polling GTFS-RT (~15-20s) → Kafka + landing</td><td>Python</td></tr>
+          <tr><td><span class="svc">uai-ooh-trip-consolidator</span></td><td><span class="chip dados">dados</span></td><td>Reconstrói viagens dos <b>carros ativos</b> (snap no shape) → km, velocidade, alcance verificado</td><td>Java · Kafka · Redis</td></tr>
+          <tr><td><span class="svc">uai-ooh-intel</span></td><td><span class="chip dados">dados</span></td><td>API de catálogo / score / ficha + realtime read</td><td>Java/Spring</td></tr>
+          <tr><td><span class="svc">uai-cms</span> (revisado)</td><td><span class="chip com">comercial</span></td><td>Gerenciador multi-vertical de campanhas + BFF do frontend</td><td>Java/Spring</td></tr>
+          <tr><td><span class="svc">uai-ooh-commercial</span></td><td><span class="chip com">comercial</span></td><td>Carros vendidos, ativação ("dar start"), relatório de entrega</td><td>Java/Spring</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid2" style="margin-top:24px">
+      <div class="card">
+        <div class="ico">⚡</div>
+        <h3>Tempo real = o chão sólido</h3>
+        <p>O poller landa a frota inteira para auditoria, mas só os <b>carros ativos</b> de uma campanha
+          viram viagem consolidada. A linha vem <b>sempre do RT</b> (carros trocam de linha) e divergências
+          viram alerta de execução. Resultado: km, pontos servidos e velocidade <b>verificados</b>, não estimados.</p>
+      </div>
+      <div class="card">
+        <div class="ico">🗄️</div>
+        <h3>PostGIS no pipeline, SELECT no serving</h3>
+        <p>Todo cruzamento espacial pesado é <b>precomputado</b> pelo normalizer e materializado em
+          tabelas planas. O app de produção não tem PostGIS — lê com SELECT indexado e Redis. É o
+          mesmo padrão já usado no <code style="font-family:var(--mono);color:var(--cyan)">line_neighborhood</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="wrap reveal">
+    <span class="seclabel">Roadmap</span>
+    <h2>Três fases, do dado à recorrência</h2>
+
+    <div class="road">
+      <div class="phase f1">
+        <span class="ph">F1 · PLANEJAMENTO</span>
+        <h3>Inteligência estática</h3>
+        <ul>
+          <li>Épico 0: renda do censo ✅ · radar → v2</li>
+          <li>Épico 1: identidades (linha, ponto, itinerário)</li>
+          <li>Épico 2: contexto (censo+renda, POIs, arterial)</li>
+          <li>Épico 3: métricas, impressões, score 0–100</li>
+          <li>Épico 4: serving → app Java + endpoints</li>
+        </ul>
+      </div>
+      <div class="phase f2">
+        <span class="ph">F2 · TEMPO REAL</span>
+        <h3>Metrificação verificada</h3>
+        <ul>
+          <li>Poller GTFS-RT + Kafka</li>
+          <li>Consolidador de viagens (carros ativos)</li>
+          <li>km / velocidade / pontos por viagem</li>
+          <li>Mapa ao vivo + alcance verificado vs estimado</li>
+        </ul>
+      </div>
+      <div class="phase f3">
+        <span class="ph">F3 · COMERCIAL</span>
+        <h3>Campanha & assinatura</h3>
+        <ul>
+          <li>uai-cms multi-vertical (campaign.type)</li>
+          <li>Carros vendidos · ativação · relatório de entrega</li>
+          <li>Frontend separado via BFF</li>
+          <li>Assinatura recorrente ancorada no tempo real</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note" style="--accent:var(--blue);margin-top:26px">
+      <span class="em">🔭</span>
+      <div><b>v2 — sinal de trânsito próprio:</b> um coletor consulta API de tráfego ao vivo a cada
+      ~15min e persiste snapshots, construindo um <b>histórico de congestionamento por corredor × hora</b>
+      que ninguém em BH tem. Para back bus, congestionamento é bom: carro parado = mais dwell time =
+      mais gente vê o anúncio.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="brand"><span class="dot">u</span> uAI OOH</div>
+    <div class="disc">
+      <b style="color:var(--mut)">Aviso de honestidade de medição.</b> Os valores absolutos de
+      impressões/alcance são <b>ilustrativos</b> (faixa indicativa ±35%, não margem estatística) até
+      calibração por estudo de campo. O que é vendável hoje é o <b>ranking/score relativo</b> entre
+      linhas e os <b>fatos operacionais verificados</b> em tempo real. Fontes: dados abertos PBH/BHTrans,
+      Censo IBGE 2022, OpenStreetMap — vigências mistas declaradas (GTFS mai/2026 · MCO set/2025 ·
+      embarque mai/2024 · censo 2022).
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // Score calculator
+  var SUB = {alcance:0.62, densidade:0.48, perfil:0.71, arterial:0.31, poi:0.55};
+  var sliders = Array.prototype.slice.call(document.querySelectorAll('.slider'));
+  var arc = document.getElementById('arc');
+  var scoreN = document.getElementById('scoreN');
+  var wsum = document.getElementById('wsum');
+  var CIRC = 2 * Math.PI * 86;
+  arc.setAttribute('stroke-dasharray', CIRC);
+
+  function recompute(){
+    var total = 0, weighted = 0, sum = 0;
+    sliders.forEach(function(s){
+      var v = parseFloat(s.querySelector('input').value);
+      total += v;
+    });
+    if(total === 0) total = 1;
+    sliders.forEach(function(s){
+      var input = s.querySelector('input');
+      var v = parseFloat(input.value);
+      var key = s.getAttribute('data-key');
+      var norm = v / total;
+      weighted += norm * SUB[key];
+      s.querySelector('.wv').textContent = Math.round(norm*100);
+    });
+    var score = Math.round(weighted * 100);
+    scoreN.textContent = score;
+    var off = CIRC * (1 - score/100);
+    arc.setAttribute('stroke-dashoffset', off);
+    wsum.textContent = '100%';
+  }
+  sliders.forEach(function(s){ s.querySelector('input').addEventListener('input', recompute); });
+  recompute();
+
+  // reveal on scroll
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); obs.unobserve(e.target);} });
+  }, {threshold:0.12});
+  document.querySelectorAll('.reveal').forEach(function(el){ obs.observe(el); });
+})();
+</script>
+</body>
+</html>
