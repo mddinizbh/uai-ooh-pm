@@ -21,7 +21,7 @@
 | `uai-ooh-web` *(a criar)* | React/MapLibre | SPA de ficha + ranking |
 | `uai-infra` | Compose/VPS | Deploy centralizado (inclui `ooh-postgis`) |
 
-## Estado do F1 (planejamento) — atualizado 2026-06-04
+## Estado do F1 (planejamento) — atualizado 2026-06-05
 
 Fonte de verdade: banco `ooh` (schema `core`) + commits dos repos. Detalhe e ordem em
 [`docs/epicos/bloco1/plano-execucao.md`](docs/epicos/bloco1/plano-execucao.md).
@@ -32,9 +32,9 @@ Fonte de verdade: banco `ooh` (schema `core`) + commits dos repos. Detalhe e ord
 | Épico 0 — ingestão raw | — | pipeline | ✅ raw populado |
 | Épico 1 — identidades | T1–T7 | pipeline | ✅ `core` materializado (line 304, stop 9.650, trip_pattern, line_shape, line_stop, vehicle) |
 | Épico 2 — contexto | T8, T9, T10 | pipeline | ✅ `core` materializado (census 5.166, poi 248.353, road 55.143) — validado no banco 2026-06-04 |
-| Épico 3 — métricas + score | T11–T16 | pipeline | 🔴 a fazer |
-| Épico 3 — materializar serving | T17 | pipeline | 🔴 a fazer (schema `serving` ainda não existe) |
-| Infra — `ooh-postgis` no VPS | T18 | infra | 🔴 a fazer |
+| Épico 3 — métricas + score | T11–T16 | pipeline | ✅ score 303 linhas no `core` (0 nulls; faixa 3,2–75,7; topo SC02A Praça7/Savassi, 4107 #7/303) — validado no banco 2026-06-05 |
+| Épico 3 — materializar serving | T17 | pipeline | 🟡 `core.line_metrics` (303) + `line_profile_demografico` ✅; schema `serving` flat + promover `ACTIVE` pendente |
+| Infra — `ooh-postgis` no VPS | T18 | infra | 🟡 `ooh-postgis` up/healthy no VPS (5433) + healthcheck do alpine corrigido; backup por schema + paridade 4107 formal pendentes |
 | Épico 4 — API `intel` | T19, T20a | intel | 🔴 a fazer (repo a criar) |
 | Épico 4 — SPA | T20b | web | 🔴 a fazer (repo a criar) |
 
