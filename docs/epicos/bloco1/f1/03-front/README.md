@@ -22,5 +22,6 @@
 | 6 | [EP4-06](modulo-ooh/EP4-06-cesta.md) | cesta + combinado | barra (combinado sempre visível) + drawer |
 | 7 | [EP4-07](modulo-ooh/EP4-07-export-pdf.md) | export PDF (ProposalPort) | print-mode (→ agent+template pós-F1) |
 | 8 | [EP4-08](modulo-ooh/EP4-08-honestidade-ui.md) | honestidade na UI (cross-cutting) | badges inline + modal metodologia |
+| 9 | [EP4-09](modulo-ooh/EP4-09-mapa-cesta.md) | mapa da cesta (alcance combinado) + snapshot pro export | trajetos + **corredores com toggle** |
 
 > O deploy do front **não** é card próprio — sobe junto com o shell (EP3-03), é o mesmo app.
