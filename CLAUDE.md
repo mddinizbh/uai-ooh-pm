@@ -7,8 +7,9 @@
 
 ## O que fazer / não fazer neste repo
 
-- **Trabalho aqui = documentos**: épicos (`docs/epicos/`), tasks (`docs/epicos/bloco1/tarefas/`),
-  apontamentos de execução (`docs/epicos/runs/`), planos e ADRs. Nada de build/test de código.
+- **Trabalho aqui = documentos**: mapa de execução do F1 em `docs/epicos/bloco1/f1/` (lanes
+  dados/back/front, cada task com doc + decisões), apontamentos de execução (`docs/epicos/runs/`),
+  PRDs (`docs/prd/`) e ADRs. Mapa antigo (T0–T20b) arquivado em `docs/epicos/bloco1/_arquivo/`. Nada de build/test de código.
 - **Validação de execução** é feita contra o banco `ooh` (via MCP `postgres-ooh`) e registrada no `run`
   correspondente — counts reais vs. esperado, decisões, desvios, estado do `dataset_version`.
 - **Promoção pro vault** Obsidian via skill `/vault-update` ao fechar cada sessão (vault = canônico).
@@ -36,5 +37,5 @@ Java 21 / Spring Boot 3.3.6 + SPA React/Vite `uai-buslines-web`) **foi removido 
 
 - Cada task executada (em qualquer repo OOH) deixa um apontamento em `docs/epicos/runs/`.
 - Tasks do Bloco 1 carregam o campo `Repo-alvo/cwd/stack` indicando onde o código é escrito.
-- Estado do F1: ver tabela em `README.md` + `docs/epicos/bloco1/plano-execucao.md` (fonte de
+- Estado do F1: ver `docs/epicos/bloco1/f1/README.md` (mapa por lane) + tabela em `README.md` (fonte de
   verdade = banco `ooh` schema `core` + commits dos repos).

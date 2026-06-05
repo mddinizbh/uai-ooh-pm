@@ -16,3 +16,6 @@
 
 # captura de prints (puppeteer)
 .cap/
+
+# brainstorming visual companion (efêmero)
+.superpowers/

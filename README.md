@@ -23,8 +23,9 @@
 
 ## Estado do F1 (planejamento) — atualizado 2026-06-05
 
-Fonte de verdade: banco `ooh` (schema `core`) + commits dos repos. Detalhe e ordem em
-[`docs/epicos/bloco1/plano-execucao.md`](docs/epicos/bloco1/plano-execucao.md).
+Fonte de verdade: banco `ooh` (schema `core`) + commits dos repos. **Mapa de execução (fresco, por lane
+dados/back/front):** [`docs/epicos/bloco1/f1/README.md`](docs/epicos/bloco1/f1/README.md). PRD do produto:
+[`docs/prd/2026-06-05-ooh-intel-front-f1.md`](docs/prd/2026-06-05-ooh-intel-front-f1.md). *(Mapa antigo T0–T20b arquivado em `docs/epicos/bloco1/_arquivo/`.)*
 
 | Camada / Épico | Tasks | Repo | Status |
 |---|---|---|---|

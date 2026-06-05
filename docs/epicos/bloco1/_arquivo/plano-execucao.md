@@ -252,6 +252,7 @@ Detalhe de cada tarefa na lista estruturada.
 | [T8](tarefas/T8.md) | core.census_sector — setor + população + renda + classe A-E | Épico 2 (2.1) | T2 | sim |
 | [T9](tarefas/T9.md) | core.poi — POIs OSM normalizados | Épico 2 (2.2) | T2 | sim |
 | [T10](tarefas/T10.md) | core.road_segment — malha viária + classe arterial (componente de trân | Épico 2 (2.3) | T2 | sim |
+| [T8b](tarefas/T8b.md) | Regionalização espacial: regional+bairro por setor/stop/linha (pré-req do filtro F1) | Épico 2 (ctx) | T5, T8 | parcial |
 | [T11](tarefas/T11.md) | Corredor por linha × censo → demografia/renda (ponderada por área) | Épico 3 (3.1) | T5, T8 | sim |
 | [T12](tarefas/T12.md) | POIs no corredor por categoria | Épico 3 (3.2) | T5, T9 | sim |
 | [T13](tarefas/T13.md) | Exposição arterial por linha (componente de trânsito do score) | Épico 3 (3.3) | T5, T10 | sim |
@@ -273,13 +274,14 @@ Detalhe de cada tarefa na lista estruturada.
 
 | Leva (repo) | Stack / cwd | Tasks (ordem por dependência) |
 |---|---|---|
-| **`uai-ooh-pipeline`** | Python + PostGIS · `~/IdeaProjects/personal/uai/uai-ooh-pipeline` | T0a → T1 → T2 → T3 → (T4 ∥ T5 ∥ T7) → T6 → (T8 ∥ T9 ∥ T10) → (T11 ∥ T12 ∥ T13 ∥ T14) → T15 → T16 → T17 |
+| **`uai-ooh-pipeline`** | Python + PostGIS · `~/IdeaProjects/personal/uai/uai-ooh-pipeline` | T0a → T1 → T2 → T3 → (T4 ∥ T5 ∥ T7) → T6 → (T8 ∥ T9 ∥ T10) → (T8b ∥ T11 ∥ T12 ∥ T13 ∥ T14) → T15 → T16 → T17 |
 | **`uai-ooh-service-template` → `uai-ooh-intel`** | Java 21 / Spring Boot · `~/IdeaProjects/personal/uai/uai-ooh-intel` | T0b → T19 → T20a |
 | **`uai-infra`** | Docker Compose / VPS · `~/IdeaProjects/personal/uai/uai-infra` | T18 |
 | **`uai-ooh-web`** (novo) | React / MapLibre (SPA) · `~/IdeaProjects/personal/uai/uai-ooh-web` | T20b |
 
 **Gates entre levas (caminho crítico):**
 - `pipeline` é a espinha: T0a destrava T1…T17 (raw→core→serving local).
+- **T8b** (regionalização) roda em paralelo às tasks de corredor (gate = T5+T8); gera `core.line_area` → **T17 projeta** no serving; é pré-req do filtro região→bairro do front (T19/T20b). Origem: PRD `docs/prd/2026-06-05-ooh-intel-front-f1.md` §12.
 - `infra` (T18) depende de T17 (serving materializado) — sobe o `ooh-postgis` no VPS + seed.
 - `intel` (T19) depende de **T18 E T0b** (precisa do schema serving no VPS + do template Java).
 - `web` (T20b) e os ITs do intel (T20a) dependem de T19 (a API existir). T20a ∥ T20b.
