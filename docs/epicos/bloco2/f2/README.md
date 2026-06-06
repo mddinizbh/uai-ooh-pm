@@ -34,5 +34,8 @@ O intel-RT serve **"posição/progresso de um conjunto de `vehicle_id`"**. No F2
 - **Sequenciamento:** infra ∥ poller ∥ consolidator podem rodar **em paralelo ao F1**; intel-RT e front-RT entram quando o intel/front do F1 existirem.
 - **Convenção de criação de repo (POLL-01/CONS-01):** sempre via **`gh repo create`** + push de uma **`main` vazia** (baseline) **antes** de qualquer código → só então regerar do template. *(Convenção uAI — vale pra todo repo novo.)*
 
+## Futuro (pós-F2) — acumulador de alcance ao vivo
+Feature desejada (não no F2): o **alcance subindo ao vivo** conforme o carro anda — por **posição**, calcular a contribuição **incremental** de alcance (`v_real` local × corredor/embarque cacheado × coef) e **acumular por viagem no Redis**; no fim, **total = soma dos incrementos**. **Módulo de stream SEPARADO** (não o consolidador — que fica só com fatos —, não o hot-path do intel). Usa a **mesma fórmula** do RT-02 (agregado), então **reconcilia** (soma incremental ≈ agregado). **Continua estimativa** (coeficientes não calibrados), só que ao vivo. Dá a "sensação de ver o alcance em tempo real".
+
 ## Validação
 Na linha **4107**: viagens/dia ~ frequência, km ~ extensão×viagens, **alcance verificado comparável ao estimado** (o loop). Counts no banco `ooh` (`core.trip_executed`) via MCP.
