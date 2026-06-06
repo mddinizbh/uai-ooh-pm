@@ -5,8 +5,9 @@
 
 | Task | O que entrega | Estado |
 |---|---|---|
-| [T8b](T8b.md) | **Regionalização espacial** — `serving.line_area` (regional+bairro por linha), via polígonos PBH | 🏃 **em execução** |
-| [EP1-02](EP1-02-camadas-corredor-serving.md) | **Camadas do corredor** — `serving.line_corridor` (buffer 300m) + `serving.line_poi` (POIs geom+categoria) | a fazer |
+| [T8b](T8b.md) | **Regionalização espacial** — `serving.line_area` (regional+bairro por linha), via polígonos PBH | ✅ **done** (validado no banco) |
+| [EP1-02](EP1-02-camadas-corredor-serving.md) | **Camadas do corredor** — `serving.line_corridor` (buffer 300m) + `serving.line_poi` (POIs geom+categoria) | ✅ **done** (303/303, validado) |
+| [EP1-03](EP1-03-pontos-serving.md) | **Pontos das paradas** — `serving.line_stop.geom_geojson` (Point 4326) | a fazer (gap do EP2-08) |
 
-**Destrava:** T8b → filtros (EP2-06) · EP1-02 → mapa (EP2-08 expõe, EP4-04 renderiza).
+**Destrava:** T8b → filtros (EP2-06) · EP1-02 → corredor/POI no mapa (EP2-08) · **EP1-03 → pontos no mapa (EP2-08, 4ª camada → EP4-04)**.
 **Validação:** contra o banco `ooh` via MCP `postgres-ooh` (counts reais), registrada em `docs/epicos/runs/`.

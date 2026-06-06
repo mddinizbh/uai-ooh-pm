@@ -147,6 +147,9 @@ const TASKS = {
               note: 'Código já mergeado (PR#8/#9). Se gate T8b GREEN: NÃO reimplementar — só validar no banco e fechar o run doc (fast-path validateOnly).' },
   'EP1-02': { lane: 'data', repo: 'pipeline', doc: F1 + '/01-pipeline-dados/EP1-02-camadas-corredor-serving.md', run: 'EP1-02-camadas-corredor.md', deps: [], gate: null,
               db: 'serving.line_corridor e serving.line_poi existem e populados p/ 303 linhas; geom_geojson válido (GeoJSON SRID 4326); counts de POI por categoria batem com line_metrics.n_poi_*.' },
+  'EP1-03': { lane: 'data', repo: 'pipeline', doc: F1 + '/01-pipeline-dados/EP1-03-pontos-serving.md', run: 'EP1-03-pontos-serving.md', deps: [], gate: null,
+              db: 'serving.line_stop.geom_geojson populado (Point GeoJSON 4326) p/ as paradas das 303 linhas; 0 null onde core.stop.geom_31983 existe; 0 tipo != Point; 0 com crs.',
+              note: 'Task NOVA (gap do EP2-08). Materializa a geometria das paradas no serving (mesmo padrão de EP1-02). Destrava a 4a camada do /geo (EP2-08).' },
 
   // ── BACK (uai-ooh-intel) ──
   'EP2-01': { lane: 'back', repo: 'intel', doc: F1 + '/02-intel-backend/EP2-01-scaffold.md', run: 'EP2-01-scaffold.md', deps: [], gate: null, confirm: 'create-intel',
@@ -163,8 +166,8 @@ const TASKS = {
               db: 'GET /api/regions devolve 9 regionais + bairros; /lines e /ranking filtram por regiao/bairro via serving.line_area.' },
   'EP2-07': { lane: 'back', repo: 'intel', doc: F1 + '/02-intel-backend/EP2-07-auth.md', run: 'EP2-07-auth.md', deps: ['EP2-01'], gate: null, auth: true, db: null,
               note: 'Auth é comportamento HTTP — NÃO materializa nada no ooh (sem db-validate). Validação = ITs (401 sem/com token inválido) + testes do filtro. uai-auth RED ⇒ stub (mode=stub), real deferido ⇒ status PARTIAL, não FAILED.' },
-  'EP2-08': { lane: 'back', repo: 'intel', doc: F1 + '/02-intel-backend/EP2-08-camadas-geojson.md', run: 'EP2-08-camadas-geojson.md', deps: ['EP2-03'], gate: 'EP1-02',
-              db: 'GET /api/lines/{id}/geo devolve FeatureCollection válido (trajeto+corredor+pontos+POIs por categoria) p/ version ACTIVE; sem ST_* runtime.' },
+  'EP2-08': { lane: 'back', repo: 'intel', doc: F1 + '/02-intel-backend/EP2-08-camadas-geojson.md', run: 'EP2-08-camadas-geojson.md', deps: ['EP2-03'], gate: 'EP1-02', xdep: ['EP1-03'], db: null,
+              note: 'RE-IMPLEMENTAÇÃO (após EP1-03): serving.line_stop.geom_geojson agora EXISTE. ADICIONE a camada de PONTOS ao /geo — o FeatureCollection passa a ter as 4 camadas (trajeto+corredor+PONTOS+POIs). O código atual emite só 3 (pontos foram deferidos por falta de geometria). Leia serving.line_stop.geom_geojson plano (sem ST_* runtime). Os ITs devem cobrir as 4 camadas.' },
   'EP2-09': { lane: 'back', repo: 'intel', doc: F1 + '/02-intel-backend/EP2-09-testes-deploy.md', run: 'EP2-09-testes-deploy.md', deps: ['EP2-03', 'EP2-04', 'EP2-05', 'EP2-06', 'EP2-07', 'EP2-08'], gate: null, db: null,
               note: 'ESCOPO nesta lane: SOMENTE ITs Testcontainers postgres:16 (seed próprio, não toca o ooh real) + mvn verify + JaCoCo>=80% + Dockerfile. Validação = build/test, sem db-validate no ooh. NÃO faça git push, NÃO publique no GHCR, NÃO edite uai-infra — a PUBLICAÇÃO é a lane ship (confirm deploy).' },
 
@@ -190,7 +193,7 @@ const TASKS = {
 }
 
 const LANE_ORDER = {
-  data:   ['T8b', 'EP1-02'],
+  data:   ['T8b', 'EP1-02', 'EP1-03'],
   back:   ['EP2-01', 'EP2-02', 'EP2-03', 'EP2-07', 'EP2-04', 'EP2-05', 'EP2-06', 'EP2-08', 'EP2-09'],
   shell:  ['EP3-01', 'EP3-02', 'EP3-03'],
   module: ['EP4-01', 'EP4-02', 'EP4-03', 'EP4-04', 'EP4-05', 'EP4-06', 'EP4-09', 'EP4-07', 'EP4-08'],
@@ -214,7 +217,7 @@ async function writeHandoff(laneKey, patchObj) {
     `Atualize o handoff do F1 em ${STATE} fazendo MERGE (nunca sobrescreva o arquivo inteiro):
 1. Leia o JSON atual de ${STATE} (se não existir, parta do esqueleto { gates:{}, lanes:{data:{},back:{},shell:{},module:{}}, contract:{}, decisions:[], runDocs:[], pending:[] }).
 2. Aplique este patch da lane "${laneKey}": ${JSON.stringify(patchObj)}.
-   Regras de merge: substitua só as chaves do patch; em decisions/runDocs/pending FAÇA APPEND (não duplique); carimbe updatedBy="${laneKey}" e updatedAt com a data real (rode \`date -u +%FT%TZ\`).
+   Regras de merge: substitua só as chaves do patch; em lanes.${laneKey}.tasks faça MERGE POR CHAVE — para CADA task do patch, SOBRESCREVA o valor antigo daquela task com o do patch (o patch é a verdade mais recente); PRESERVE apenas as tasks que o patch NÃO traz (nunca substitua o objeto tasks inteiro nem mantenha o valor antigo de uma task que está no patch — senão re-runs parciais 'only' não atualizam o status); preserve serving_ready/openapi/endpoints/hooks/auth_mode anteriores se o patch não os trouxer; em decisions/runDocs/pending FAÇA APPEND (não duplique); carimbe updatedBy="${laneKey}" e updatedAt com a data real (rode \`date -u +%FT%TZ\`).
 3. Escreva o JSON resultante de volta em ${STATE} (indentado, 2 espaços) e mantenha um espelho legível em ${STATE.replace('.json', '.md')} (tabela curta: gates, status por lane, pendências).
 Confirme o que gravou.`,
     { phase: LANE, label: `handoff:write:${laneKey}` })

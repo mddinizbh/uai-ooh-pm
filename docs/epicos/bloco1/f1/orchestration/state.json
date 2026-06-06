@@ -1,6 +1,6 @@
 {
-  "updatedBy": "shell",
-  "updatedAt": "2026-06-06T01:22:10Z",
+  "updatedBy": "manual-reconcile-back",
+  "updatedAt": "2026-06-06T11:12:06Z",
   "gates": {
     "T8b": {
       "gate": "T8b",
@@ -157,16 +157,42 @@
       "status": "complete",
       "tasks": {
         "T8b": "done",
-        "EP1-02": "done"
+        "EP1-02": "done",
+        "EP1-03": "done"
       },
       "serving_ready": {
         "line_corridor": true,
         "line_poi": true,
-        "line_area": true
+        "line_area": true,
+        "line_stop": true
       },
-      "note": "T8b reconciliado failed->done: adversarial confirmou todos os counts GREEN; o 'failed' foi bug de ordenacao (refute checava run doc antes do emitRunDoc) — corrigido no harness (validateOnly fast-path + refute ignora run doc). EP1-02 codigo em feat/ooh-ep1-02 (uncommitted no working tree)."
+      "note": "T8b/EP1-02 done (validados no banco). EP1-03 done: codigo correto em feat/ooh-ep1-03 (ddl ALTER ADD COLUMN + materialize padrao EP1-02), aplicado na v5 ACTIVE via MCP (agente so rodou Testcontainers, nao aplicou no ooh vivo). Verificado: serving.line_stop.geom_geojson 84992/84992 Point, 0 null, 0 crs, 303 linhas/9192 paradas. Codigo EP1-03 uncommitted (feat/ooh-ep1-03)."
     },
-    "back": {},
+    "back": {
+      "status": "complete",
+      "tasks": {
+        "EP2-01": "done",
+        "EP2-02": "done",
+        "EP2-03": "done",
+        "EP2-07": "partial",
+        "EP2-04": "done",
+        "EP2-05": "done",
+        "EP2-06": "done",
+        "EP2-08": "done",
+        "EP2-09": "done"
+      },
+      "openapi": "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-intel (/v3/api-docs em runtime ou openapi.json do build)",
+      "endpoints": [
+        "GET /api/lines",
+        "GET /api/lines/{id}",
+        "GET /api/lines/{id}/metrics",
+        "GET /api/lines/ranking",
+        "POST /api/lines/aggregate",
+        "GET /api/regions",
+        "GET /api/lines/{id}/geo"
+      ],
+      "note": "9/9: EP2-01..06 done; EP2-07 partial (auth stub, real deferido ate uai-auth existir); EP2-08 done (/geo 4 camadas apos EP1-03 materializar os pontos); EP2-09 done (ITs todos endpoints F1). Reconciliado do resultado do re-run wdt0s9p5g (handoff ficou com valores velhos por bug do merge — corrigido)."
+    },
     "shell": {
       "status": "partial",
       "tasks": {
@@ -184,7 +210,17 @@
     "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/T8b-regionalizacao.md",
     "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP1-02-camadas-corredor.md",
     "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP3-01-shell-nav.md",
-    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP3-02-login-sso.md"
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP3-02-login-sso.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-01-scaffold.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-02-dominio-portas.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-03-catalogo-ficha.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-07-auth.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-04-ranking.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-05-agregacao.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-06-regioes-filtros.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-08-camadas-geojson.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP1-03-pontos-serving.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-09-testes-deploy.md"
   ],
   "pending": [
     {

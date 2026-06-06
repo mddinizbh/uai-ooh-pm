@@ -1,104 +1,106 @@
-# Run — EP2-07 (intel: auth, introspection uai-auth, sem tenant) · 2026-06-05 · ❌ FAILED / 🚧 BLOQUEADA
+# Run — EP2-07 (intel: auth, introspection uai-auth, sem tenant) · 2026-06-06 · 🚧 PARCIAL (auth=stub, fechamento real deferido)
 
 > Execução no `uai-ooh-intel` (branch `feat/ooh-ep2-07`), implementando a proteção de `/api/**` por
-> **Bearer token** com `SecurityConfig` + `BearerTokenAuthenticationFilter` + `AuthenticationEntryPoint`
-> (JSON 401), **autenticação apenas, sem tenant/RLS** (ADR-004). A impl em **modo stub** (F1) está
-> pronta, compila e passa nos testes — mas a task **não pode ser promovida a DONE**: o critério **Final**
-> depende de **introspection real (RFC 7662) contra o `uai-auth`**, que é **repo vazio (epic-002), gate
-> RED**; e o **gate canônico deste hub (validação contra o banco `ooh`)** retornou **ok:false** — auth é
-> **comportamento HTTP**, não materializa nada no `ooh` (0 tabelas de auth/token/session). Estado do banco
-> consultado via MCP `postgres-ooh` em 2026-06-05.
+> **Bearer token** com `SecurityConfig` (`anyRequest().authenticated()`) + `jsonUnauthorizedEntryPoint()`
+> (JSON 401) + filtro Bearer, **autenticação apenas, sem tenant/RLS** (ADR-004). O caminho **real** de
+> introspection (`UaiAuthTokenIntrospector`, RFC 7662, **fail-closed**) já está **cabeado**, mas roda em
+> **modo STUB** porque o upstream `uai-auth` é **repo vazio (epic-002), gate RED** — a chamada real é
+> ligada por flag de config no cutover via OOH. Build **verde** com evidência fresca (JDK 21 forçado,
+> Docker up). Estado do banco `ooh` consultado via MCP `postgres-ooh` em 2026-06-06.
 > Task do mapa F1: `docs/epicos/bloco1/f1/02-intel-backend/EP2-07-auth.md`.
 >
-> **Veredito:** o **stub do F1** está bom (compila Java 21/Boot 3.3.6; **59/59** testes; review APROVADO),
-> porém o **DoD completo não é satisfazível agora** — falta o upstream `uai-auth` e o gate de banco é
-> **N/A** (não há o que contar no `ooh`). Sem evidência aceita pelo gate canônico + bloqueio upstream ⇒
-> a task permanece **partial/stub**, registrada como **FAILED / BLOQUEADA**. Destrava só quando `uai-auth`
-> subir (re-rodar `only:['EP2-07']`).
+> **Veredito:** o **stub do F1** é o deliverable correto e está completo — compila (Java 21 / Boot 3.3.6),
+> **127/127** testes (116 unit + 11 IT com Testcontainers), review **APROVADO**, gate de banco **ok:true**
+> e o **refute não derrubou** (`refuted:false`). O que **não fecha como DONE** é o critério **Final**
+> (introspection RFC 7662 real contra o `uai-auth`), **deferido** por dependência upstream ausente — exatamente
+> o "partial" previsto na task. → **PARCIAL**: stub entregue, **fechamento real deferido** pro cutover.
+> Destrava só quando `uai-auth` subir (re-rodar `only:['EP2-07']`).
 
 ## Critério de pronto vs. medido (build + banco `ooh`, serving v5 ACTIVE)
 
 | Critério de pronto | Esperado | Medido | Veredito |
 |---|---|---|---|
-| **F1 (stub)** `/api/**` exige Bearer; 401 sem token e com token inválido | 401 nos dois casos | `SecurityConfig` (`anyRequest().authenticated()`) + `AuthenticationEntryPoint` (JSON 401) + `BearerTokenAuthenticationFilter` (401 + corta a chain em token inválido). Coberto por `IntelEndpointsIT.apiRejectsRequestWithoutToken`/`apiRejectsInvalidToken` + `BearerTokenAuthenticationFilterTest.invalidTokenIsRejectedWith401AndStopsChain` | ✅ (só por teste de integração, não pelo banco) |
-| **F1 (stub)** `/actuator/health` aberto | health sem auth | `permitAll` no health; `/api/**` + Swagger atrás de auth | ✅ |
-| **F1 (stub)** `SecurityContext` populado, **sem tenant** (ADR-004) | principal autenticado, 0 escopo por org | filtro popula o `SecurityContext`; nenhum `tenant_id`/RLS | ✅ |
-| Compila (Java 21 / Spring Boot 3.3.6) | EXIT 0 | `mvn -DskipTests compile` = EXIT 0; `mvn -DskipTests test-compile` = EXIT 0 | ✅ |
-| Suíte de testes (estágio Test) | verde | `mvn verify -B` (JDK 21 forçado): **59 total / 59 pass / 0 fail / 0 skip**; **13 novos** (esperado 13) | ✅ |
-| **Gate canônico: validação contra o banco `ooh`** | counts reais confirmam o critério | **NÃO verificável no `ooh`**: query por tabelas `%auth%/%token%/%introspect%/%session%/%tenant%/%security%` ⇒ **0 tabelas**. Auth é comportamento HTTP, não materializa linha no banco | ❌ (ok:false — gate N/A) |
-| **Final (pós-`uai-auth`)** introspection real RFC 7662 + cache curto | 1 call cacheada por hash do token, TTL ~60s, revogação respeitada | **NÃO implementável**: `uai-auth` é **repo vazio (epic-002)**, sem endpoint de introspection. Roda em **stub** (aceita token de dev), sem chamar RFC 7662 | ❌ (BLOQUEADA upstream) |
+| **F1 (stub)** `/api/**` exige Bearer; 401 sem token e com token inválido | 401 nos dois casos | `SecurityConfig` (`anyRequest().authenticated()`) + `jsonUnauthorizedEntryPoint()` (JSON 401); token inválido **interrompe a cadeia**. Coberto por `IntelEndpointsIT` (Testcontainers Postgres) | ✅ |
+| **F1 (stub)** `/actuator/health` aberto | health sem auth | `permitAll` no health; `/api/**` + Swagger atrás de auth (Swagger **sob** `/api/**`) | ✅ |
+| **F1 (stub)** `SecurityContext` populado, **sem tenant** (ADR-004) | principal autenticado, 0 escopo por org | `SecurityContext` populado com `AuthenticatedUser` + `ROLE_USER`; nenhum `tenant_id`/RLS | ✅ |
+| Compila (Java 21 / Spring Boot 3.3.6) | EXIT 0 | `mvn -q -DskipTests compile` = **EXIT 0** (**81** classes em `target/classes`); `mvn -q -DskipTests test-compile` = **EXIT 0** (**21** classes de teste). JDK 21 (`ms-21.0.10`) forçado | ✅ |
+| Suíte de testes (estágio Test) | verde | `mvn verify` (JDK 21 forçado): **127 total / 127 pass / 0 fail / 0 skip** (**116** unit + **11** IT `IntelEndpointsIT`); **13 novos** (esperado 13) | ✅ |
+| **Gate canônico: validação contra o banco `ooh`** | counts reais confirmam o critério | Gate de banco **`ok:true`** com **`checks:[]`** — auth é comportamento HTTP, **não materializa estado no `ooh`** (ADR-004, sem tabela de auth/token/session). Gate **não falhou**; é **N/A por design**, não confirmação positiva no banco | ✅ (ok:true; N/A por design) |
+| **Final (pós-`uai-auth`)** introspection real RFC 7662 + cache curto | 1 call cacheada por hash do token, TTL ~60s, revogação respeitada | `UaiAuthTokenIntrospector` (RFC 7662, **fail-closed**) **cabeado** mas em **modo STUB**: `uai-auth` é **repo vazio (epic-002), gate RED**. Chamada real **deferida** por flag de config (ligada no cutover via OOH) | 🚧 (deferido — não bloqueia o stub) |
 
-## Por que FAILED / BLOQUEADA (e não DONE)
+## Por que PARCIAL (e não DONE nem FAILED)
 
-A confusão honesta aqui: **implement/review/test todos vieram verdes**. Eles validam o **stub do F1** — e o
-stub está correto. O que **trava** a promoção a DONE são duas coisas, nenhuma resolvível nesta sessão:
+Todos os estágios vieram verdes — eles validam o **stub do F1**, que é o **deliverable correto desta task no
+F1**. O que **não fecha** como DONE é só o critério **Final** (introspection real RFC 7662 contra o `uai-auth`),
+e por um motivo **estrutural e previsto na própria task**, não por defeito da entrega:
 
-1. **Bloqueio upstream (BLOQUEADA).** O critério **Final** da task exige **introspection real (RFC 7662)**
-   contra o `uai-auth`. O `uai-auth` é **repo vazio (epic-002), gate RED** — não há endpoint de
-   introspection pra chamar. A própria task prevê isso: *"A orquestração mantém esta task em `partial`
-   até [o uai-auth subir]."* Logo o DoD completo é **insatisfazível agora**, por dependência externa.
+- O `uai-auth` é **repo vazio (epic-002), gate RED** — não há endpoint de introspection pra chamar. A task já
+  manda manter em `partial` até ele subir. O caminho real (`UaiAuthTokenIntrospector`, RFC 7662, fail-closed)
+  está **cabeado** e ligado por flag de config; só falta o upstream existir.
+- **Não é FAILED** (diferente do carimbo anterior desta task, em evidência mais velha — 59/59 e gate de banco
+  `ok:false`): nesta rodada o **gate de banco devolveu `ok:true`** (com `checks:[]`, por design — auth não conta
+  no `ooh`) e o **refute não derrubou** (`refuted:false`). O stub está sólido e aceito.
 
-2. **Gate canônico do hub = N/A (FAILED).** A convenção deste repo (`CLAUDE.md`) é que **validação de
-   execução é feita contra o banco `ooh` — counts reais vs. esperado**. EP2-07 é **autenticação = puro
-   comportamento HTTP**: não cria tabela, não grava linha, não toca `dataset_version`. A varredura por
-   tabelas de auth/token/session/tenant no `ooh` retornou **0** (esperado, por design ADR-004). O gate de
-   banco devolveu **ok:false**: não há evidência **no banco** que confirme o 401. A única prova é
-   **teste de integração contra o intel no ar com stub de introspection** — válida, mas **fora** do gate
-   canônico deste hub.
-
-Resumo: **stub sólido, DoD incompleto**. Verde de compilação/testes **não substitui** (a) o upstream
-ausente nem (b) o gate de banco. → a task fica **partial/stub** e é carimbada **FAILED / BLOQUEADA**.
+Resumo: **stub completo e aceito, fechamento real deferido por dependência upstream** ⇒ **PARCIAL**.
 
 ## Estado do `dataset_version`
 
-- **Nenhuma alteração — auth não toca dados.** O `ooh` segue com **v5 ACTIVE** (a mesma que a EP2-03
-  consome read-only). EP2-07 não cria/promove/arquiva versão; é camada de segurança HTTP, ortogonal ao
-  ciclo de versões do normalizer (EP1). Coerente com ADR-052 (fronteira dados↔consumidor). ✅ (inalterado)
+- **Nenhuma alteração — auth não toca dados.** O `ooh` segue com **serving v5 ACTIVE** (a mesma que EP2-03/04/05/06
+  consomem read-only). EP2-07 não cria/promove/arquiva versão; é camada de segurança HTTP, ortogonal ao ciclo de
+  versões do normalizer (EP1). Coerente com **ADR-052** (fronteira dados↔consumidor). ✅ (inalterado)
 
 ## Decisões / desvios
 
 - **Validação = introspection** (decisão 2026-06-05): segue o padrão da plataforma (revogação respeitada,
-  +1 call cacheada). JWT local via JWKS fica como otimização futura. **Não exercida no F1** por falta do
-  `uai-auth` — F1 roda só a estrutura real (filtro + extração do Bearer + paths) com **token de dev**.
+  +1 call cacheada por hash do token, TTL ~60s). JWT local via JWKS fica como otimização futura. **Não exercida no
+  F1** por falta do `uai-auth` — o introspector real está cabeado **fail-closed** e desligado por flag (modo STUB).
 - **Sem tenant/RLS (ADR-004).** Intel é dado de referência, tenant-agnóstico — só importa "é usuário uAI
-  autenticado". Nenhum escopo por organização; nenhum `tenant_id` no caminho de auth.
-- **Gancho service-to-service (`/internal/**` + `X-UAI-Internal-Key`) previsto, não implementado** —
-  fora do F1 (cms→intel no Bloco 3). Caminho deixado, sem código de validação agora.
-- **Desvio de harness (carregado desde a EP2-01, ainda aberto):** repo **sem wrapper `./mvnw`** — `mvn`
-  default cai em **Java 26** (incompatível com Lombok), exigiu `JAVA_HOME=<ms-21.0.10>` manual. Não afeta o
-  veredito desta task; pendência **fixar Java 21 + padronizar wrapper** segue carimbada pra **EP2-09**.
-- **Suíte completa NÃO rodada no estágio implement** (só `compile`/`test-compile`); a suíte 59/59 é do
-  estágio Test, com Docker ativo (Testcontainers nos ITs de segurança).
+  autenticado". `SecurityContext` carrega `AuthenticatedUser` + `ROLE_USER`; nenhum escopo por organização,
+  nenhum `tenant_id` no caminho de auth.
+- **Swagger atrás de auth, `/actuator/health` aberto.** Swagger fica **sob `/api/**`** (interno, exige Bearer);
+  só o health é `permitAll` (healthcheck de infra).
+- **Gancho service-to-service (`/internal/**` + `X-UAI-Internal-Key`) previsto, não implementado** — fora do F1
+  (cms→intel no Bloco 3). Caminho deixado, sem código de validação agora.
+- **Desvio de harness (aberto desde a EP2-01):** repo **sem wrapper `./mvnw`** — o `mvn` default (3.9.16, Homebrew)
+  roda sobre **JDK 26**, enquanto o projeto **alveja `release` 21**; exigiu `JAVA_HOME=<ms-21.0.10>` manual pra
+  build/suíte passarem. Não afeta o veredito; pendência **fixar Java 21 + padronizar wrapper** segue carimbada
+  pra **EP2-09**.
+- **Suíte completa NÃO rodada no estágio implement** (só `compile`/`test-compile` = EXIT 0); os **127/127** são do
+  estágio Test, com Docker ativo (Testcontainers no `IntelEndpointsIT`).
+- **Código ainda `untracked` na branch `feat/ooh-ep2-07`** (sem commit no momento do run) — normal antes do commit;
+  observação registrada no refute, não derruba a entrega.
 
-## Adversarial — o que o cético tentou (resultado: **derrubou o "done"**, confirmou FAILED)
+## Adversarial — o que o cético tentou (resultado: **não derrubou**, `refuted:false`)
 
-Aqui o cético tentou o inverso do usual: **resgatar** a task pra DONE. Não conseguiu — o bloqueio se
-sustentou nos 3 vetores.
+O cético tentou derrubar o "done" do **stub** com vetores de build/escopo/segurança. **Nenhum derrubou** — todos
+os critérios de pronto (stub) estão cumpridos no `uai-ooh-intel`, com **evidência fresca** rodada agora.
 
-- **Vetor 1 — "implement+review+test estão todos verdes, então é DONE; FAILED é pedantismo".**
-  **Derrubou o resgate:** verde valida o **stub**, não o **DoD**. O critério **Final** (introspection RFC
-  7662) é literalmente inimplementável sem `uai-auth` (epic-002, repo vazio). A própria task manda manter
-  em `partial` até lá. 59/59 no stub **não fecha** um DoD que exige a chamada real. → segue BLOQUEADA.
-- **Vetor 2 — "valida o 401 contra o banco `ooh` e fecha o gate canônico".**
-  **Derrubou o resgate:** a varredura por tabelas `%auth%/%token%/%introspect%/%session%/%tenant%/%security%`
-  no `ooh` deu **0** — auth não materializa estado no banco (ADR-004, design). O gate de banco é
-  estruturalmente **N/A** pra esta task; **ok:false** é o resultado correto, não um falso negativo. A prova
-  do 401 existe, mas é **teste de integração HTTP** — fora do gate deste hub. → gate canônico **não fecha**.
-- **Vetor 3 — "o stub aceitar token de dev já equivale ao comportamento final".**
-  **Derrubou o resgate:** stub **não chama** RFC 7662, **não** respeita revogação nem o cache por hash —
-  é placeholder. Equivaler stub a final mascararia exatamente o risco de segurança que a introspection
-  existe pra cobrir. → não equivale.
-- **Nota sobre o refute formal:** a rodada de `refute` retornou **null** (não produziu contraevidência
-  própria) — coerente: não há o que refutar no banco quando o gate é N/A. A decisão de FAILED/BLOQUEADA
-  vem do **bloqueio upstream + gate de banco N/A**, não de um refute que derrubou counts.
+- **Vetor 1 — "o build não está verde / os números não reproduzem".**
+  **Não derrubou:** `mvn -o verify` (Java 21, Docker up) reexecutado agora ⇒ **116** testes unitários + **11**
+  testes de integração `IntelEndpointsIT` (Testcontainers Postgres) passando, **BUILD SUCCESS** (127/127). Compila
+  81 classes + 21 de teste, EXIT 0. Bate com o reportado.
+- **Vetor 2 — "o stub não protege de verdade; falta o 401 com token inválido".**
+  **Não derrubou:** `/api/**` exige Bearer; **401 sem token** e **401 com token inválido interrompendo a cadeia**,
+  ambos cobertos por IT; `/actuator/health` aberto; `SecurityContext` populado com `AuthenticatedUser`+`ROLE_USER`;
+  sem tenant/RLS (ADR-004). Review **APROVADO** confirma o critério de pronto do F1-stub.
+- **Vetor 3 — "o stub equivale ao comportamento final, então deveria ser DONE".**
+  **Não derrubou (e nem tenta):** o STUB é o **deliverable correto** do F1; o caminho real (`UaiAuthTokenIntrospector`,
+  RFC 7662, fail-closed) está **cabeado** e **deferido por flag de config** — exatamente o **"partial" esperado**, não
+  uma refutação. Equiparar stub a final mascararia o gate `uai-auth` RED; por isso fica **PARCIAL**, não DONE.
+- **Observação não-refutadora:** o código está apenas **`untracked`** na branch `feat/ooh-ep2-07` (sem commit ainda)
+  — normal antes do commit; não afeta o veredito do run.
+- **Gate de banco:** `ok:true` com `checks:[]` — coerente com auth não materializar estado no `ooh` (ADR-004). Não há
+  o que contar; o gate **não falhou** (N/A por design), e não foi forçado a confirmar nada que não existe.
 
 ## Tracking
 
 - Run **canônico** gravado aqui no hub de PM
-  (`uai-ooh-pm/docs/epicos/runs/EP2-07-auth.md`).
-- Código no repo-alvo: `uai-ooh-intel` @ `feat/ooh-ep2-07` (stub do F1, compila e 59/59).
-- **Status:** **FAILED / BLOQUEADA** — orquestração mantém em **partial/stub**.
-- **Destrava com:** `uai-auth` subir o endpoint de introspection (epic-002) → ligar a chamada real
-  (cache curto TTL ~60s) → **re-rodar `only:['EP2-07']`** pra promover a DONE.
-- **Relaciona:** EP3-02 (login SSO no shell — quem obtém o token); **ITs/deploy** consolidam em **EP2-09**
-  (que também fecha a pendência **Java 21 + wrapper Maven**).
+  (`uai-ooh-pm/docs/epicos/runs/EP2-07-auth.md`). **Supersede** o carimbo anterior **FAILED / BLOQUEADA** (evidência
+  velha: 59/59 e gate de banco `ok:false`) com evidência fresca **127/127** + gate `ok:true` + `refuted:false`.
+- Código no repo-alvo: `uai-ooh-intel` @ `feat/ooh-ep2-07` (`SecurityConfig`, filtro Bearer,
+  `jsonUnauthorizedEntryPoint`, `AuthenticatedUser`, `UaiAuthTokenIntrospector` em modo STUB). Compila + 127/127.
+- **Status:** 🚧 **PARCIAL** (auth=stub, **fechamento real deferido**) — orquestração mantém em **partial/stub**.
+- **Destrava com:** `uai-auth` subir o endpoint de introspection (epic-002) → ligar a chamada real via flag de
+  config (cache curto TTL ~60s, fail-closed) → **re-rodar `only:['EP2-07']`** pra promover a DONE.
+- **Relaciona:** EP3-02 (login SSO no shell — quem obtém o token); **ITs/deploy** e a pendência **Java 21 + wrapper
+  Maven** consolidam em **EP2-09**.
