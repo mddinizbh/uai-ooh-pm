@@ -32,6 +32,7 @@ O intel-RT serve **"posição/progresso de um conjunto de `vehicle_id`"**. No F2
 - **✅ Gate INFRA resolvido (2026-06-06):** **Kafka (KRaft) + Redis já de pé** no `uai-infra` → INFRA-01 = só criar o tópico `ooh.rt.position`; resta INFRA-02 (`raw` particionado).
 - **Depende de:** `core` (`trip_pattern`/`line_shape` — ✅ F1) · intel-RT estende o **intel F1** (lane 04 espera o EP2 do F1).
 - **Sequenciamento:** infra ∥ poller ∥ consolidator podem rodar **em paralelo ao F1**; intel-RT e front-RT entram quando o intel/front do F1 existirem.
+- **Convenção de criação de repo (POLL-01/CONS-01):** sempre via **`gh repo create`** + push de uma **`main` vazia** (baseline) **antes** de qualquer código → só então regerar do template. *(Convenção uAI — vale pra todo repo novo.)*
 
 ## Validação
 Na linha **4107**: viagens/dia ~ frequência, km ~ extensão×viagens, **alcance verificado comparável ao estimado** (o loop). Counts no banco `ooh` (`core.trip_executed`) via MCP.

@@ -9,6 +9,7 @@
 Bootar o serviço `uai-ooh-intel` a partir do `uai-ooh-service-template` (hexagonal single-module), conectado ao banco `ooh` via usuário **read-only `ooh_intel_ro`** (SELECT só em `serving`), lendo por **`dataset_version` ACTIVE**, com health. Base pronta pra receber domínio/endpoints (tarefas 2+). **Sem PostGIS/`ST_*` no runtime** (ADR-003) e **sem tenant** (ADR-004).
 
 ## Como executar
+0. **Criar o repo:** `gh repo create mddinizbh/uai-ooh-intel --private` + push de uma **`main` vazia** (commit baseline) **antes de qualquer código** (token `create-intel` na orquestração).
 1. **Regerar LIMPO do template:** se o repo já tiver um scaffold antigo/parcial, **remover o conteúdo e regerar do `uai-ooh-service-template` atual** (baseline limpo e atualizado com a evolução do template — **não** evoluir sobre scaffold velho). Depois renomear pacote base (`com.uai.ooh.intel`), `artifactId`/Docker, porta **`:8085`**. ⟶ **Convenção: vale pra TODO repo gerado do template** (EP3/EP4 e futuros).
 2. **Datasource** Spring → `ooh` via `ooh_intel_ro` (schema default `serving`, HikariCP, read-only). Profiles `local` e `prod`. **Sem Flyway/DDL** — o `serving` é do normalizer; o intel só lê.
 3. **`ActiveVersionResolver`**: resolve `serving.dataset_version WHERE status='ACTIVE'` (cache curto); toda leitura filtra por esse `version_id`.

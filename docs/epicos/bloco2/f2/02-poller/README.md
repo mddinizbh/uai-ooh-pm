@@ -5,8 +5,8 @@
 
 | Task | O que | Nota |
 |---|---|---|
-| POLL-01 | scaffold do repo Python + config (URL GTFS-RT, intervalo ~15–20s) | regenerar de template se houver |
-| POLL-02 | **polling**: decode protobuf (reusa `load_gtfs_rt.py`) + resiliência (retries/backoff/UA, **idempotência por `_feed_timestamp`**) + métricas (taxa ~451 veíc/ciclo, lag) | |
-| POLL-03 | **landing** `raw.rt__vehicle_position` (particionado) **+ publish** Kafka `ooh.rt.position` (lote por ciclo) | landa a **frota inteira** (auditoria/freq F1) |
+| [POLL-01](POLL-01-scaffold.md) | scaffold (repo separado, Python) + config + clients (confluent-kafka, psycopg) | regerar de template |
+| [POLL-02](POLL-02-polling-resiliencia.md) | **polling**: decode (gtfs-realtime-bindings) + resiliência (retries/backoff/UA, **idempotência por `_feed_timestamp`**) + métricas (~451/ciclo, lag) | |
+| [POLL-03](POLL-03-landing-publish.md) | **landing** `raw` (particionado) **+ publish** Kafka (`key=vehicle_id`, lote/ciclo) | land-then-publish · at-least-once |
 
 **Pronto:** stream contínuo no tópico + landing particionado; taxa medida.
