@@ -18,6 +18,33 @@ Bootar o serviço `uai-ooh-intel` a partir do `uai-ooh-service-template` (hexago
 ## Decisão
 - **Alvo de dev = serving LOCAL** (decidido 2026-06-05): ITs com Testcontainers + pg local no dev; não acopla ao VPS. **Prod** aponta pro `ooh` do VPS via profile.
 
+## Detalhe técnico (p/ o coder)
+**Estrutura (hexagonal single-module):**
+```
+com.uai.ooh.intel
+ ├─ domain/model            # records (EP2-02)
+ ├─ application/port        # in/out (EP2-02)
+ ├─ adapter/in/web          # controllers (EP2-03+)
+ ├─ adapter/out/persistence # JdbcTemplate readers (EP2-03+)
+ └─ config                  # datasource, security, version resolver, health
+```
+**Config (`application.yml`):**
+- profiles `local` (pg local; Testcontainers nos ITs) e `prod` (ooh do VPS).
+- datasource: usuário `ooh_intel_ro`, `currentSchema=serving`, HikariCP `read-only: true`, **pool pequeno**.
+- secrets via env (não commitar): `OOH_DB_URL`, `OOH_INTEL_RO_USER`, `OOH_INTEL_RO_PASS` — injetadas pelo `uai-infra` no prod.
+- **sem Flyway** (o intel não tem DDL próprio no F1).
+
+**`ActiveVersionResolver`:**
+- query: `SELECT version_id FROM serving.dataset_version WHERE status='ACTIVE'` (espera **exatamente 1**; hoje = `version_id=4`).
+- **cache curto** (TTL ~30–60s ou refresh agendado); **resolve 1× por request** → consistência durante um swap atômico.
+- edge cases: **0 ACTIVE → health DOWN** (não serve dado inconsistente); **>1 ACTIVE → erro** (invariante violado).
+
+**Health (`/actuator/health`):**
+- indicator `datasetVersion`: UP se há 1 ACTIVE (expõe o `version_id`); DOWN se 0.
+- + connectivity do datasource (indicator default do Spring).
+
+**Nota de dependência (não bloqueia o scaffold):** o **serving base** (`line`, `line_metrics`, `line_shape`, `line_stop`, `line_profile_demografico`, `dataset_version`) já existe → o scaffold conecta e fica verde. As tabelas `line_area` (T8b), `line_corridor`/`line_poi` (EP1-02) **só são exigidas pelos endpoints que as usam** (EP2-06 / EP2-08), não pelo boot.
+
 ## Critério de pronto (verificável)
 - `uai-ooh-intel` sobe e conecta no `ooh` via `ooh_intel_ro`.
 - `/actuator/health` verde (inclui o indicator de `dataset_version` ACTIVE).

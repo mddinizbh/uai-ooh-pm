@@ -1,0 +1,196 @@
+{
+  "updatedBy": "shell",
+  "updatedAt": "2026-06-06T01:22:10Z",
+  "gates": {
+    "T8b": {
+      "gate": "T8b",
+      "status": "GREEN",
+      "evidence": [
+        {
+          "check": "SELECT count(*) FROM core.regional",
+          "expected": "9",
+          "actual": "9",
+          "pass": true
+        },
+        {
+          "check": "SELECT count(DISTINCT line_id) FROM core.line_area",
+          "expected": "303",
+          "actual": "303",
+          "pass": true
+        },
+        {
+          "check": "SELECT count(*) FROM core.stop WHERE geom_31983 IS NOT NULL AND (nm_bairro IS NULL OR regional IS NULL)",
+          "expected": "0",
+          "actual": "0",
+          "pass": true
+        },
+        {
+          "check": "SELECT count(*) FROM core.census_sector WHERE regional IS NULL",
+          "expected": "0",
+          "actual": "0",
+          "pass": true
+        }
+      ],
+      "note": "Todas as 4 checagens batem exato (9 regionais, 303 line_ids distintos, 0 stops com geom mas sem bairro/regional, 0 census_sector sem regional). T8b mergeado e dados consistentes no banco ooh schema core. Pendência única: escrever o run doc em docs/epicos/runs/ registrando counts reais vs esperado. Apenas SELECTs executados via MCP postgres-ooh."
+    },
+    "EP1-02": {
+      "gate": "EP1-02",
+      "status": "GREEN",
+      "evidence": [
+        {
+          "check": "to_regclass('serving.line_corridor') AND to_regclass('serving.line_poi') existem",
+          "expected": "ambas true",
+          "actual": "corridor_exists=true, poi_exists=true",
+          "pass": true
+        },
+        {
+          "check": "count(DISTINCT line_id) FROM serving.line_corridor",
+          "expected": "303",
+          "actual": "303",
+          "pass": true
+        },
+        {
+          "check": "count(DISTINCT line_id) FROM serving.line_poi",
+          "expected": "~303",
+          "actual": "303",
+          "pass": true
+        },
+        {
+          "check": "serving.line_corridor com geom_geojson nula",
+          "expected": "0",
+          "actual": "0",
+          "pass": true
+        }
+      ],
+      "note": "GREEN apos a lane data: EP1-02 materializou serving.line_corridor e serving.line_poi (303 linhas cada, 0 geom nula). dataset_version=5/ACTIVE (EP1-02 promoveu nova versao). Reconciliado manualmente apos verificacao via MCP postgres-ooh (gate original era RED, pre-execucao). Destrava EP2-08."
+    },
+    "dataset_version": {
+      "gate": "dataset_version",
+      "status": "GREEN",
+      "evidence": [
+        {
+          "check": "count(*) FROM serving.dataset_version WHERE status='ACTIVE' (precisa >=1)",
+          "expected": ">=1",
+          "actual": "1",
+          "pass": true
+        },
+        {
+          "check": "version_id, status FROM serving.dataset_version ORDER BY version_id",
+          "expected": "ao menos 1 linha com status=ACTIVE",
+          "actual": "version_id=3 status=ARCHIVED; version_id=4 status=ACTIVE",
+          "pass": true
+        }
+      ],
+      "note": "Há 1 dataset_version ACTIVE (version_id=4), com a anterior (version_id=3) já ARCHIVED — promoção/cutover ocorreu corretamente. Critério GREEN (>=1 ACTIVE) satisfeito; não está no caso degradado YELLOW (só BUILDING). intel pode subir com health verde. Apenas SELECTs executados."
+    },
+    "repos": {
+      "gate": "repos",
+      "status": "YELLOW",
+      "note": "Estado de scaffold pré-execução do F1, todos os 4 repos batem com o esperado. uai-ooh-intel ainda não existe (EP2-01 vai criar). uai-portal existe porém vazio de app (só .idea+CLAUDE.md, EP3-01 vai forkar de uai-spark). uai-spark presente como fonte do fork (101 arquivos). uai-ooh-service-template presente com pom.xml como base do scaffold (36 arquivos). YELLOW = estado esperado/degradável, dá pra seguir; nada bloqueia.",
+      "evidence": [
+        {
+          "check": "uai-ooh-intel ausente (esperado AUSENTE — EP2-01 cria)",
+          "expected": "inexistente",
+          "actual": "ABSENT — diretório /Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-intel não existe",
+          "pass": true
+        },
+        {
+          "check": "uai-portal quase vazio (esperado quase vazio — EP3-01 forka)",
+          "expected": "quase vazio (sem código de app)",
+          "actual": "EXISTS, 0 arquivos reais (fora .git/.idea/CLAUDE.md); conteúdo: .idea/.gitignore, .idea/workspace.xml, CLAUDE.md",
+          "pass": true
+        },
+        {
+          "check": "uai-spark existe (fonte do fork)",
+          "expected": "existir",
+          "actual": "EXISTS em /Users/marleydiniz/IdeaProjects/uai-spark, 101 arquivos reais",
+          "pass": true
+        },
+        {
+          "check": "uai-ooh-service-template existe e tem pom.xml (base do scaffold)",
+          "expected": "existir + pom.xml presente",
+          "actual": "EXISTS, 36 arquivos reais, POM_PRESENT (pom.xml na raiz; tb Dockerfile, README.md, .gitignore)",
+          "pass": true
+        }
+      ]
+    },
+    "uai-auth": {
+      "gate": "uai-auth",
+      "status": "RED",
+      "note": "Repo uai-auth existe como diretório git mas está VAZIO de conteúdo real (0 arquivos fora de .git/.idea/CLAUDE.md), sem build files, sem código de introspection/SSO e sem commits. O próprio CLAUDE.md declara \"Repo vazio em Mai/2026 — bootstrap pelo epic-002-uai-auth-minimo\". Critério do gate: 0 arquivos reais ⇒ RED. Implicação: SSO/introspecção (RFC 7662) não disponível ⇒ EP3-02 e EP2-07 devem rodar em modo stub até o bootstrap do epic-002. Path: /Users/marleydiniz/IdeaProjects/personal/uai/uai-auth",
+      "evidence": [
+        {
+          "check": "Contagem de arquivos reais em uai-auth (exclui .git/.idea/CLAUDE.md)",
+          "expected": "> 0 arquivos para gate passar",
+          "actual": "0 arquivos reais (find -type f retornou contagem 0; só existem .git/, .idea/ e CLAUDE.md)",
+          "pass": false
+        },
+        {
+          "check": "Build file presente (pom.xml ou package.json)",
+          "expected": "pelo menos 1 (Java 21/Spring Boot conforme CLAUDE.md)",
+          "actual": "0 — nenhum pom.xml nem package.json encontrado",
+          "pass": false
+        },
+        {
+          "check": "Endpoint de introspection/SSO no código (introspect|sso|saml|oauth|openid|token_info)",
+          "expected": "introspecção RFC 7662 consumida pelo uai-cms presente",
+          "actual": "0 arquivos com qualquer referência (não há código-fonte algum)",
+          "pass": false
+        },
+        {
+          "check": "Histórico git do repo",
+          "expected": "commits de bootstrap",
+          "actual": "no commits — git log vazio",
+          "pass": false
+        },
+        {
+          "check": "Intenção declarada do repo (CLAUDE.md)",
+          "expected": "serviço de auth implementado",
+          "actual": "CLAUDE.md confirma 'Repo vazio em Mai/2026 — bootstrap pelo epic-002-uai-auth-minimo'",
+          "pass": false
+        }
+      ]
+    }
+  },
+  "lanes": {
+    "data": {
+      "status": "complete",
+      "tasks": {
+        "T8b": "done",
+        "EP1-02": "done"
+      },
+      "serving_ready": {
+        "line_corridor": true,
+        "line_poi": true,
+        "line_area": true
+      },
+      "note": "T8b reconciliado failed->done: adversarial confirmou todos os counts GREEN; o 'failed' foi bug de ordenacao (refute checava run doc antes do emitRunDoc) — corrigido no harness (validateOnly fast-path + refute ignora run doc). EP1-02 codigo em feat/ooh-ep1-02 (uncommitted no working tree)."
+    },
+    "back": {},
+    "shell": {
+      "status": "partial",
+      "tasks": {
+        "EP3-01": "done",
+        "EP3-02": "partial",
+        "EP3-03": "paused"
+      },
+      "auth_mode": "stub"
+    },
+    "module": {}
+  },
+  "contract": {},
+  "decisions": [],
+  "runDocs": [
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/T8b-regionalizacao.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP1-02-camadas-corredor.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP3-01-shell-nav.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP3-02-login-sso.md"
+  ],
+  "pending": [
+    {
+      "task": "EP3-03",
+      "status": "paused",
+      "reason": "deploy"
+    }
+  ]
+}

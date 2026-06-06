@@ -20,10 +20,15 @@ Proteger a API do intel exigindo **token válido do `uai-auth`**, validado por *
 ## Gancho futuro (fora do F1)
 - Service-to-service via `/internal/**` + `X-UAI-Internal-Key` (cms → intel no Bloco 3). Deixar o caminho previsto, sem implementar agora.
 
+## Modo stub (F1 — gate `uai-auth` RED)
+`uai-auth` é repo vazio (epic-002) — sem endpoint de introspection. F1 roda em **stub** com a estrutura real:
+- **Real já no F1:** `SecurityFilter` + extração do Bearer + paths protegidos (`/api/**` 401 sem token; `/actuator/health` aberto); `SecurityContext` populado.
+- **Stub:** a validação aceita um **token de dev/stub** (sem chamar RFC 7662).
+- **Quando `uai-auth` subir:** ligar a chamada real de **introspection** (cache curto) — re-rodar `only:['EP2-07']`. A orquestração mantém esta task em `partial` até lá.
+
 ## Critério de pronto (verificável)
-- `/api/**` exige token válido (**401** sem token / token inválido); `/actuator/health` aberto.
-- Token validado via `uai-auth` introspection, com cache curto.
-- Sem tenant/RLS; usuário autenticado no `SecurityContext`.
+- **F1 (stub):** `/api/**` exige Bearer (**401** sem token); `/actuator/health` aberto; `SecurityContext` populado; **sem tenant**.
+- **Final (pós-`uai-auth`):** validação por **introspection** real (RFC 7662) com cache curto.
 
 ## Produz
 - docs/epicos/runs/EP2-07-auth.md
