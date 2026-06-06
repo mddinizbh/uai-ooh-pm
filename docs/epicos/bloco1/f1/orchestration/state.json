@@ -1,6 +1,6 @@
 {
-  "updatedBy": "manual-reconcile-back",
-  "updatedAt": "2026-06-06T11:12:06Z",
+  "updatedBy": "module",
+  "updatedAt": "2026-06-06T14:38:07Z",
   "gates": {
     "T8b": {
       "gate": "T8b",
@@ -202,7 +202,30 @@
       },
       "auth_mode": "stub"
     },
-    "module": {}
+    "module": {
+      "status": "complete",
+      "tasks": {
+        "EP4-01": "done",
+        "EP4-02": "done",
+        "EP4-03": "done",
+        "EP4-04": "done",
+        "EP4-05": "done",
+        "EP4-06": "done",
+        "EP4-09": "done",
+        "EP4-07": "done",
+        "EP4-08": "done"
+      },
+      "hooks": [
+        "useLines",
+        "useLine",
+        "useLineMetrics",
+        "useRanking",
+        "useAggregate",
+        "useRegions",
+        "useLineGeo"
+      ],
+      "note": "9/9 done (run docs confirmam DONE). Reconciliado — handoff deu lag na consolidacao. Fix dos pontos cinzas (CorridorMap) aplicado dev-local."
+    }
   },
   "contract": {},
   "decisions": [],
@@ -220,7 +243,16 @@
     "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-06-regioes-filtros.md",
     "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-08-camadas-geojson.md",
     "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP1-03-pontos-serving.md",
-    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-09-testes-deploy.md"
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP2-09-testes-deploy.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP4-01-scaffold-modulo.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP4-02-lista-filtros.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP4-03-ficha.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP4-04-mapa.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP4-05-charts.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP4-06-cesta.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP4-09-mapa-cesta.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP4-07-export-pdf.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/EP4-08-honestidade.md"
   ],
   "pending": [
     {
