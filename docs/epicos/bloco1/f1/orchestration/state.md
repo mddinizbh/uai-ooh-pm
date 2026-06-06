@@ -1,7 +1,7 @@
 # F1 — Handoff de estado (espelho)
 
 > Espelho legível de `state.json`. Fonte de verdade = banco `ooh` + repos.
-> Atualizado por: **back** · em **2026-06-06T11:09:29Z**
+> Atualizado por: **module** · em **2026-06-06T14:38:07Z**
 
 ## Gates
 
@@ -20,7 +20,7 @@
 | `data` | **complete** | `T8b` = done · `EP1-02` = done · `EP1-03` = done |
 | `back` | **complete** | `EP2-01`..`EP2-06` = done · `EP2-07` = **partial** · `EP2-08` = done · `EP2-09` = done |
 | `shell` | **partial** | `EP3-01` = done · `EP3-02` = partial · `EP3-03` = paused · auth_mode = **stub** |
-| `module` | (sem entradas) | — |
+| `module` | **complete** | `EP4-01`..`EP4-09` = done (EP4-01..06, EP4-09, EP4-07, EP4-08) |
 
 > `contract` e `decisions` seguem vazios neste handoff.
 
@@ -35,6 +35,10 @@
   - `POST /api/lines/aggregate`
   - `GET /api/regions`
   - `GET /api/lines/{id}/geo`
+
+### Module — hooks de dados (lane front)
+
+`useLines` · `useLine` · `useLineMetrics` · `useRanking` · `useAggregate` · `useRegions` · `useLineGeo`
 
 ## Run docs
 
@@ -52,6 +56,15 @@
 - `docs/epicos/runs/EP2-08-camadas-geojson.md`
 - `docs/epicos/runs/EP1-03-pontos-serving.md`
 - `docs/epicos/runs/EP2-09-testes-deploy.md`
+- `docs/epicos/runs/EP4-01-scaffold-modulo.md`
+- `docs/epicos/runs/EP4-02-lista-filtros.md`
+- `docs/epicos/runs/EP4-03-ficha.md`
+- `docs/epicos/runs/EP4-04-mapa.md`
+- `docs/epicos/runs/EP4-05-charts.md`
+- `docs/epicos/runs/EP4-06-cesta.md`
+- `docs/epicos/runs/EP4-09-mapa-cesta.md`
+- `docs/epicos/runs/EP4-07-export-pdf.md`
+- `docs/epicos/runs/EP4-08-honestidade.md`
 
 ## Pendências / bloqueios
 
@@ -60,4 +73,4 @@
 - 🔴 **uai-auth (bloqueante p/ SSO real)**: repo vazio (bootstrap pelo `epic-002-uai-auth-minimo`); até lá EP3-02/EP2-07 seguem em modo **stub** (sem RFC 7662 real).
 - 🟡 **repos (não-bloqueante)**: scaffold do F1 — `uai-ooh-intel` criado por EP2-01 (lane back **complete**); EP3-01 (forka `uai-portal` do `uai-spark`) já **done**.
 
-> Lane `back` fechada como **complete**: EP2-08 (camadas GeoJSON) e EP2-09 (testes+deploy) concluídas; EP2-07 (auth) entregue parcial em modo stub.
+> Lane `module` fechada como **complete**: EP4-01..06 + EP4-09 + EP4-07 + EP4-08 done; 7 hooks de dados ligados ao contrato back.
