@@ -28,7 +28,8 @@ mas não é autenticação de verdade (sem usuários, sem revogação, sem senha
 - `uai-infra`: serviço `uai-auth`, rota nginx, database `uai_auth`, deploy.
 
 **Fora** (confirmado): self-service/`register`, role `SELF_SERVICE_USER`, recover/troca de senha, 2FA,
-e religar o **uai-cms** (fica pro EPIC-003). Os stubs **não são apagados** — viram modo dev.
+e religar o **uai-cms** (fica pro EPIC-003 — usará o **mesmo** padrão de introspection, ver §3.1) +
+extrair o `uai-auth-commons`. Os stubs **não são apagados** — viram modo dev.
 
 ## 3. Arquitetura
 
@@ -45,6 +46,24 @@ e religar o **uai-cms** (fica pro EPIC-003). Os stubs **não são apagados** —
 
 Tudo same-origin via nginx. Revogação imediata: o intel introspecta cada token; logout joga o `jti`
 na blacklist Redis → o próximo introspect retorna `active:false`.
+
+### 3.1 Princípio: validação por introspection em TODO serviço de recurso (não é especial do cms)
+
+O `uai-auth` é a **única fonte** de aceitação de token. **Cada serviço que recebe JWT de usuário valida
+perguntando pro auth** (`POST /introspect`) — nenhum valida o JWT localmente nem conhece a estrutura
+interna do token. Isso centraliza no `uai-auth` a política de "user enabled / token revogado / role mudou"
+e dá revogação imediata via blacklist. (O ADR-036 introduziu isso descrevendo o cms; aqui fica claro que
+é a **regra geral**, não um padrão cms-específico.)
+
+- **`uai-ooh-intel`** (dados read-only) — **primeiro adotante** (este esforço).
+- **`uai-cms`** (campanhas) — mesmo mecanismo, religado depois (EPIC-003).
+- **serviços futuros** — idem.
+- Serviços **sem JWT de usuário** (`uai-core`, `uai-tokenmetrics`) seguem em `X-UAI-Internal-Key` (ADR-040).
+
+**Cliente de introspection — por-serviço agora, lib depois.** Cada serviço tem hoje seu próprio cliente
+(o intel já tem `UaiAuthTokenIntrospector` + cache + filter Bearer). Extrair um `uai-auth-commons`
+compartilhado (ADR-033 §Pendente) é a evolução DRY quando o cms entrar — **fora de escopo deste MVP**
+(não vale refatorar o intel agora só pra isso).
 
 ## 4. uai-auth (serviço novo) — seguir EPIC-002
 
