@@ -48,9 +48,11 @@
 ### C3 — Seed dos admins sem quebrar checksum do Flyway
 - **Não** commitar placeholders literais (`__BCRYPT12_HASH_*__`) e editar depois — isso muda o checksum da V2
   e o Flyway falha no boot seguinte.
-- Usar **Flyway placeholders**: `V2__seed_tenant_and_admins.sql` referencia `${seed_marley_hash}` e
-  `${seed_vivian_hash}` (e os emails). Resolvidos em tempo de migração por
-  `spring.flyway.placeholders.seed-marley-hash=${UAI_AUTH_SEED_MARLEY_HASH}` etc., alimentados por env.
+- Usar **Flyway placeholders** com **hífen nos dois lados** (Spring tira underscore das chaves de placeholder
+  não-bracketadas — `${seed_marley_hash}` + `seed-marley-hash` **NÃO casa**; validado no IT do Task 5):
+  `V2__seed_tenant_and_admins.sql` referencia `${seed-marley-hash}` / `${seed-vivian-hash}` (e os emails).
+  Resolvidos em tempo de migração por `spring.flyway.placeholders.seed-marley-hash=${UAI_AUTH_SEED_MARLEY_HASH}`
+  etc., alimentados por env.
   → o arquivo SQL é **estável** (sem drift de checksum); os hashes **nunca** entram no repo; chegam pela `.env`
   da VPS (secrets `UAI_AUTH_SEED_MARLEY_HASH` / `UAI_AUTH_SEED_VIVIAN_HASH` no **uai-infra**).
 - Tenant "uAI" pode ficar literal na V2 (estável). Geração dos hashes (USER step, antes do deploy): rodar o
