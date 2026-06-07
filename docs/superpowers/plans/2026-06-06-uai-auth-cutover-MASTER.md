@@ -81,10 +81,10 @@
 
 ### C8 — (resolvido por C3) imagem agnóstica de hash → sem gating de rebuild.
 
-### C9 ❓ — DECISÃO DE SEGURANÇA pendente (alinhar com Marley, regra "nunca silenciosa")
-- **Auth do `POST /api/v1/auth/revoke`**: o draft do uai-auth exige **X-UAI-Internal-Key AND** um Bearer ADMIN.
-  No MVP **não há** UI/admin chamando revoke. Proposta: **só `X-UAI-Internal-Key`** (serviço confiável), e a
-  camada "ADMIN" entra quando existir um admin UI. **Confirmar** antes de implementar o Task 12 do uai-auth.
+### C9 ✅ — Auth do `/revoke` (decidido 2026-06-06)
+- **`POST /api/v1/auth/revoke` = só `X-UAI-Internal-Key`** (serviço confiável). **Remover** do uai-auth Task 12
+  a exigência de Bearer ADMIN (`.hasRole('ADMIN')` + o matcher de bearer no `/revoke`). A camada "ADMIN" entra
+  quando existir um admin UI chamando revoke.
 
 ---
 
