@@ -14,7 +14,7 @@ Scaffold do consumidor: Kafka consumer + Redis (estado/live) + datasource (escre
 
 ## Decisões
 - **PostGIS no consolidador é OK em leitura/cálculo** (snap roda em query no `core`); ADR-003 ("sem `ST_*`") segue valendo só pro intel/serving.
-- **Decisão local a tomar na execução:** particionamento mensal de `viagem_hex`/`viagem_track` por `service_date` + retenção do `medido` (ver techspec §Schema — calibrar com volume real).
+- **Decisão local a tomar na execução:** particionamento mensal de `viagem_hex`/`viagem_track` por `service_date`; retenção do `medido` segue o **padrão de tiering da INFRA-03** (quente ~90d no Postgres → parquet/zstd no MinIO; `medido.viagem` fica pra sempre) — calibrar janelas com volume real.
 
 ## Critério de pronto
 - Sobe, consome o tópico, conecta Redis + banco; Flyway aplica o schema `medido`; healthcheck verde; Flyway migra em Testcontainers `postgis`.

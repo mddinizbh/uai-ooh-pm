@@ -67,7 +67,7 @@ Teste decisório: *reconstruível só de `raw`+GTFS → `medido`/`core`. Precisa
 
 | Lane | Tipo | Repo | Tasks | Estado |
 |---|---|---|---|---|
-| [`01-infra/`](01-infra/) | 🟫 INFRA | `uai-infra` + `uai-ooh-pipeline` | INFRA-01..02 | ✅ **entregue** (2026-06-05..09) |
+| [`01-infra/`](01-infra/) | 🟫 INFRA | `uai-infra` + `uai-ooh-pipeline` | INFRA-01..03 | ✅ 01/02 entregues · 🔲 INFRA-03 (tiering raw→MinIO) |
 | [`02-poller/`](02-poller/) | 🟨 DATA | `uai-ooh-realtime-poller` | POLL-01..03 | ✅ **entregue** (2026-06-09) |
 | [`03-consolidator/`](03-consolidator/) | 🟦 BACK | `uai-ooh-trip-consolidator` *(novo, Java)* | CONS-01..05 | pendente |
 | [`04-intel-rt/`](04-intel-rt/) | 🟦 BACK | `uai-ooh-intel` *(estende F1)* | RT-01..03 | pendente |
@@ -98,6 +98,7 @@ primitivo, quem chama é diferente → **sem acoplamento comercial agora, sem re
 - **F2-#8 — Identidade:** `vehicle_code` = `vehicle.id` do feed (validado no E0 2026-06-09: 85,7–89,2% match); upsert tolerante p/ veículo desconhecido; `rt_vehicle_id` deixa de ser chave de match.
 - **F2-#9 — Bloco 3 = módulo OOH no CMS** (não serviço novo; revisa ADR-052). Pré-planejamento em [`../../bloco3/notas-cms-modulo-ooh.md`](../../bloco3/notas-cms-modulo-ooh.md).
 - **F2-#10 — Kafka como está:** `ooh.rt.position` + `ooh.vehicle.status` já criados e publicados. `ooh.trip.completed` = **contrato enriquecido** (consumidor futuro não acessa `medido`/`core`).
+- **F2-#11 (2026-06-10) — Frota inteira mantida; o custo se resolve com TIERING, não com filtro:** capturar só "linhas de interesse" no poller quebraria a calibração da rede, a reconstrução de viagem (carro troca de linha) e o replay (feed não tem rewind) — e "interesse" é conceito comercial (read-path/B3). Custo real medido: Kafka ~57 msg/s (nada); `raw` ~1,2-1,5 GB/dia → **INFRA-03**: quente 7d no Postgres + frio parquet/zstd no MinIO (~3-4,5 GB/mês). Mesmo padrão pro `medido` depois (quente ~90d).
 - **Depende de:** `core` (`trip_pattern`/`line_shape` — ✅ F1) · Onda 1/2 (`exposure_cell`/`od_trip` — ✅) · intel-RT estende o intel F1 (EP2) · front-RT estende o front F1 (EP4).
 - **Sequenciamento:** CONS pode começar **já** (poller streaming desde 09/jun); RECAL precisa de alguns dias de `medido` acumulado; intel-RT/front-RT entram quando o intel/front do F1 existirem.
 - **Convenção de repo novo (CONS-01):** `gh repo create` + push de `main` vazia **antes** de qualquer código → regerar do `uai-ooh-service-template`.
