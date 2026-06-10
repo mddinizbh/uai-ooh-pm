@@ -48,7 +48,8 @@ function useHourPlayback(initial?: number): { hour: number; playing: boolean; to
 ## Unit: WEB-01 — mapa ao vivo (veículos + acumulado)
 - **Contrato**:
 ```typescript
-type LiveAccumulator = { impressoesParciais: number; hexesVisitados: number; selo: 'ESTIMATIVA' };
+type LiveAccumulator = { impressoesParciais: number; alcanceParcial: number; hexesVisitados: number; selo: 'ESTIMATIVA' };
+// alcanceParcial: HLL com dedup (~±0,8%) — pode superar o estimado da linha (carro fora da rota)
 type LivePosition = {
   vehicleCode: string; lineId: string; lat: number; lon: number;
   bearing?: number; currentStopSequence?: number; completudeParcial: number;

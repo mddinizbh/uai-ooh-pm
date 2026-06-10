@@ -4,12 +4,14 @@
 > **Depende de:** WEB-00 (mapa universal) + RT-01/RT-03 (intel-rt). · *(Replanejado 2026-06-10 — F2-#6)*
 
 ## Objetivo
-Mostrar os **carros se movendo ao vivo** no mapa **+ o contador de impressões subindo** (acumulado
-parcial por viagem), escopável por linha — como **camadas do mapa universal (WEB-00)**.
+Mostrar os **carros se movendo ao vivo** no mapa **+ os contadores subindo: impressões E alcance**
+(acumulado parcial), escopável por linha — como **camadas do mapa universal (WEB-00)**.
 
 ## Como executar
-- `VehiclesLayer` (markers com bearing, atualiza ~15s) + `AccumulatorOverlay` (contador de
-  `impressoesParciais` somado pelos carros do escopo, subindo a cada poll) plugados no `UniversalMap`.
+- `VehiclesLayer` (markers com bearing, atualiza ~15s) + `AccumulatorOverlay` plugados no `UniversalMap`:
+  **impressões** = soma de `impressoesParciais` dos carros do escopo; **alcance** = `alcanceParcial`
+  (HLL com dedup, ~±0,8% — CONS-05). O alcance ao vivo **pode superar o estimado da linha** quando o
+  carro roda fora da rota — mostrar como destaque positivo, não esconder (decisão do dono 2026-06-10).
 - Consome via hook **`usePositions(scope)`** (scope = linha) sobre a **`PositionFeed`** (polling no
   F2). O hook **encapsula o transporte** → SSE/WS depois = mexer só no hook.
 - Visual: posição + progresso (cor/ícone por completude); contador com **selo de estimativa**

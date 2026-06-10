@@ -34,7 +34,8 @@ Redis) e o pipeline (modelo).
 ## Unit: RT-01 — realtime read (posição + progresso + acumulado)
 - **Contrato**:
 ```java
-record LiveAccumulator(double impressoesParciais, int hexesVisitados, Selo selo) {} // selo=ESTIMATIVA
+record LiveAccumulator(double impressoesParciais, long alcanceParcial, int hexesVisitados, Selo selo) {}
+// selo=ESTIMATIVA · alcanceParcial = PFCOUNT do HLL da viagem/dia (dedup ~±0,8%, CONS-05/RECAL-00)
 record LivePosition(String vehicleCode, String lineId, double lat, double lon, Double bearing,
     Integer currentStopSequence, double completudeParcial, LiveAccumulator acumulado, Instant ts) {}
 

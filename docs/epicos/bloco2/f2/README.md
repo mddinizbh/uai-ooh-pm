@@ -57,7 +57,7 @@ Teste decisório: *reconstruível só de `raw`+GTFS → `medido`/`core`. Precisa
 - **Cobertura real da face** (`medido.viagem_hex`): por onde (hexágono H3) e quando (faixa horária) cada veículo passou **de verdade** — o grão que o modelo face-centric consome.
 - **Velocidade real por ponto** (`medido.parada_velocidade` → `v_real`).
 - **`face_reach`/`line_reach` recomputados com a trajetória medida** (lane 06): a faixa de incerteza estreita — trajetória, frequência e velocidade viram **reais**. **Esse é o produto central do F2.**
-- **Mapa ao vivo + acumulador de IMPRESSÕES subindo** (F2-#6): carros se movendo + contribuição incremental por posição, escopável por linha.
+- **Mapa ao vivo + acumuladores subindo** (F2-#6): carros se movendo + **impressões** (soma incremental) **e alcance** (HLL com dedup ~±0,8% — RECAL-00/CONS-05; pode **superar o estimado da linha** quando o carro roda fora da rota), escopável por linha.
 
 > ⚠️ **Honestidade (ADR-058):** o RT torna reais **trajetória/frequência/velocidade**. NÃO calibra os
 > coeficientes cegos de **visada** (quem efetivamente olha a face) — isso é estudo de campo (Fase C).
@@ -72,7 +72,7 @@ Teste decisório: *reconstruível só de `raw`+GTFS → `medido`/`core`. Precisa
 | [`03-consolidator/`](03-consolidator/) | 🟦 BACK | `uai-ooh-trip-consolidator` *(novo, Java)* | CONS-01..05 | pendente |
 | [`04-intel-rt/`](04-intel-rt/) | 🟦 BACK | `uai-ooh-intel` *(estende F1)* | RT-01..03 | pendente |
 | [`05-front-rt/`](05-front-rt/) | 🟪 FRONT | `uai-portal` *(estende F1)* | WEB-00..02 | pendente |
-| [`06-recalibracao/`](06-recalibracao/) | 🟨 DATA | `uai-ooh-pipeline` | RECAL-01..02 | pendente |
+| [`06-recalibracao/`](06-recalibracao/) | 🟨 DATA | `uai-ooh-pipeline` | RECAL-00..02 | pendente · RECAL-00 (HLLs) pode rodar já |
 
 Run do que já foi entregue: [`runs/F2-infra-poller-golive.md`](../../runs/F2-infra-poller-golive.md).
 
@@ -93,7 +93,7 @@ primitivo, quem chama é diferente → **sem acoplamento comercial agora, sem re
 - **F2-#3 — Camadas:** novo schema **`medido`** (fatos do mundo real, dono = consolidador/Flyway); `core` fica **só mundo**. O gancho do guia §4 (`vehicle_trajectory metodo='medida'`) é **substituído** por `medido.viagem_hex`.
 - **F2-#4 — Consolidador stream Java headless:** por posição `h3(lat,lon)` local + Redis `live:{vehicle}`; snap PostGIS só no fechamento (cobertura exata interpolada). Sem HTTP além de health. **Não se funde com o intel** (write-path worker ≠ read-path API).
 - **F2-#5 — Fato puro:** `campaign_id` e `divergencia_linha` **removidos** do fato. Atribuição/divergência = módulo OOH do CMS (B3), por `vehicle_code` × vigência do placement.
-- **F2-#6 — Acumulador ao vivo ENTRA no F2** (era pós-F2): ao vivo = aproximado (hexes com ping); fechamento = exato (interpolado); reconciliam. Selo: estimativa.
+- **F2-#6 — Acumulador ao vivo ENTRA no F2** (era pós-F2): ao vivo = aproximado (hexes com ping); fechamento = exato (interpolado); reconciliam. Selo: estimativa. **Adendo (mesma data):** o ao vivo acumula **impressões** (soma) **e alcance com dedup** (HLL via RECAL-00 — válido porque o carro fora da rota pode alcançar **mais** que o estimado da linha; alcance ao vivo nunca por soma de hexes).
 - **F2-#7 — Recompute = pipeline** (ADR-050): lane 06, D-1, mesma fórmula da Onda 2, só troca a fonte da trajetória.
 - **F2-#8 — Identidade:** `vehicle_code` = `vehicle.id` do feed (validado no E0 2026-06-09: 85,7–89,2% match); upsert tolerante p/ veículo desconhecido; `rt_vehicle_id` deixa de ser chave de match.
 - **F2-#9 — Bloco 3 = módulo OOH no CMS** (não serviço novo; revisa ADR-052). Pré-planejamento em [`../../bloco3/notas-cms-modulo-ooh.md`](../../bloco3/notas-cms-modulo-ooh.md).
