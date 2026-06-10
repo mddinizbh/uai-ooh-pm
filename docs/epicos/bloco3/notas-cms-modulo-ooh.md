@@ -91,6 +91,23 @@ relatório: portal → CMS: campanha + canais sociais + entrega OOH (local)
                        + audiência via intel server-to-server (CampaignScope, união do período)
 ```
 
+## 4b. Decisão de produto — relatório ancora na FACE medida, nunca na linha (2026-06-10)
+
+Contexto (achado do preview de alcance, run `F2-preview-alcance-medido-fixture.md`): o operador
+troca o carro de linha a qualquer momento; **a plotagem segue o carro**, não a linha. O sistema de
+bordo atualiza a rota → o RT enxerga a troca; o contrato comercial ("vai rodar na linha X") não.
+
+- **Relatório do cliente = entrega da face:** km, viagens, **cobertura real** (mapa dos hexes
+  visitados), **alcance medido** (UNIÃO dedup de `id_usuario` nos hexes reais — alcance NUNCA soma
+  entre hexes/dias) e **impressões** (essas sim somam). A linha é atributo informativo; a troca de
+  linha não aparece como inconsistência porque o relatório não promete linha — entrega audiência.
+- **Divergência (contratada × rodada)** fica em `ooh_delivery_trip.divergencia` — expor ao cliente
+  ou usar só na gestão com o operador é decisão de apresentação, o dado existe.
+- **Pré-venda promete corredor/região, não fidelidade de linha:** vitrine = `line_reach` (audiência
+  do corredor — sã, independe de qual carro roda). O `face_reach` **estimado** (vlh espalha o carro
+  por 5–14 linhas, inflação 6–12× medida no preview) **não vai pra frente de cliente**; pós-ativação
+  o medido da face assume (RECAL/lane 06).
+
 ## 5. OOH-BACKSEAT (face interna) — o que falta pra medir
 
 Audiência do backseat = **embarcados** (quem está dentro), não a rua. O modelo face-centric aguenta
