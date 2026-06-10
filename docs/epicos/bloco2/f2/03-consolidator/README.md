@@ -18,4 +18,6 @@
 
 **Pronto:** viagens da 4107 fecham (nº/dia ~ frequência, km ~ extensão×viagens), `medido.viagem_hex`
 contíguo ao corredor, acumulado ao vivo reconcilia com o fechamento.
+**Fixture de teste (carros de referência):** `11198 · 20736 · 30835 · 40705 · 40806` — 1+ por
+consórcio; detalhes e o que cada um valida na [techspec](techspec.md) §Fixture.
 **Saída consumida por:** lane 06 (recompute `face_reach` fonte medida) + RT-01/RT-02 + módulo OOH do CMS (B3, via evento).

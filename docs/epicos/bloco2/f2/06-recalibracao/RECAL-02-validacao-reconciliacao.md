@@ -7,7 +7,7 @@
 Provar que o loop verificado→estimado fecha: o medido é plausível, reconcilia com o ao vivo, e a
 faixa de incerteza **estreita de fato**.
 
-## Validações (linha 4107 como referência; registrar counts reais no run)
+## Validações (linha 4107 + os 5 carros-fixture `11198/20736/30835/40705/40806` — ver techspec do consolidador §Fixture; registrar counts reais no run)
 1. **Plausibilidade física:** viagens/dia medidas ~ frequência GTFS; km ~ extensão × viagens;
    cobertura `viagem_hex` contígua ao corredor (sem buracos não explicados / sem hexes fora).
 2. **Medido vs estimado:** `face_reach`/`line_reach` fonte medida vs estimada — desvios por linha

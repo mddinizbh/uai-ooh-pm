@@ -97,6 +97,23 @@ CREATE TABLE medido.parada_velocidade (        -- v_real; o pipeline agrega pro 
 volume pedir (~26k viagens/dia × ~50 hexes ≈ 1,3M linhas/dia em viagem_hex) + política de retenção
 do `medido` (o agregado vive no modelo; o fato granular pode ter janela — definir com dado real).
 
+## Fixture de validação — os 5 carros de teste (decisão do dono, 2026-06-10)
+
+Toda validação do consolidador (ITs com dado real + RECAL-02) usa estes veículos como referência —
+1 por consórcio (1º dígito) + 1 extra:
+
+| vehicle_code | Consórcio | Visto no feed em 2026-06-10 |
+|---|---|---|
+| `11198` | 1 | ✅ linha 9501 (9 trips no dia) |
+| `20736` | 2 | ⚠️ ausente hoje — útil pro caso "carro some/aparece" (timeout/parcial) |
+| `30835` | 3 | ✅ linhas 2101/2150 (**troca de linha no dia** — testa TRIP_ID_CHANGED entre linhas) |
+| `40705` | 4 | ✅ linha 9801 |
+| `40806` | 4 | ✅ linha 3054 |
+
+Critério: pra cada carro presente, viagens fecham com nº/dia plausível, km ~ extensão×viagens da
+linha vista, cobertura H3 contígua ao corredor; o `30835` valida a atribuição quando o mesmo carro
+roda 2 linhas; o `20736` valida timeout/ausência sem erro. (A 4107 segue como referência de LINHA.)
+
 ## Riscos Globais
 
 - **Ordem depende da partição**: contrato fixo `key=vehicle_id` + 1 consumer por partição.
