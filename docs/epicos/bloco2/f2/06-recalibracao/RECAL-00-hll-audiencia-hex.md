@@ -14,7 +14,8 @@ dedup real** (~±0,8%), sem tocar banco no hot path.
   `h3_origem` e `h3_destino` na sua `faixa_horaria`/`tipo_dia`) → `PFADD hll:hex:... id_usuario`.
   ~2,4M PFADDs em lote (pipeline Redis) — minutos.
 - Rodar **após cada rebuild da base OD** (mesmo gatilho do `normalizer reach`); chaves versionadas
-  ou flush+rebuild (job é idempotente e rápido).
+  ou flush+rebuild (job é idempotente e rápido). **A fiação do gatilho no `uai-infra` é da INFRA-04**
+  (este card entrega o comando; a INFRA-04 o encadeia no workflow).
 - **Medir memória total no Redis** (188k chaves, maioria sparse — audiência média ~136 por
   hex×faixa): registrar no run. Se estourar o orçamento da VPS: carregar só hexes com audiência > 0,
   reduzir grão (hex × tipo_dia, sem faixa) ou HLL blobs em Postgres com cache lazy — decidir com o

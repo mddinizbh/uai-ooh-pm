@@ -67,7 +67,7 @@ Teste decisório: *reconstruível só de `raw`+GTFS → `medido`/`core`. Precisa
 
 | Lane | Tipo | Repo | Tasks | Estado |
 |---|---|---|---|---|
-| [`01-infra/`](01-infra/) | 🟫 INFRA | `uai-infra` + `uai-ooh-pipeline` | INFRA-01..03 | ✅ 01/02 entregues · 🔲 INFRA-03 (tiering raw→MinIO) |
+| [`01-infra/`](01-infra/) | 🟫 INFRA | `uai-infra` + `uai-ooh-pipeline` | INFRA-01..04 | ✅ 01/02 entregues · 🔲 03 (tiering) · 🔲 04 (automação: compose+crons) |
 | [`02-poller/`](02-poller/) | 🟨 DATA | `uai-ooh-realtime-poller` | POLL-01..03 | ✅ **entregue** (2026-06-09) |
 | [`03-consolidator/`](03-consolidator/) | 🟦 BACK | `uai-ooh-trip-consolidator` *(novo, Java)* | CONS-01..05 | pendente |
 | [`04-intel-rt/`](04-intel-rt/) | 🟦 BACK | `uai-ooh-intel` *(estende F1)* | RT-01..03 | pendente |

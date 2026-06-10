@@ -32,7 +32,8 @@ Re-derivar **`face_reach`/`line_reach`** trocando a trajetória **estimada** (sc
 
 ## Critério de pronto (verificável no banco `ooh`)
 - `face_reach`/`line_reach` com `fonte=medida` populados pras linhas com dado; `v_real` agregado;
-  serving atualizado; job D-1 agendado no `uai-infra` (padrão dos crons do pipeline).
+  serving atualizado; job D-1 agendado no `uai-infra` — **a fiação do cron é da INFRA-04**
+  (este card entrega o comando idempotente; a INFRA-04 o agenda).
 
 ## Produz
 - docs/epicos/runs/RECAL-01-recompute-fonte-medida.md
