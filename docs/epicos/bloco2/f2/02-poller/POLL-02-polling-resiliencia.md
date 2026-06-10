@@ -1,7 +1,9 @@
-# POLL-02 — polling GTFS-RT + decode + resiliência
+# POLL-02 — polling GTFS-RT + decode + resiliência — ✅ ENTREGUE (2026-06-09)
 
 > F2 (Bloco 2) · lane **poller** · **Repo-alvo:** `uai-ooh-realtime-poller` · **Stack:** Python
-> **Depende de:** POLL-01.
+> **✅ Entregue:** commit `1120d28` — `feed.py` (retries/backoff/UA), `decode.py` (protobuf→FeedSnapshot),
+> `poller.py` (idempotência por `feed_timestamp`); testes `test_feed_backoff/test_decode/test_poller_cycle`.
+> Run: [`F2-infra-poller-golive.md`](../../../runs/F2-infra-poller-golive.md).
 
 ## Objetivo
 O **loop de polling** do GTFS-RT vehicle-positions (~15–20s): fetch → decode protobuf → posições normalizadas em memória, com resiliência e métricas.

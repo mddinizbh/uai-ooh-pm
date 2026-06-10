@@ -1,6 +1,10 @@
-# INFRA-02 — `raw.rt__vehicle_position` particionado por dia
+# INFRA-02 — `raw.rt__vehicle_position` particionado por dia — ✅ ENTREGUE (2026-06-05)
 
 > F2 (Bloco 2) · lane **infra** · **Repo-alvo:** `uai-ooh-pipeline` (dono do schema `raw`) · **Stack:** Python + PostgreSQL
+> **✅ Entregue:** `ooh_pipeline/ingestor/rt_raw_ddl.py` (PARTITION BY RANGE em `_feed_timestamp`, índice
+> `(vehicle_id, trip_id, feed_timestamp)`) + `rt_raw_retention.py` (drop de partições > `OOH_RT_RAW_RETENTION_DAYS`,
+> default 30) — ambos no CLI. Commit `3a0bdaf` + teste `test_rt_raw_infra02.py`.
+> Run: [`F2-infra-poller-golive.md`](../../../runs/F2-infra-poller-golive.md).
 > **Destrava:** POLL-03 (landa aqui). É o **durável** (auditoria/calibração/frequência), espelho do que vai pro Kafka.
 
 ## Objetivo
