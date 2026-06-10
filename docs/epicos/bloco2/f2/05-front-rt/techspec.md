@@ -6,7 +6,7 @@
 
 ## Contexto
 Constrói o **componente de mapa universal** (camadas plugáveis — base de todo mapa do vertical) e,
-sobre ele, o **mapa ao vivo** (carros + alcance subindo, via polling sobre a `PositionFeed`) e o
+sobre ele, o **mapa ao vivo** (carros + impressões subindo, via polling sobre a `PositionFeed`) e o
 **painel verificado vs estimado** (selo por métrica, ADR-058). Referência de UX/contrato do mapa:
 `uai-ooh-pipeline/docs/design/mapa-alcance-simulacao.html` (Leaflet — espelho visual, não código).
 

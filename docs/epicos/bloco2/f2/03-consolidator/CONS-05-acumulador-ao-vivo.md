@@ -1,7 +1,7 @@
 # CONS-05 — acumulador ao vivo (contrato Redis lido pelo intel)
 
 > F2 (Bloco 2) · lane **consolidator** · **Repo-alvo:** `uai-ooh-trip-consolidator` · **Stack:** Java + Redis
-> **Depende de:** CONS-02. **Novo no replanejamento 2026-06-10 (F2-#6 — o "alcance subindo ao vivo" entrou no F2).**
+> **Depende de:** CONS-02. **Novo no replanejamento 2026-06-10 (F2-#6 — o "impressões subindo ao vivo" entrou no F2).**
 
 ## Objetivo
 Manter, **por posição recebida**, o **acumulado parcial da viagem aberta** (hexes visitados + impressões parciais) e o **índice por linha** — o contrato Redis que o **RT-01 lê** pro mapa ao vivo e pro contador subindo. O consolidador é a **única escrita**; o intel só lê.

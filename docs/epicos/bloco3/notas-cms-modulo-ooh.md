@@ -98,11 +98,15 @@ troca o carro de linha a qualquer momento; **a plotagem segue o carro**, não a 
 bordo atualiza a rota → o RT enxerga a troca; o contrato comercial ("vai rodar na linha X") não.
 Modelo definido pelo dono:
 
-1. **Montar a CESTA (pré-venda):** vende-se "carro rodando na linha X" e o **alcance estimado vem
-   da ROTA da linha** = `line_reach` (corredor — são, não tem a inflação do estimado por face).
-   Regra da tríade na cesta: **alcance** da face ≈ alcance do corredor da linha (2 carros na mesma
-   linha NÃO dobram alcance — mesma audiência); **impressões** ∝ participação do carro nas viagens
-   da linha (essas dobram).
+1. **Montar a CESTA (pré-venda) = PRÉ-ANÁLISE de planejamento, não simulação** (refinado
+   2026-06-10): a tela de cesta **não tem relação com quantidade de carros**. Ela mostra, por
+   linha: **onde a linha passa** (rota/corredor), o **alcance — que é FIXO da linha**
+   (`line_reach` do corredor; são, não tem a inflação do estimado por face) e o **mapa de renda**
+   (perfil da audiência) — é a ferramenta de planejar onde colocar mídia.
+   **Impressão NÃO aparece na cesta:** impressão é grandeza do **tempo real** — função da
+   **frequência real do carro e da quantidade de carros** rodando (acumulador ao vivo do F2 +
+   consolidado). Regra da tríade que decorre disso: 2 carros na mesma linha **não dobram alcance**
+   (audiência fixa do corredor) mas **dobram impressões** (frequência).
 2. **CAMPANHA ativa (CMS):** o contrato registra a linha (`expected_line` do placement) — pro
    cliente, o carro "está na linha X". **Mapa ao vivo mostra SÓ CARROS ANDANDO — nunca traceja
    rota/linha.**

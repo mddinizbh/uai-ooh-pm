@@ -1,10 +1,10 @@
-# WEB-01 — mapa ao vivo (carros se movendo + alcance subindo)
+# WEB-01 — mapa ao vivo (carros se movendo + impressões subindo)
 
 > F2 (Bloco 2) · lane **front-rt** · **Repo-alvo:** `uai-portal` *(módulo OOH)* · **Stack:** React / MapLibre
 > **Depende de:** WEB-00 (mapa universal) + RT-01/RT-03 (intel-rt). · *(Replanejado 2026-06-10 — F2-#6)*
 
 ## Objetivo
-Mostrar os **carros se movendo ao vivo** no mapa **+ o contador de alcance subindo** (acumulado
+Mostrar os **carros se movendo ao vivo** no mapa **+ o contador de impressões subindo** (acumulado
 parcial por viagem), escopável por linha — como **camadas do mapa universal (WEB-00)**.
 
 ## Como executar
@@ -18,10 +18,10 @@ parcial por viagem), escopável por linha — como **camadas do mapa universal (
 
 ## Decisões
 - **Hook `usePositions(scope)` como costura swappable** (polling F2 → SSE/WS futuro = adapter interno).
-- **Acumulado é UX de produto** (o "alcance subindo" da demo) — mas rotulado estimativa, sempre.
+- **Acumulado é UX de produto** (o "impressões subindo" da demo) — mas rotulado estimativa, sempre.
 
 ## Critério de pronto
-- Seleciona uma linha → vê os carros dela se movendo (~15s) **+ o alcance acumulando**; selo de
+- Seleciona uma linha → vê os carros dela se movendo (~15s) **+ as impressões acumulando**; selo de
   estimativa visível; o hook isola o transporte (swap sem tocar a UI).
 
 ## Produz

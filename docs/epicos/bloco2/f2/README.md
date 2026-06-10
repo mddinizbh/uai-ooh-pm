@@ -20,7 +20,7 @@ POLLER ✅ ──► raw.rt__vehicle_position (pouso bruto, particionado/dia, re
                   ▼
           CONSOLIDADOR (stream Java headless — repo novo)
           por posição:   h3(lat,lon) LOCAL (lib H3, sem banco)
-                         + estado/acumulado no Redis live:{vehicle}   ← "alcance subindo"
+                         + estado/acumulado no Redis live:{vehicle}   ← "impressões subindo"
           no fechamento: snap PostGIS no shape → cobertura EXATA
                          grava schema MEDIDO + publica ooh.trip.completed (enriquecido)
                   │
@@ -57,7 +57,7 @@ Teste decisório: *reconstruível só de `raw`+GTFS → `medido`/`core`. Precisa
 - **Cobertura real da face** (`medido.viagem_hex`): por onde (hexágono H3) e quando (faixa horária) cada veículo passou **de verdade** — o grão que o modelo face-centric consome.
 - **Velocidade real por ponto** (`medido.parada_velocidade` → `v_real`).
 - **`face_reach`/`line_reach` recomputados com a trajetória medida** (lane 06): a faixa de incerteza estreita — trajetória, frequência e velocidade viram **reais**. **Esse é o produto central do F2.**
-- **Mapa ao vivo + acumulador de alcance subindo** (F2-#6): carros se movendo + contribuição incremental por posição, escopável por linha.
+- **Mapa ao vivo + acumulador de IMPRESSÕES subindo** (F2-#6): carros se movendo + contribuição incremental por posição, escopável por linha.
 
 > ⚠️ **Honestidade (ADR-058):** o RT torna reais **trajetória/frequência/velocidade**. NÃO calibra os
 > coeficientes cegos de **visada** (quem efetivamente olha a face) — isso é estudo de campo (Fase C).

@@ -4,7 +4,7 @@
 > **Depende de:** intel F1 (EP2) + Redis live (contrato **CONS-05**). · *(Replanejado 2026-06-10 — inclui o acumulado, F2-#6)*
 
 ## Objetivo
-Servir **posição ao vivo + progresso + acumulado parcial** ("alcance subindo") para um conjunto de
+Servir **posição ao vivo + progresso + acumulado parcial** ("impressões subindo") para um conjunto de
 `vehicle_code` — lendo as chaves **`live:*`** do Redis (escritas pelo consolidador). No F2 o conjunto
 vem de um **filtro por LINHA**.
 
