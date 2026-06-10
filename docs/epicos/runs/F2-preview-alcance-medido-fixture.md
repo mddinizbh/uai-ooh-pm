@@ -43,5 +43,8 @@ resto (o 30835, 76%, tinha menos posições e trocou de linha).
    (cobertura real, não schedule).
 2. O **estimado por FACE deve ser lido com desconfiança** até o RECAL rodar — o estimado por LINHA
    (corredor) não sofre desse problema (o corredor existe independente de qual carro o roda).
-3. Candidato a melhoria pós-RECAL: re-derivar o `face_reach` estimado limitando o carro às linhas
-   em que ele é REALMENTE visto no RT (prior do medido sobre o schedule).
+3. ~~Candidato a melhoria pós-RECAL: re-derivar o `face_reach` estimado limitando o carro às linhas
+   em que ele é REALMENTE visto no RT (prior do medido sobre o schedule).~~ **Superseded no mesmo
+   dia** pela decisão de produto dos 3 tempos (notas B3 §4b): o `face_reach` estimado **sai do
+   caminho de produto** (cesta estima por LINHA via `line_reach`; relatório usa o medido da face) —
+   corrigir o T4 ficou desnecessário; artefato marcado interno/deprecado.

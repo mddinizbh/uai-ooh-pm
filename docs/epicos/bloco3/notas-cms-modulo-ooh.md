@@ -91,22 +91,31 @@ relatório: portal → CMS: campanha + canais sociais + entrega OOH (local)
                        + audiência via intel server-to-server (CampaignScope, união do período)
 ```
 
-## 4b. Decisão de produto — relatório ancora na FACE medida, nunca na linha (2026-06-10)
+## 4b. Decisão de produto — os 3 tempos: cesta por LINHA, campanha por contrato, relatório pela FACE medida (2026-06-10)
 
 Contexto (achado do preview de alcance, run `F2-preview-alcance-medido-fixture.md`): o operador
 troca o carro de linha a qualquer momento; **a plotagem segue o carro**, não a linha. O sistema de
 bordo atualiza a rota → o RT enxerga a troca; o contrato comercial ("vai rodar na linha X") não.
+Modelo definido pelo dono:
 
-- **Relatório do cliente = entrega da face:** km, viagens, **cobertura real** (mapa dos hexes
-  visitados), **alcance medido** (UNIÃO dedup de `id_usuario` nos hexes reais — alcance NUNCA soma
-  entre hexes/dias) e **impressões** (essas sim somam). A linha é atributo informativo; a troca de
-  linha não aparece como inconsistência porque o relatório não promete linha — entrega audiência.
-- **Divergência (contratada × rodada)** fica em `ooh_delivery_trip.divergencia` — expor ao cliente
-  ou usar só na gestão com o operador é decisão de apresentação, o dado existe.
-- **Pré-venda promete corredor/região, não fidelidade de linha:** vitrine = `line_reach` (audiência
-  do corredor — sã, independe de qual carro roda). O `face_reach` **estimado** (vlh espalha o carro
-  por 5–14 linhas, inflação 6–12× medida no preview) **não vai pra frente de cliente**; pós-ativação
-  o medido da face assume (RECAL/lane 06).
+1. **Montar a CESTA (pré-venda):** vende-se "carro rodando na linha X" e o **alcance estimado vem
+   da ROTA da linha** = `line_reach` (corredor — são, não tem a inflação do estimado por face).
+   Regra da tríade na cesta: **alcance** da face ≈ alcance do corredor da linha (2 carros na mesma
+   linha NÃO dobram alcance — mesma audiência); **impressões** ∝ participação do carro nas viagens
+   da linha (essas dobram).
+2. **CAMPANHA ativa (CMS):** o contrato registra a linha (`expected_line` do placement) — pro
+   cliente, o carro "está na linha X". **Mapa ao vivo mostra SÓ CARROS ANDANDO — nunca traceja
+   rota/linha.**
+3. **RELATÓRIO (entrega):** medido da face — km, viagens, **cobertura real** (hexes visitados),
+   **alcance medido** (UNIÃO dedup de `id_usuario` — alcance NUNCA soma entre hexes/dias) e
+   **impressões** (somam). **Divergência (contratada × rodada)** fica INTERNA em
+   `ooh_delivery_trip.divergencia` (gestão com o operador; expor ao cliente é escolha de
+   apresentação).
+
+**Consequência técnica:** o `face_reach` **estimado** (T4/vlh — espalha o carro por 5–14 linhas,
+inflação 6–12× medida no preview) **sai do caminho de produto** (nenhum dos 3 tempos o consome).
+Não corrigir o T4 agora (correção via prior-RT descartada por desnecessária); marcar o artefato
+como interno/deprecado. Estimativa de face = corredor da linha contratada; medido assume na entrega.
 
 ## 5. OOH-BACKSEAT (face interna) — o que falta pra medir
 
