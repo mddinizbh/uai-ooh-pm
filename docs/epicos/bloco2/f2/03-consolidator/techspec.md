@@ -33,6 +33,11 @@ lane 06 injeta no modelo face-centric (`face_reach`/`line_reach`). **Sem comerci
 - **Fechamento por 5 condições** + **timeout 10min** (varredura periódica). **Linha sempre do RT**
   (`route_id` → `core.line.short_name`); suplementares (S*) → `padrao_desconhecido` (line_id NULL +
   fallback geo opcional).
+- ⚠️ **ARMADILHA — o `route_id` do feed NÃO é o `route_id` do GTFS estático.** O campo se chama
+  `route_id` no protobuf, mas o **valor** é o `route_short_name` (número público: `101`, `9101`,
+  `SC01A`...). Todo cruzamento RT × estático é por **`route_short_name`** (`core.line.short_name`) —
+  **nunca** contra `gtfs__routes.route_id`. Idem `trip_id`: o do RT não existe no GTFS estático
+  (junção é sempre por rota). Validado no E0 (2026-06-09).
 - **Snap no fechamento** (1× por viagem, PostGIS no `core` em leitura, SRID **31983**): km,
   completude, v_real por parada e **cobertura H3 exata** — interpola o trajeto pelo shape entre
   pings (o feed reporta a cada ~1–2min por veículo; sem interpolação a cobertura tem buracos).

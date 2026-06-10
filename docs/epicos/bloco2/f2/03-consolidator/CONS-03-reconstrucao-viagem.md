@@ -17,7 +17,11 @@ Detectar **início/fim de viagem** e **atribuir a linha** — sempre do **RT, nu
 - Viagem **parcial** (carro que aparece no meio) **fecha com `completude < 1`** — não descarta.
 
 ## Linha-do-RT (nunca MCO)
-- `route_id` do feed == `core.line.short_name` (validado no E0: **96,2–96,7%** casam; o `trip_id` do RT não existe no GTFS estático — junção é sempre por rota).
+- ⚠️ **O `route_id` do feed é o `route_short_name`, não o `route_id` do GTFS estático.** O campo do
+  protobuf se chama `route_id`, mas carrega o número público da linha (`101`, `9101`, `SC01A`...).
+  Join RT × estático: **sempre por `route_short_name`** (`core.line.short_name`) — nunca contra
+  `gtfs__routes.route_id`. (Validado no E0: **96,2–96,7%** casam; o `trip_id` do RT também não
+  existe no estático — junção é sempre por rota.)
 - **Suplementares (S\*)** → `padrao_desconhecido`: `line_id` NULL no fato; fallback geo (shape mais próximo por route+direction) é **opcional** e nunca inventa linha.
 - **Divergência de campanha: NÃO existe aqui (F2-#5).** O fato é puro; quem compara linha rodada × linha esperada é o módulo OOH do CMS (Bloco 3), via evento.
 
