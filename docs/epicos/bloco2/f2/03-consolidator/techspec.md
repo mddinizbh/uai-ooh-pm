@@ -3,6 +3,14 @@
 > Techspec da lane **03-consolidator** (`uai-ooh-trip-consolidator`, Java 21/Spring). Units = CONS-01..05.
 > **Reescrita em 2026-06-10** (replanejamento face-centric — decisões F2-#3..#8 no `../README.md`).
 > Greenfield. Contratos em Java (records/interfaces — sem implementação). **Coder não reabre as Decisões.**
+>
+> ✅ **IMPLEMENTADO e validado** (2026-06-11, commit `857ceb9` em `feat/ooh-f2-consolidator`). O E2E
+> local-first achou e corrigiu 6 bugs — ver [`../../../runs/F2-e2e-hardening-2026-06-11.md`](../../../runs/F2-e2e-hardening-2026-06-11.md).
+> **Dependência de dados:** o `v_real` exige `core.pattern_stop` (pattern→stop→sequência) no core — é
+> materializado pelo pipeline do GTFS stop_times; o consolidador detecta ausência no boot e degrada
+> (km/cobertura seguem). **2 ajustes pendentes:** (a) clamp de sanidade no `v_real` (~70 km/h, jitter
+> de GPS gera outliers de 200+); (b) `TripTimeoutSweeper` deveria usar `feedTs`, não wall-clock, p/ ser
+> replay-safe (reprocessamento/earliest fragmenta; ao vivo em `latest` é íntegro).
 
 ## Contexto
 

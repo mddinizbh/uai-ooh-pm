@@ -1,7 +1,7 @@
 # Handoff F2 — espelho legível
 
 > Gerado/atualizado pelo workflow `f2-orchestration` a cada parte. Fonte de verdade: `state.json`.
-> Última atualização: lane **gate** em 2026-06-11T01:05:05Z.
+> Última atualização: lane **e2e** em 2026-06-11T08:30:02Z.
 
 ## Gates
 
@@ -20,11 +20,27 @@
 
 | Lane | Status | Tasks |
 |---|---|---|
-| jobs | — | INFRA-03 · RECAL-00 |
-| cons | — | CONS-01..05 |
-| local | — | LOCAL-01..02 |
-| e2e | — | RECAL-01 · RECAL-02 (manuais) |
+| jobs | ✅ complete | INFRA-03=done · RECAL-00=done |
+| cons | ✅ complete | CONS-01=done · CONS-02=done · CONS-03=done · CONS-04=done · CONS-05=done |
+| local | ✅ complete | LOCAL-01=done · LOCAL-02=done · env: pg `:55432` · kafka `:19092` · redis `:16379` |
+| e2e | ❌ failed | RECAL-01=failed (recompute local falhou) · RECAL-02 (manuais) |
 | rt | — | RT-01 · RT-03 · RT-02 |
 | web | — | WEB-00..02 |
 
-**e2e validated:** ❌ (ship bloqueado) · **Pendências:** nenhuma registrada ainda.
+## Contrato Redis (CONS-05 — consolidador é o ÚNICO escritor; RT-01 só lê)
+
+`live:vehicle:{code}` HASH(lat,lon,bearing,lineId,tripId,currentStopSequence,completudeParcial,impressoesParciais,alcanceParcial,hexesVisitados,ts) · `live:line:{lineId}` SET · `live:reach:trip|day:{code}` HLL · `hll:hex:{h3}:{tipoDia}:{faixa}` HLL (read-only). TTL `live:vehicle` 5min (`ooh.consolidator.redis.state-ttl-s`, default 300s).
+
+## Run docs
+
+- `docs/epicos/runs/INFRA-03-arquivamento-raw-minio.md`
+- `docs/epicos/runs/RECAL-00-hll-audiencia-hex.md`
+- `docs/epicos/runs/CONS-01-scaffold.md`
+- `docs/epicos/runs/CONS-02-consumo-estado.md`
+- `docs/epicos/runs/CONS-05-acumulador-ao-vivo.md`
+- `docs/epicos/runs/CONS-03-reconstrucao-viagem.md`
+- `docs/epicos/runs/CONS-04-fechamento-medido.md`
+- `docs/epicos/runs/LOCAL-01-ambiente-local.md`
+- `docs/epicos/runs/LOCAL-02-replayer-feed.md`
+
+**e2e validated:** ❌ (lane e2e **failed** — RECAL-01 falhou no recompute local; ship bloqueado sem e2e=validated) · **Pendências:** RECAL-01=failed (recompute local falhou). Ambiente local: pg `postgresql://ooh:ooh@localhost:55432/ooh` · kafka `localhost:19092` · redis `localhost:16379`.

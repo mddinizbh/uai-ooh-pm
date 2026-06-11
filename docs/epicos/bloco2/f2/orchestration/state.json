@@ -219,17 +219,65 @@
     }
   },
   "lanes": {
-    "jobs": {},
-    "cons": {},
-    "local": {},
-    "e2e": {},
+    "jobs": {
+      "status": "complete",
+      "tasks": {
+        "INFRA-03": "done",
+        "RECAL-00": "done"
+      }
+    },
+    "cons": {
+      "status": "complete",
+      "tasks": {
+        "CONS-01": "done",
+        "CONS-02": "done",
+        "CONS-03": "done",
+        "CONS-04": "done",
+        "CONS-05": "done"
+      },
+      "redis_contract": "live:vehicle:{code} HASH(lat,lon,bearing,lineId,tripId,currentStopSequence,completudeParcial,impressoesParciais,alcanceParcial,hexesVisitados,ts) · live:line:{lineId} SET · live:reach:trip|day:{code} HLL · hll:hex:{h3}:{tipoDia}:{faixa} HLL (read-only) — detalhes: CONTRATO REDIS PÚBLICO CONS-05 (consolidador é o ÚNICO escritor; RT-01 só lê) — para o orquestrador gravar no handoff p/ RT-01 e no contract-check:\n\n== live:vehicle:{vehicleCode} == HASH · TTL 5min (ooh.consolidator.redis.state-ttl-s, default 300s). Campos (todos string, language-neutral):\n  • lat, lon            : double (WGS84) — última posição aplicada\n  • bearing             : double ou \"\" (va"
+    },
+    "local": {
+      "status": "complete",
+      "tasks": {
+        "LOCAL-01": "done",
+        "LOCAL-02": "done"
+      },
+      "env": {
+        "pg": "postgresql://ooh:ooh@localhost:55432/ooh",
+        "kafka": "localhost:19092",
+        "redis": "localhost:16379"
+      }
+    },
+    "e2e": {
+      "status": "failed",
+      "tasks": {
+        "RECAL-01": "failed"
+      }
+    },
     "rt": {},
     "web": {}
   },
   "contract": {},
   "decisions": [],
-  "runDocs": [],
-  "pending": [],
-  "updatedBy": "gate",
-  "updatedAt": "2026-06-11T01:05:05Z"
+  "runDocs": [
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/INFRA-03-arquivamento-raw-minio.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/RECAL-00-hll-audiencia-hex.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/CONS-01-scaffold.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/CONS-02-consumo-estado.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/CONS-05-acumulador-ao-vivo.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/CONS-03-reconstrucao-viagem.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/CONS-04-fechamento-medido.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/LOCAL-01-ambiente-local.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/LOCAL-02-replayer-feed.md"
+  ],
+  "pending": [
+    {
+      "task": "RECAL-01",
+      "status": "failed",
+      "reason": "recompute local falhou"
+    }
+  ],
+  "updatedBy": "e2e",
+  "updatedAt": "2026-06-11T08:30:02Z"
 }
