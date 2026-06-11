@@ -8,6 +8,11 @@ Provar que o loop verificado→estimado fecha: o medido é plausível, reconcili
 faixa de incerteza **estreita de fato**.
 
 ## Validações (linha 4107 + os 5 carros-fixture `11198/20736/30835/40705/40806` — ver techspec do consolidador §Fixture; registrar counts reais no run)
+
+> **Local-first (2026-06-10):** esta validação roda **primeiro contra o ambiente LOCAL** (LOCAL-01,
+> psql/redis-cli locais — parte `e2e` do workflow, disparo manual). O re-check em **prod** é a parte
+> `verify-prod` (via MCP `postgres-ooh`), D+1 do deploy — mais leve, só confirma que o agendado
+> (INFRA-04) produz o mesmo que o manual produziu no local.
 1. **Plausibilidade física:** viagens/dia medidas ~ frequência GTFS; km ~ extensão × viagens;
    cobertura `viagem_hex` contígua ao corredor (sem buracos não explicados / sem hexes fora).
 2. **Medido vs estimado:** `face_reach`/`line_reach` fonte medida vs estimada — desvios por linha

@@ -1,0 +1,235 @@
+{
+  "gates": {
+    "raw-history": {
+      "gate": "raw-history",
+      "status": "YELLOW",
+      "evidence": [
+        {
+          "check": "count(DISTINCT (_feed_timestamp AT TIME ZONE 'America/Sao_Paulo')::date) em raw.rt__vehicle_position",
+          "expected": ">=2 dias distintos (GREEN); 1 dia = YELLOW",
+          "actual": "1 dia distinto",
+          "pass": false
+        },
+        {
+          "check": "Contexto: volume e janela coberta em raw.rt__vehicle_position",
+          "expected": "n/a (evidencia complementar)",
+          "actual": "1.885.022 linhas, de 2026-06-10 10:08:27 a 2026-06-10 22:04:11 (America/Sao_Paulo) — ~12h de coleta num unico dia",
+          "pass": true
+        }
+      ],
+      "note": "Apenas 1 dia de historico raw (2026-06-10, ~12h, 1,88M posicoes). Ha material suficiente pra um seed/replay basico do LOCAL-01/02, mas sem variacao entre dias. O poller esta acumulando; em ~1 dia a checagem deve virar GREEN naturalmente."
+    },
+    "poller-live": {
+      "gate": "poller-live",
+      "status": "GREEN",
+      "evidence": [
+        {
+          "check": "count(DISTINCT _feed_timestamp) em raw.rt__vehicle_position na última hora (> 0 ciclos = poller streaming)",
+          "expected": "> 0 ciclos",
+          "actual": "143 ciclos distintos",
+          "pass": true
+        },
+        {
+          "check": "count(*) em raw.rt__vehicle_position na última hora",
+          "expected": "> 0 linhas",
+          "actual": "105.940 linhas",
+          "pass": true
+        },
+        {
+          "check": "Frescor do feed (max(_feed_timestamp))",
+          "expected": "timestamp dentro da última hora",
+          "actual": "2026-06-11 01:03:48 UTC (recente)",
+          "pass": true
+        }
+      ],
+      "note": "Poller de prod streaming normalmente: 143 ciclos/h equivale a um ciclo a cada ~25s. Observação operacional: a primeira query retornou só uma coluna ('count': 144) porque o MCP colapsa colunas homônimas — repetida com aliases para obter os dois valores. Diferença 144 vs 143 entre as duas execuções é só janela deslizante de now()."
+    },
+    "medido-volume": {
+      "gate": "medido-volume",
+      "status": "RED",
+      "evidence": [
+        {
+          "check": "SELECT to_regclass('medido.viagem') IS NOT NULL",
+          "expected": "true (tabela medido.viagem existe)",
+          "actual": "false — tabela medido.viagem não existe no banco ooh de PROD",
+          "pass": false
+        },
+        {
+          "check": "count(DISTINCT service_date) FROM medido.viagem >= 3",
+          "expected": ">= 3 service_dates distintos",
+          "actual": "não executado — tabela inexistente",
+          "pass": false
+        },
+        {
+          "check": "count(DISTINCT vehicle_code) IN ('11198','20736','30835','40705','40806')",
+          "expected": "5 veículos sentinela presentes",
+          "actual": "não executado — tabela inexistente",
+          "pass": false
+        }
+      ],
+      "note": "esperado antes do ship do consolidador — schema/tabela medido.viagem ainda não deployados em prod; re-verificar após o deploy do consolidador"
+    },
+    "repos": {
+      "gate": "repos",
+      "status": "YELLOW",
+      "evidence": [
+        {
+          "check": "uai-ooh-trip-consolidator ausente (CONS-01 vai criar)",
+          "expected": "AUSENTE",
+          "actual": "AUSENTE — diretório /Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-trip-consolidator não existe",
+          "pass": true
+        },
+        {
+          "check": "uai-ooh-service-template existe com pom.xml",
+          "expected": "diretório existe + pom.xml presente",
+          "actual": "EXISTE — 36 arquivos (fora .git/.idea/CLAUDE.md); pom.xml presente em /Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-service-template/pom.xml",
+          "pass": true
+        },
+        {
+          "check": "uai-ooh-pipeline existe",
+          "expected": "diretório existe com arquivos",
+          "actual": "EXISTE — 2346 arquivos",
+          "pass": true
+        },
+        {
+          "check": "uai-ooh-realtime-poller existe",
+          "expected": "diretório existe com arquivos",
+          "actual": "EXISTE — 2640 arquivos",
+          "pass": true
+        },
+        {
+          "check": "uai-infra existe",
+          "expected": "diretório existe",
+          "actual": "EXISTE em /Users/marleydiniz/IdeaProjects/personal/uai/uai-infra",
+          "pass": true
+        },
+        {
+          "check": "uai-ooh-intel existe",
+          "expected": "diretório existe com arquivos",
+          "actual": "EXISTE — 463 arquivos",
+          "pass": true
+        },
+        {
+          "check": "uai-portal existe",
+          "expected": "diretório existe com arquivos",
+          "actual": "EXISTE — 48930 arquivos",
+          "pass": true
+        }
+      ],
+      "note": "Estado exatamente o esperado pré-F2: todos os repos existentes presentes e populados, e uai-ooh-trip-consolidator ausente (será criado pela CONS-01). YELLOW conforme regra do gate (consolidator ausente + resto ok)."
+    },
+    "local-env": {
+      "gate": "local-env",
+      "status": "RED",
+      "evidence": [
+        {
+          "check": "docker-compose.local.yml existe em uai-infra",
+          "expected": "arquivo presente",
+          "actual": "Existe: /Users/marleydiniz/IdeaProjects/personal/uai/uai-infra/docker-compose.local.yml (7226 bytes, modificado 2026-06-10 17:01)",
+          "pass": true
+        },
+        {
+          "check": "docker compose ps — serviços do ambiente local up",
+          "expected": "stack local rodando (incl. postgres-ooh)",
+          "actual": "Apenas kafka running (Up 5h). postgres: Exited (0) há 2 dias. postgres-ooh, postgres-ooh-init, redis, minio, minio-init, postgres-init definidos no compose mas sem container criado/rodando",
+          "pass": false
+        },
+        {
+          "check": "psql postgresql://ooh:ooh@localhost:55432/ooh -c 'SELECT 1'",
+          "expected": "retorna 1 (Postgres ooh local respondendo)",
+          "actual": "Falhou em 2 níveis: (1) psql não instalado no host (exit 127); (2) testado via container postgres:16-alpine com --network host: connection refused — porta 55432 fechada (nc confirma PORT-CLOSED)",
+          "pass": false
+        }
+      ],
+      "note": "RED, mas é o estado ESPERADO antes do LOCAL-01: o compose local já existe (atualizado hoje) e define postgres-ooh, porém o serviço nunca foi subido — só o kafka está up e o postgres antigo saiu há 2 dias. Para virar GREEN: `docker compose -f .../docker-compose.local.yml up -d` (ao menos postgres-ooh + postgres-ooh-init) e instalar psql no host (ex.: `brew install libpq`), já que o binário não existe localmente (exit 127) — sem isso o check de SELECT 1 falha mesmo com o banco up."
+    },
+    "f1-intel": {
+      "gate": "f1-intel",
+      "status": "GREEN",
+      "evidence": [
+        {
+          "check": "state.json existe e é legível em docs/epicos/bloco1/f1/orchestration/state.json",
+          "expected": "arquivo presente com handoff do F1",
+          "actual": "presente, JSON válido, updatedBy=contract, updatedAt=2026-06-06T14:53:03Z",
+          "pass": true
+        },
+        {
+          "check": "lanes.back.tasks['EP2-03'] em done/partial (catálogo/ficha)",
+          "expected": "done ou partial",
+          "actual": "done",
+          "pass": true
+        },
+        {
+          "check": "lanes.back.tasks['EP2-07'] em done/partial (auth)",
+          "expected": "done ou partial",
+          "actual": "partial (auth stub; auth real deferido até uai-auth existir — gate uai-auth está RED no handoff)",
+          "pass": true
+        },
+        {
+          "check": "lanes.back.tasks['EP2-08'] em done/partial (geo)",
+          "expected": "done ou partial",
+          "actual": "done (/geo com 4 camadas após EP1-03 materializar os pontos)",
+          "pass": true
+        }
+      ],
+      "note": "GREEN: EP2-03=done, EP2-07=partial, EP2-08=done — intel F1 serve catálogo/auth(stub)/geo; lane rt liberada. Ressalvas do handoff que não rebaixam o gate mas valem registro: (1) EP2-07 roda em modo stub porque uai-auth está vazio (gate uai-auth=RED no F1); (2) contract.mismatches aponta binário stale em localhost:8085 (jar antigo do template expõe só /api/ping) — staleness de deploy, não de contrato; rebuild/redeploy do uai-ooh-intel resolve. Fonte: /Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/bloco1/f1/orchestration/state.json"
+    },
+    "f1-portal": {
+      "gate": "f1-portal",
+      "status": "GREEN",
+      "evidence": [
+        {
+          "check": "state.json existe e é legível em /Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/bloco1/f1/orchestration/state.json",
+          "expected": "arquivo presente, JSON válido",
+          "actual": "arquivo lido com sucesso (updatedBy=contract, updatedAt=2026-06-06T14:53:03Z)",
+          "pass": true
+        },
+        {
+          "check": "lanes.shell.tasks.EP3-01 (shell do portal do F1)",
+          "expected": "done ou partial",
+          "actual": "done",
+          "pass": true
+        },
+        {
+          "check": "lanes.module.tasks.EP4-01 (scaffold do módulo)",
+          "expected": "done ou partial",
+          "actual": "done",
+          "pass": true
+        },
+        {
+          "check": "lanes.module.tasks.EP4-03 (ficha)",
+          "expected": "done ou partial",
+          "actual": "done",
+          "pass": true
+        },
+        {
+          "check": "lanes.module.tasks.EP4-04 (mapa)",
+          "expected": "done ou partial",
+          "actual": "done",
+          "pass": true
+        }
+      ],
+      "note": "GREEN: shell + módulo + mapa do F1 existem (EP3-01 done; EP4-01/03/04 done — módulo aliás 9/9 done, shell lane partial só por EP3-02 partial/EP3-03 paused, que não fazem parte do critério). Lane web do F2 NÃO precisa ficar skip. Contexto adicional do state: auth_mode=stub e contract.mismatches aponta binário stale em localhost:8085 (jar antigo do template, rebuild/redeploy resolve) — não afeta o critério deste gate."
+    },
+    "prereqs-core": {
+      "gate": "prereqs-core",
+      "status": "UNKNOWN",
+      "evidence": [],
+      "note": "agente não retornou"
+    }
+  },
+  "lanes": {
+    "jobs": {},
+    "cons": {},
+    "local": {},
+    "e2e": {},
+    "rt": {},
+    "web": {}
+  },
+  "contract": {},
+  "decisions": [],
+  "runDocs": [],
+  "pending": [],
+  "updatedBy": "gate",
+  "updatedAt": "2026-06-11T01:05:05Z"
+}

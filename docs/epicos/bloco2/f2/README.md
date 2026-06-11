@@ -73,6 +73,7 @@ Teste decisório: *reconstruível só de `raw`+GTFS → `medido`/`core`. Precisa
 | [`04-intel-rt/`](04-intel-rt/) | 🟦 BACK | `uai-ooh-intel` *(estende F1)* | RT-01..03 | pendente |
 | [`05-front-rt/`](05-front-rt/) | 🟪 FRONT | `uai-portal` *(estende F1)* | WEB-00..02 | pendente |
 | [`06-recalibracao/`](06-recalibracao/) | 🟨 DATA | `uai-ooh-pipeline` | RECAL-00..02 | pendente · RECAL-00 (HLLs) pode rodar já |
+| [`07-local/`](07-local/) | 🟫 LOCAL | `uai-infra` + `uai-ooh-realtime-poller` | LOCAL-01..02 | pendente · **valida tudo ANTES do ship** |
 
 Run do que já foi entregue: [`runs/F2-infra-poller-golive.md`](../../runs/F2-infra-poller-golive.md).
 
@@ -100,7 +101,7 @@ primitivo, quem chama é diferente → **sem acoplamento comercial agora, sem re
 - **F2-#10 — Kafka como está:** `ooh.rt.position` + `ooh.vehicle.status` já criados e publicados. `ooh.trip.completed` = **contrato enriquecido** (consumidor futuro não acessa `medido`/`core`).
 - **F2-#11 (2026-06-10) — Frota inteira mantida; o custo se resolve com TIERING, não com filtro:** capturar só "linhas de interesse" no poller quebraria a calibração da rede, a reconstrução de viagem (carro troca de linha) e o replay (feed não tem rewind) — e "interesse" é conceito comercial (read-path/B3). Custo real medido: Kafka ~57 msg/s (nada); `raw` ~1,2-1,5 GB/dia → **INFRA-03**: quente 7d no Postgres + frio parquet/zstd no MinIO (~3-4,5 GB/mês). Mesmo padrão pro `medido` depois (quente ~90d).
 - **Depende de:** `core` (`trip_pattern`/`line_shape` — ✅ F1) · Onda 1/2 (`exposure_cell`/`od_trip` — ✅) · intel-RT estende o intel F1 (EP2) · front-RT estende o front F1 (EP4).
-- **Sequenciamento:** CONS pode começar **já** (poller streaming desde 09/jun); RECAL precisa de alguns dias de `medido` acumulado; intel-RT/front-RT entram quando o intel/front do F1 existirem.
+- **Sequenciamento (LOCAL-FIRST, decisão 2026-06-10):** construir tudo local → E2E local (replay do raw + consolidador local + **disparos MANUAIS dos RECALs**) → validar fixture/4107/reconciliação → **só então** ship pra prod (INFRA-04). Ordem: `gate → jobs ∥ cons → local → e2e → rt ∥ web → contract → ship → verify-prod` — orquestrada pelo workflow **`f2-orchestration`** (`orchestration/README.md`). O ship fica **bloqueado** sem `e2e=validated` no handoff. CONS pode começar já (poller streaming desde 09/jun acumulando raw pro replay).
 - **Convenção de repo novo (CONS-01):** `gh repo create` + push de `main` vazia **antes** de qualquer código → regerar do `uai-ooh-service-template`.
 
 ## Futuro (pós-F2)
