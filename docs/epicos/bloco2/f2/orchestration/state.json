@@ -250,10 +250,11 @@
       }
     },
     "e2e": {
-      "status": "failed",
+      "status": "validated",
       "tasks": {
-        "RECAL-01": "failed"
-      }
+        "RECAL-01": "done"
+      },
+      "note": "RECAL-01 resolvido (2026-06-11 tarde): recompute --fonte=medida rodou end-to-end no ooh vivo. Bug de código corrigido (COMMENT ON COLUMN metodo movido de SQL_CREATE p/ SQL_MIGRATE em line_reach.py — fix NAO commitado em feat/ooh-recal-01). core.line_reach medida=13437, face_reach medida=1773, pattern_stop_exposure=4898; gates estimada exit=0. CAVEAT: v_real do consolidador e lixo (mediana 450 km/h — bug sistematico, pendencia separada)."
     },
     "rt": {},
     "web": {}
@@ -269,15 +270,42 @@
     "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/CONS-03-reconstrucao-viagem.md",
     "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/CONS-04-fechamento-medido.md",
     "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/LOCAL-01-ambiente-local.md",
-    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/LOCAL-02-replayer-feed.md"
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/LOCAL-02-replayer-feed.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/F2-e2e-hardening-2026-06-11.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/INFRA-04-automacao-f2.md",
+    "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/FIX-vreal-velocidade-consolidador.md"
   ],
+  "infra04": {
+    "status": "part1-done",
+    "note": "Consolidador validado AO VIVO (local, banco vivo): boot limpo, vRealSource=core.pattern_stop, 1243 live:vehicle:*, medido criado+gravando. Roda via docker run --restart unless-stopped contra infra existente (sem cirurgia de volume — pivot do dono). Serviço uai-ooh-trip-consolidator adicionado ao docker-compose.yml (+40 linhas, NAO commitado). Parte 2 pendente: crons em run-pipeline.yml (archive/retention prontos; recompute bloqueado por RECAL-01) + ship (merge consolidador -> imagem GHCR -> commit compose -> Actions)."
+  },
   "pending": [
     {
       "task": "RECAL-01",
-      "status": "failed",
-      "reason": "recompute local falhou"
+      "status": "done",
+      "reason": "RESOLVIDO — recompute --fonte=medida rodou end-to-end no ooh vivo; medida coexiste com estimada no core; gates estimada verdes. Comando idempotente pronto pro cron D-1."
+    },
+    {
+      "task": "fix-line-reach-commit",
+      "status": "pending",
+      "reason": "commitar o fix de line_reach.py (COMMENT ON COLUMN metodo movido p/ SQL_MIGRATE) na branch feat/ooh-recal-01 do uai-ooh-pipeline."
+    },
+    {
+      "task": "bug-v-real-consolidador",
+      "status": "fixed-uncommitted",
+      "reason": "CORRIGIDO E VERIFICADO (2026-06-11). Causa-raiz: speedAtFraction usava (Δfracao-snap × comprimento); ST_LineLocatePoint salta em shape auto-sobreposto. Fix: distancia haversine GPS entre os 2 pontos (fix em PostgisTripMetricsCalculator, NAO commitado). Verificado: unit 3/3 + ao vivo mediana 450->26.5 km/h, p95 2601->41, max 5889->142, >80km/h 60%->2%. Clamp (pendencia #3 antiga) ficou obsoleta. Run: FIX-vreal-velocidade-consolidador.md"
+    },
+    {
+      "task": "higiene-vreal-reagregar",
+      "status": "done",
+      "reason": "FEITO. DELETE de 28263 linhas pre-fix do parada_velocidade (mantidas 5299 pos-fix, mediana 19.7); DELETE pattern_stop_exposure v1; re-run face-reach --fonte=medida re-agregou v_real LIMPO (3013 paradas, mediana 449->19.2 km/h, max 4710->100, >80km/h 0.2%). BONUS: cobertura medida cresceu 448->680 veiculos, face_reach medida 1773->2698 faces. Nota: line_reach medida (181 linhas) ficou levemente stale (so re-rodei face-reach); o cron D-1 do --fonte=medida completo reconcilia."
+    },
+    {
+      "task": "INFRA-04-parte2",
+      "status": "pending",
+      "reason": "crons no run-pipeline.yml (archive 0 4 * * * + retention + recompute 30 4 * * * — agora DESBLOQUEADO) via github.event.schedule + ship do consolidador pro VPS (merge -> imagem GHCR -> commit compose)."
     }
   ],
-  "updatedBy": "e2e",
-  "updatedAt": "2026-06-11T08:30:02Z"
+  "updatedBy": "recal-01 (manual)",
+  "updatedAt": "2026-06-11T17:20:00Z"
 }

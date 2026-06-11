@@ -1,4 +1,12 @@
-# RECAL-01 — recompute por fonte/método (estimada vs medida) — run **FAILED/BLOQUEADA** (2026-06-11)
+# RECAL-01 — recompute por fonte/método (estimada vs medida) — **RESOLVIDO** (2026-06-11, tarde)
+
+> ⚠️ Histórico abaixo (run da manhã = FAILED). **A RESOLUÇÃO está no fim do arquivo** — o recompute
+> rodou end-to-end contra o `ooh` vivo, a medida agora coexiste com a estimada no core, gates verdes.
+> Achado novo: **bug sistemático no v_real do consolidador** (mediana 450 km/h) — pendência à parte.
+
+---
+
+## (run original — FAILED/BLOQUEADA, manhã)
 
 > Pipeline `implement → review → test → db-validate → refute`. Os 4 primeiros estágios passaram (código
 > compila, review aprovou, 82 testes verdes), mas o **db-validate reprovou (`ok:false`)**: a marca de
@@ -94,3 +102,46 @@ Conclusão: o cético **não derrubou** o veredito. A falha do db-validate é re
 ---
 
 **Arquivo gravado:** `/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/RECAL-01-recompute-fonte-medida.md`
+
+---
+
+# RESOLUÇÃO (2026-06-11, tarde) — recompute rodou end-to-end no `ooh` vivo ✅
+
+> Pré-condição que faltava: o `medido` precisava existir com dados. Resolvida pela **INFRA-04** (consolidador
+> validado ao vivo, escrevendo `medido.viagem_hex`/`parada_velocidade`). Com dado medido disponível, o
+> recompute foi executado contra o banco vivo — e expôs **1 bug de código** (não de dados), corrigido.
+
+## Bug de código achado e corrigido (a verdadeira causa do "unit-green/integration-red")
+- **Sintoma:** `psycopg.errors.UndefinedColumn: column "metodo" of relation "core.line_reach" does not exist`
+  em `line_reach.py:279` (`cur.execute(SQL_CREATE_LINE_REACH)`).
+- **Causa-raiz:** `SQL_CREATE_LINE_REACH` terminava com `COMMENT ON COLUMN core.line_reach.metodo`. Na
+  `core.line_reach` **pré-RECAL-01** (22.994 linhas, sem `metodo`), o `CREATE TABLE IF NOT EXISTS` é no-op
+  (não adiciona a coluna) → o COMMENT estoura **antes** da `SQL_MIGRATE_LINE_REACH` (que adiciona a coluna)
+  rodar. Os 82 testes usavam fixtures frescas (tabela criada já com `metodo`), nunca o caminho de migração.
+- **Fix (repo `uai-ooh-pipeline`, branch `feat/ooh-recal-01`, NÃO commitado):** mover o
+  `COMMENT ON COLUMN core.line_reach.metodo` de `SQL_CREATE_LINE_REACH` → `SQL_MIGRATE_LINE_REACH`
+  (logo após o `ADD COLUMN IF NOT EXISTS metodo`, que garante a coluna em DB fresco E legado).
+
+## Resultado no banco `ooh` (version_id=1, estimada e medida COEXISTEM)
+| Tabela | estimada | medida | obs |
+|---|---|---|---|
+| `core.line_reach` | 22.994 | **13.437** | 181 linhas c/ viagem medida; 3 grãos |
+| `core.face_reach` | 10.612 | **1.773** | 448 veículos; tipos_dia [0,1,7,8] |
+| `core.pattern_stop_exposure` | — | 4.898 paradas | v_real agregado (mediana por parada/faixa) |
+
+- **Gates da estimada (`reach validate`): exit=0, todos os asserts críticos passaram** — a migração que
+  adicionou `metodo` ao `line_reach` não regrediu a estimada (sentinela 11083 ok, exposure_cell ok).
+- **Cobertura parcial** (by design): só linhas/veículos com viagem medida. Cresce conforme o consolidador
+  acumula + o cron D-1 re-roda.
+
+## Achado novo: v_real do consolidador é LIXO (bug sistemático, não outlier)
+- `medido.parada_velocidade.v_real` bruto: **mediana 450 km/h, p95 2.601, máx 5.889; 60% acima de 80 km/h**.
+  Valores se repetem (5889×3, 5138×3). Não é jitter de GPS (a pendência #3 supunha 95–211 km/h) — é erro
+  **sistemático no cálculo de velocidade do consolidador** (~ordem de grandeza). **Clampar a 70 NÃO resolve**
+  (achataria tudo). **Nova pendência:** corrigir o cálculo de v_real no `uai-ooh-trip-consolidator`
+  (`PostgisTripMetricsCalculator`) antes de o v_real ser usável. Não bloqueia a coexistência reach/medida.
+
+## Status final
+- **RECAL-01 (recompute fonte medida): DONE** — o que falhava (sem `medida` no banco) está resolvido;
+  comando idempotente pronto pro cron D-1 (INFRA-04 p2). e2e destravado.
+- **Pendências derivadas:** (1) commitar o fix do `line_reach.py`; (2) **bug do v_real** no consolidador.
