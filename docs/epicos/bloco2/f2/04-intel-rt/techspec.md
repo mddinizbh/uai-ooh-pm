@@ -1,37 +1,43 @@
 # Detalhamento Técnico: lane intel-rt (F2 · realtime read + verificado)
 
 > Techspec da lane **04-intel-rt** (`uai-ooh-intel`, estende o intel do F1). Units = RT-01..03.
-> Greenfield parcial: o intel F1 nasce no EP2; aqui são **endpoints novos** sobre Redis (estado do consolidador) + `core.trip_executed`.
+> **Reescrita em 2026-06-10** (replanejamento face-centric — F2-#3..#8 no `../README.md`).
+> Endpoints novos sobre o Redis live (contrato CONS-05) + `medido` (read-only) + `serving` recomputado (lane 06).
 > **Coder não reabre as Decisões abaixo.**
 
 ## Contexto
-O intel-RT serve **posição ao vivo** (do Redis) e o **verificado por linha** (de `trip_executed` + `v_real`), incluindo o **alcance recalculado** (fórmula do F1 com a velocidade real). Tudo **escopável por linha** (F2), atrás de um primitivo tenant-agnóstico. Sem PostGIS no read path (ADR-003).
+O intel-RT serve **posição ao vivo + acumulado parcial** (do Redis, escrito pelo consolidador) e o
+**verificado por linha** (de `medido.viagem` + `face_reach`/`line_reach` fonte medida no serving),
+lado a lado com o estimado. Tudo **escopável por linha** (F2), atrás de um primitivo tenant-agnóstico.
+Sem PostGIS no read path (ADR-003). O intel **só lê** — quem escreve é o consolidador (`medido`,
+Redis) e o pipeline (modelo).
 
 ## Decisões Técnicas
-- **`PositionFeed` port** (transporte): **polling no F2** (stateless, ~15s); SSE/WS = **adapter futuro** sob o mesmo contrato.
-- **Conjunto SEMPRE server-derived** do escopo autenticado (`RealtimeScope`). O cliente passa a **linha**, nunca `vehicle_id`. Anti-vazamento.
-- **`RealtimeScope` sealed** (variante carrega dado → sealed, não enum): F2 = `LineScope`; Bloco 3 add `CampaignScope`.
-- **RT-02 recalcula o alcance** com `v_real` (fórmula F1 + `serving`), **reagindo a `ooh.trip.completed`**. **Não** o consolidador (que fica só com fatos). Recalibração de `model_params` = normalizer (fora daqui).
-- **Alcance recalculado = AGREGADO por linha** (read-time). O **acumulador por-posição ao vivo** é pós-F2 (módulo de stream separado) — ver Evolução.
+- **`PositionFeed` port** (transporte): **polling no F2** (stateless, ~15s); SSE/WS = adapter futuro sob o mesmo contrato (F2-#2).
+- **Conjunto SEMPRE server-derived** do escopo autenticado (`RealtimeScope` sealed: F2 = `LineScope`; B3 adiciona `CampaignScope`). O cliente passa a **linha**, nunca `vehicle_code`.
+- **Live read = chaves Redis do CONS-05** (`live:vehicle:{}` / `live:line:{}`): o intel não chama o consolidador (headless) nem toca banco no hot path.
+- **Verificado lê o que já existe** — `medido` (fatos) + serving (modelo recomputado pela lane 06). O intel **nunca re-deriva** o modelo (ADR-050).
+- **Selo de confiança por métrica (ADR-058)** substitui o boolean `aindaEstimativa`: trajetória/frequência/velocidade = MEDIDO; reach/impressões = ESTIMATIVA (coeficientes de visada cegos), com faixa menor.
+- **Frescura por evento:** cache do verificado por linha invalidado por `ooh.trip.completed` (payload enriquecido — não precisa consultar `medido` pra invalidar).
 
 ## Padrões do Projeto a Seguir
-- Estende o intel F1: `JdbcTemplate` no `serving`/`core` (read-only), reusa a auth (EP2-07, modo stub). **Records** no domínio; **sealed sem default** (`RealtimeScope`); IDs `String`; sem `ST_*`.
-- Adapter de Redis novo (lê o estado que o consolidador grava).
+- Estende o intel F1: `JdbcTemplate` read-only, reusa a auth (EP2-07/introspection `uai-auth`). **Records** no domínio; **sealed sem default** (`RealtimeScope`); IDs `String`; sem `ST_*`.
+- Adapter Redis novo (lê o contrato CONS-05).
 
 ## Riscos Globais
-- **Alcance recalculado segue ESTIMATIVA** (só velocidade vira real; coeficientes não calibrados) → marcar sempre como estimativa, não "medido".
-- **Consistência** entre o agregado (RT-02) e o futuro acumulador incremental → **mesma fórmula** (fonte única) pra reconciliar.
-- **Frescura vs custo:** reagir a `ooh.trip.completed` (não recalcular por request) — cache do verificado por linha, invalidado pelo evento.
+- **Selo honesto:** o reach medido segue estimativa (visada cega) — payload tipado pra não inflar (ADR-058).
+- **Acoplamento ao contrato Redis:** mudança nas chaves do CONS-05 quebra o RT-01 — contrato versionado no doc do CONS-05; IT dos dois lados seedam o mesmo formato.
+- **Frescura vs custo:** verificado reage ao evento (não recalcula por request).
 
 ---
 
-## Unit: RT-01 — realtime read (posição + progresso)
-- **Responsabilidade**: posição ao vivo + progresso p/ um conjunto **server-derived** (linha), lendo do Redis.
-- **Localização**: `adapter/in/web/RealtimeController`, `application/port/in/QueryRealtimeUseCase`, `adapter/out/redis/VehicleStateReader`, `domain/LivePosition`.
+## Unit: RT-01 — realtime read (posição + progresso + acumulado)
 - **Contrato**:
 ```java
-record LivePosition(String vehicleId, String lineId, double lat, double lon, Double bearing,
-    Integer currentStopSequence, double completudeParcial, Instant ts) {}
+record LiveAccumulator(double impressoesParciais, long alcanceParcial, int hexesVisitados, Selo selo) {}
+// selo=ESTIMATIVA · alcanceParcial = PFCOUNT do HLL da viagem/dia (dedup ~±0,8%, CONS-05/RECAL-00)
+record LivePosition(String vehicleCode, String lineId, double lat, double lon, Double bearing,
+    Integer currentStopSequence, double completudeParcial, LiveAccumulator acumulado, Instant ts) {}
 
 interface QueryRealtimeUseCase { List<LivePosition> positions(RealtimeScope scope); }
 
@@ -39,62 +45,52 @@ interface QueryRealtimeUseCase { List<LivePosition> positions(RealtimeScope scop
     @GetMapping("/api/realtime/positions") List<LivePosition> byLine(@RequestParam String line);
 }
 
-interface VehicleStateReader { List<LivePosition> activeOnLine(String lineId); } // resolve o conjunto no Redis
+interface LiveStateReader { List<LivePosition> activeOnLine(String lineId); } // live:line:{} → live:vehicle:{}
 ```
-- **Pré-condições**: intel F1 (EP2) + Redis com estado do consolidador (CONS-02).
-- **Pós-condições**: `GET positions?line=` devolve os carros da linha ao vivo; conjunto resolvido no servidor; sem PostGIS.
-- **Decisões locais**: o `lineId` mapeia p/ `vehicle_id`s via `current_trip_id→route_id` no Redis.
-- **Verificação**: IT com Redis seedado (Testcontainers) → posições da linha; nunca aceita `vehicle_id` do cliente.
+- **Pré-condições**: intel F1 (EP2) + Redis com o contrato CONS-05.
+- **Pós-condições**: posições + acumulado da linha; conjunto resolvido no servidor; sem PostGIS.
+- **Verificação**: IT com Redis seedado no formato CONS-05; nunca aceita `vehicle_code` do cliente.
 
-## Unit: RT-02 — verificado + alcance recalculado
-- **Responsabilidade**: métricas verificadas por linha + **alcance recalculado** (fórmula F1 com `v_real`) + comparação com o estimado.
-- **Localização**: `adapter/in/web/VerifiedController`, `application/VerifiedReachService`, `adapter/in/kafka/TripCompletedConsumer`, `domain/{VerifiedMetrics,ReachRecompute,EstimatedComparison}`.
+## Unit: RT-02 — verificado por linha (medido vs estimado)
 - **Contrato**:
 ```java
-record EstimatedComparison(double frequenciaGtfs, double velocidadeAssumida, int faixaPct) {}
-record ReachRecompute(double impressoesReais, double alcanceReais, boolean aindaEstimativa) {} // aindaEstimativa=true sempre no F2
-record VerifiedMetrics(String lineId, int viagensDia, double km, double completudeMedia,
-    double velocidadeRealMedia, ReachRecompute alcance, EstimatedComparison vsEstimado) {}
+enum Selo { MEDIDO, ESTIMATIVA }   // por métrica (ADR-058)
+record Metrica(double valor, Selo selo) {}
+record VerifiedMetrics(String lineId, Metrica viagensDia, Metrica km, Metrica completudeMedia,
+    Metrica velocidadeRealMedia, Metrica reachMedido, Metrica impressoesMedidas,
+    EstimatedComparison vsEstimado) {}
+record EstimatedComparison(double frequenciaGtfs, double velocidadeAssumida,
+    double reachEstimado, double impressoesEstimadas, int faixaPctAntes, int faixaPctDepois) {}
 
-interface VerifiedReachService { VerifiedMetrics forLine(String lineId); } // junta trip_executed + v_real + serving (fórmula F1)
+interface VerifiedQueryService { VerifiedMetrics forLine(String lineId); } // medido + serving (lane 06)
 
 @RestController class VerifiedController {
     @GetMapping("/api/lines/{id}/verified") VerifiedMetrics verified(@PathVariable String id);
 }
 
 @KafkaListener(topics = "ooh.trip.completed", groupId = "intel-verified")
-void onTripCompleted(OohTripCompleted event); // invalida cache do verificado da linha
+void onTripCompleted(OohTripCompleted event); // invalida cache da linha (payload enriquecido)
 ```
-- **Pré-condições**: `core.trip_executed` + `pattern_stop_exposure.v_real` (CONS-04) + `serving.line_metrics` (F1).
-- **Pós-condições**: `GET verified?line=` → números reais + alcance recalculado (com `aindaEstimativa=true`) + comparação; atualiza ao receber `ooh.trip.completed`.
-- **Decisões locais**: **mesma fórmula de alcance do F1** (fonte única, pra reconciliar com o acumulador futuro). Cache por linha invalidado pelo evento.
-- **Riscos**: estimativa (ver global) — marcar.
-- **Verificação**: IT 4107 (Testcontainers seed de `trip_executed`/`v_real`) → alcance recalculado com `v_real` ≠ estimado; flag `aindaEstimativa`.
+- **Pré-condições**: `medido.viagem`/`parada_velocidade` (CONS-04) + serving recomputado (RECAL-01).
+- **Pós-condições**: comparação completa com selo por métrica; reach medido marcado ESTIMATIVA (visada cega).
+- **Verificação**: IT 4107 com seed de `medido` + serving → medido ≠ estimado, selos corretos.
 
 ## Unit: RT-03 — `PositionFeed` port (polling, swappable)
-- **Responsabilidade**: encapsular o transporte do realtime atrás de uma porta — polling no F2, SSE/WS = adapter futuro.
-- **Localização**: `application/port/out/PositionFeed`, `domain/RealtimeScope`, `adapter/out/PollingPositionFeed`.
 - **Contrato**:
 ```java
 sealed interface RealtimeScope permits LineScope { } // Bloco 3: add CampaignScope
 record LineScope(String lineId) implements RealtimeScope {}
 
-interface PositionFeed { List<LivePosition> positionsForScope(RealtimeScope scope); } // conjunto server-derived
-// F2: PollingPositionFeed (Redis query). Futuro: SsePositionFeed/WsPositionFeed, mesmo contrato.
+interface PositionFeed { List<LivePosition> positionsForScope(RealtimeScope scope); }
+// F2: PollingPositionFeed (Redis CONS-05). Futuro: SsePositionFeed/WsPositionFeed, mesmo contrato.
 ```
-- **Pré-condições**: RT-01.
-- **Pós-condições**: o RT-01 consome `PositionFeed`; trocar polling→SSE/WS = novo adapter, **sem tocar controller/domínio**.
-- **Decisões locais**: `RealtimeScope` sealed (exaustivo, sem default).
-- **Verificação**: teste de contrato do `PositionFeed`; o controller depende só da porta.
+- **Pós-condições**: RT-01 consome `PositionFeed`; trocar polling→SSE/WS = novo adapter, sem tocar controller/domínio.
+- **Verificação**: teste de contrato; controller depende só da porta.
 
 ---
 
-## Evolução futura (pós-F2) — acumulador de alcance ao vivo
-**Não é unit do F2.** Módulo de **stream separado** que consome `ooh.rt.position`, calcula por posição a **contribuição incremental** de alcance (`v_real` local × corredor/embarque **cacheado** × coef), **acumula por viagem em Redis** e expõe "alcance acumulado ao vivo"; no fim, **total = soma**. Usa a **mesma fórmula** do `VerifiedReachService` (RT-02) → **reconcilia** (soma incremental ≈ agregado). **Continua estimativa.** Mantém consolidador e intel-hot-path limpos.
-
 ## Diagrama de dependências
 ```
-RT-03 (PositionFeed port) ──> RT-01 (realtime read)
-RT-02 (verificado + alcance recalculado)  ← consome ooh.trip.completed (CONS-04)
-   └─ usa a fórmula F1 (serving) — fonte única reusada pelo acumulador futuro
+RT-03 (PositionFeed port) ──> RT-01 (realtime read: Redis live CONS-05)
+RT-02 (verificado medido vs estimado) ← medido (CONS-04) + serving (RECAL-01) + evento ooh.trip.completed
 ```

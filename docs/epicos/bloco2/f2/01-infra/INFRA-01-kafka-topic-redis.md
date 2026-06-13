@@ -1,7 +1,9 @@
-# INFRA-01 — Kafka tópico `ooh.rt.position` + Redis
+# INFRA-01 — Kafka tópico `ooh.rt.position` + Redis — ✅ ENTREGUE (2026-06-09)
 
 > F2 (Bloco 2) · lane **infra** · **Repo-alvo:** `uai-infra` · **Stack:** Docker Compose / Kafka KRaft / Redis
-> **Gate resolvido (2026-06-06):** Kafka (KRaft) + Redis **já de pé** → aqui é só **criar o tópico** + confirmar acesso.
+> **✅ Entregue:** `kafka-init` no compose cria `ooh.rt.position` (3 part., retention 6h) **e** `ooh.vehicle.status`
+> (compactado, key=`vehicle_code` — bônus além do planejado). Commits `f122424`/`f9b0510`; poller no compose com
+> `depends_on: kafka-init` (`d9a6cd9`). Run: [`F2-infra-poller-golive.md`](../../../runs/F2-infra-poller-golive.md).
 > **Destrava:** POLL (publica) + CONS (consome + estado no Redis).
 
 ## Objetivo

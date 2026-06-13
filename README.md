@@ -21,6 +21,17 @@
 | `uai-ooh-web` *(a criar)* | React/MapLibre | SPA de ficha + ranking |
 | `uai-infra` | Compose/VPS | Deploy centralizado (inclui `ooh-postgis`) |
 
+## Frentes de inventário OOH
+
+O vertical metrifica **mídia OOH em BH** em mais de uma frente de inventário, e o modelo de audiência muda conforme a mídia seja **móvel** ou **fixa**:
+
+| Frente | Tipo de mídia | Métrica de audiência | Status |
+|---|---|---|---|
+| **BH Bus Mídia** (ônibus) | móvel — o painel viaja na rota | score de alcance via proxies (rota × contexto) — ver F1 | em execução (F1, abaixo) |
+| **Bancas de revista** | fixa — ponto de calçada/rua | *footfall* na área da banca _(hipótese: pedestres + população flutuante + tráfego adjacente)_ | nascente — pesquisa de fontes em curso (workflow `ooh-data-scout`) |
+
+> Hoje o grosso deste repo (épicos/tasks/F1) é a frente **ônibus**. A frente **bancas** está em descoberta de dados; quando amadurecer ganha seus próprios épicos/tasks. A diferença que importa: ônibus ≈ OTS de corredor; banca ≈ footfall de localização.
+
 ## Estado do F1 (planejamento) — atualizado 2026-06-05
 
 Fonte de verdade: banco `ooh` (schema `core`) + commits dos repos. **Mapa de execução (fresco, por lane
@@ -48,7 +59,8 @@ dados/back/front):** [`docs/epicos/bloco1/f1/README.md`](docs/epicos/bloco1/f1/R
 
 ## Documentos-chave
 
-- [`docs/arquitetura-servicos.md`](docs/arquitetura-servicos.md) — decomposição em microsserviços (F1→F3)
+- [`docs/arquitetura-plataforma-uai.md`](docs/arquitetura-plataforma-uai.md) — **arquitetura da plataforma uAI inteira** (todos os `uai-*`: serviços, banco, pipeline, auth, deploy)
+- [`docs/arquitetura-servicos.md`](docs/arquitetura-servicos.md) — decomposição em microsserviços OOH (F1→F3)
 - [`docs/plano-normalizacao-core.md`](docs/plano-normalizacao-core.md) — desenho do schema `core`
 - [`docs/epicos/`](docs/epicos/) — épicos 0–6 (F1: 0–4 · F2: 5 · F3: 6)
 - [`docs/proxies-e-premissas.md`](docs/proxies-e-premissas.md) — honestidade do modelo de alcance/score

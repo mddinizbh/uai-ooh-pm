@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uai-ooh-pipeline — diagrama de módulos</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>uai-ooh-pipeline · módulos</h1>
+    <div class="sub">Python · CLI roda-e-sai · ingestor + normalizer · dono do core/serving</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="ingestao">Ingestão</button>
+    <button class="chip" data-flow="normalizacao">Normalização</button>
+    <button class="chip" data-flow="serving">Serving</button>
+    <button class="chip" data-flow="reach">Reach/Recompute</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="../../02-fluxo-dados-pipeline.html">← macro</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="legend" id="legend">
+  <h4>Tipo de módulo</h4>
+  <div class="row"><span class="sw ext"></span> Adapter IN — CLI / dispatch (entrada)</div>
+  <div class="row"><span class="sw bus"></span> Port — infra comum (chunking / db / storage)</div>
+  <div class="row"><span class="sw svc"></span> Application — loaders + builds (raw→core→serving)</div>
+  <div class="row"><span class="sw store"></span> Adapter OUT — schemas / Redis / MinIO</div>
+  <div class="row"><span class="sw" style="background:var(--violet-soft);border-color:var(--violet)"></span> Domain — schema raw (fontes brutas)</div>
+  <div class="hint">clique num módulo = <b>detalhe</b> · chips = <b>caminhos de pipeline</b> · seta tracejada = <b>orquestra/importa</b></div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1480 1180" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagrama de módulos do uai-ooh-pipeline">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <!-- ── lanes ─────────────────────────────── -->
+  <g class="zone"><rect x="24" y="92" width="186" height="780" rx="14"/><text class="ztitle" x="40" y="120">CLI · entrada</text></g>
+  <g class="zone"><rect x="218" y="92" width="186" height="780" rx="14"/><text class="ztitle" x="234" y="120">common · infra</text></g>
+  <g class="zone"><rect x="412" y="92" width="214" height="780" rx="14"/><text class="ztitle" x="428" y="120">ingestor → raw</text></g>
+  <g class="zone"><rect x="634" y="92" width="640" height="780" rx="14"/><text class="ztitle" x="650" y="120">normalizer · subpacotes (raw→core→serving)</text></g>
+  <g class="zone"><rect x="1282" y="92" width="174" height="780" rx="14"/><text class="ztitle" x="1298" y="120">externo</text></g>
+  <g class="zone"><rect x="24" y="892" width="1432" height="262" rx="14"/><text class="ztitle" x="40" y="920">schema raw · fontes brutas (GTFS · censo · PBH · OSM · POI · RT)</text></g>
+
+  <!-- ── edges ─────────────────────────────── -->
+  <!-- CLI dispatch -->
+  <path class="edge impl" id="e-cli-ing"  d="M198,182 C 214,225 214,250 300,250 C 360,250 410,300 424,312"/>
+  <path class="edge impl" id="e-cli-norm" d="M194,210 C 460,210 540,190 632,182"/>
+  <!-- ingestor -> raw -->
+  <path class="edge" id="e-ing-raw" d="M518,548 C 520,700 520,860 519,948"/>
+  <!-- ingestor uses common storage/db -->
+  <path class="edge dash" id="e-ing-stor" d="M412,300 C 360,300 320,300 300,300"/>
+  <!-- normalizer identidades -> core (reads raw) -->
+  <path class="edge" id="e-iden-raw" d="M660,232 C 620,460 590,720 560,948"/>
+  <!-- normalizer subpackages chain (build_* use chunking) -->
+  <path class="edge dash" id="e-iden-chunk" d="M646,200 C 540,200 440,200 392,200"/>
+  <!-- identidades -> contexto -->
+  <path class="edge" id="e-iden-ctx" d="M886,188 C 891,188 895,188 900,188"/>
+  <!-- contexto/identidades -> metricas -->
+  <path class="edge" id="e-ctx-met" d="M910,232 C 905,240 880,244 870,248"/>
+  <!-- metricas -> serving -->
+  <path class="edge" id="e-met-srv" d="M886,294 C 891,294 895,294 900,294"/>
+  <!-- serving -> swap (out) -->
+  <path class="edge" id="e-srv-out" d="M1122,300 C 1200,290 1240,280 1294,272"/>
+  <!-- reach chain -->
+  <path class="edge" id="e-reach-od"  d="M760,496 C 760,520 760,536 760,558"/>
+  <path class="edge" id="e-od-exp"    d="M886,583 C 891,583 895,583 900,583"/>
+  <path class="edge" id="e-exp-line"  d="M900,595 C 894,620 894,684 850,684 C 800,684 766,688 766,700"/>
+  <path class="edge" id="e-exp-face"  d="M1010,608 C 1010,650 1010,672 1010,698"/>
+  <!-- reach -> redis (hll) -->
+  <path class="edge" id="e-hll-redis" d="M888,648 C 896,684 896,686 1000,686 C 1140,686 1190,560 1190,470 C 1190,420 1240,400 1280,394"/>
+  <!-- fonte_medida -> medido schema (out) -->
+  <path class="edge dash" id="e-med-out" d="M1122,644 C 1200,644 1240,600 1294,576"/>
+
+  <text class="elbl" id="l-cli-ing"  x="300" y="270">dispatch</text>
+  <text class="elbl" id="l-srv-out"  x="1190" y="262">swap ACTIVE</text>
+  <text class="elbl" id="l-hll-redis" x="1138" y="498">PFADD</text>
+  <text class="elbl" id="l-med-out"  x="1200" y="606">medido</text>
+
+  <!-- ── CLI · entrada ───────────────────────── -->
+  <g class="node ext" data-k="cli-main"><rect x="36" y="148" width="162" height="64" rx="9"/><text class="t" x="52" y="174">__main__.py</text><text class="m" x="52" y="192">python -m ooh_pipeline</text><text class="m" x="52" y="207">dispatch stage|job</text></g>
+  <g class="node ext" data-k="cli-ing"><rect x="36" y="284" width="162" height="58" rx="9"/><text class="t" x="52" y="309">_run_ingestor()</text><text class="m" x="52" y="327">job → loader.main()</text></g>
+  <g class="node ext" data-k="cli-norm"><rect x="36" y="372" width="162" height="64" rx="9"/><text class="t" x="52" y="397">_run_normalizer()</text><text class="m" x="52" y="415">importlib → run.main</text><text class="m" x="52" y="430">7 pipelines</text></g>
+
+  <!-- ── common · infra ──────────────────────── -->
+  <g class="node port" data-k="cm-chunk"><rect x="230" y="148" width="162" height="64" rx="9"/><text class="t" x="246" y="173">ChunkedBuild</text><text class="m" x="246" y="191">chunking.py · resume</text><text class="m" x="246" y="206">build_progress</text></g>
+  <g class="node port" data-k="cm-storage"><rect x="230" y="278" width="162" height="58" rx="9"/><text class="t" x="246" y="303">storage.py</text><text class="m" x="246" y="321">resolve_source</text><text class="m" x="246" y="332" style="font-size:9.5px">MinIO/CKAN/local</text></g>
+  <g class="node port" data-k="cm-db"><rect x="230" y="372" width="162" height="56" rx="9"/><text class="t" x="246" y="396">db.py</text><text class="m" x="246" y="414">build_dsn · connect</text><text class="m" x="246" y="424" style="font-size:9.5px">DSN por env</text></g>
+  <g class="node port" data-k="cm-redis"><rect x="230" y="462" width="162" height="50" rx="9"/><text class="t" x="246" y="486">redis_client.py</text><text class="m" x="246" y="503">connect (lazy)</text></g>
+
+  <!-- ── ingestor → raw ──────────────────────── -->
+  <g class="node do" data-k="ing-gtfs"><rect x="424" y="148" width="190" height="44" rx="9"/><text class="t" x="440" y="170">load_gtfs_static</text><text class="m" x="440" y="185">routes/stops/shapes</text></g>
+  <g class="node do" data-k="ing-rt"><rect x="424" y="200" width="190" height="44" rx="9"/><text class="t" x="440" y="222">load_gtfs_rt</text><text class="m" x="440" y="237">rt_raw_ddl · retention</text></g>
+  <g class="node do" data-k="ing-osm"><rect x="424" y="252" width="190" height="40" rx="9"/><text class="t" x="440" y="273">load_osm</text><text class="m" x="440" y="287">malha viária</text></g>
+  <g class="node do" data-k="ing-poi"><rect x="424" y="300" width="190" height="44" rx="9"/><text class="t" x="440" y="322" style="font-size:12px">load_poi_overture_fsq</text><text class="m" x="440" y="337">Overture + FSQ</text></g>
+  <g class="node do" data-k="ing-censo"><rect x="424" y="352" width="190" height="40" rx="9"/><text class="t" x="440" y="373">load_censo</text><text class="m" x="440" y="387">IBGE 2022</text></g>
+  <g class="node do" data-k="ing-pbh"><rect x="424" y="400" width="190" height="48" rx="9"/><text class="t" x="440" y="422">load_pbh · regional</text><text class="m" x="440" y="438">CKAN · od (matriz)</text></g>
+  <g class="node do" data-k="ing-multi"><rect x="424" y="456" width="190" height="42" rx="9"/><text class="t" x="440" y="478">load_multi · csv</text><text class="m" x="440" y="492">genéricos</text></g>
+  <g class="node do" data-k="ing-meta"><rect x="424" y="506" width="190" height="42" rx="9"/><text class="t" x="440" y="528">manifest · validate</text><text class="m" x="440" y="542">paridade + gates</text></g>
+
+  <!-- ── normalizer subpackages ──────────────── -->
+  <g class="node do" data-k="nz-iden"><rect x="646" y="148" width="240" height="84" rx="9"/><text class="t" x="662" y="173">identidades/</text><text class="m" x="662" y="191">dataset_version · line · stop</text><text class="m" x="662" y="206">trip_pattern · line_shape</text><text class="m" x="662" y="221">line_stop · vehicle · trajectory</text></g>
+  <g class="node do" data-k="nz-ctx"><rect x="900" y="148" width="222" height="84" rx="9"/><text class="t" x="916" y="173">contexto/</text><text class="m" x="916" y="191">census_sector · poi</text><text class="m" x="916" y="206">road_segment · regional</text><text class="m" x="916" y="221">→ core (estáticos)</text></g>
+  <g class="node do" data-k="nz-met"><rect x="646" y="248" width="240" height="92" rx="9"/><text class="t" x="662" y="273">metricas_score/</text><text class="m" x="662" y="291">model_params · demanda</text><text class="m" x="662" y="306">corredor · impressoes · score</text><text class="m" x="662" y="321">line_demand_hourly · calib</text><text class="m" x="662" y="336" style="font-size:9.5px">materialize · validate</text></g>
+  <g class="node do" data-k="nz-srv"><rect x="900" y="248" width="222" height="92" rx="9"/><text class="t" x="916" y="273">serving/</text><text class="m" x="916" y="291">ddl · materialize · validate</text><text class="m" x="916" y="306">core → schema serving</text><text class="m" x="916" y="321">tabelas planas (GeoJSON)</text><text class="m" x="916" y="336" style="font-size:9.5px">swap dataset_version</text></g>
+  <g class="node do" data-k="nz-grao"><rect x="900" y="356" width="222" height="76" rx="9"/><text class="t" x="916" y="381">grao_horario/</text><text class="m" x="916" y="399">line_exposure (T5)</text><text class="m" x="916" y="414">line_load_segment</text><text class="m" x="916" y="427" style="font-size:9.5px">line_turnover</text></g>
+
+  <!-- reach band -->
+  <g class="node do" data-k="nz-reach"><rect x="646" y="356" width="240" height="76" rx="9"/><text class="t" x="662" y="381">reach/ · run</text><text class="m" x="662" y="399">F2-REACH (ADR-055)</text><text class="m" x="662" y="414">core→core · --fonte</text><text class="m" x="662" y="427" style="font-size:9.5px">ORDEM / RECOMPUTE_MEDIDA</text></g>
+  <g class="node do" data-k="rc-h3"><rect x="646" y="452" width="240" height="44" rx="9"/><text class="t" x="662" y="474">h3_cell · od_trip</text><text class="m" x="662" y="489">grade H3 + matriz OD</text></g>
+  <g class="node do" data-k="rc-od"><rect x="646" y="560" width="240" height="46" rx="9"/><text class="t" x="662" y="582">od_trip → reach</text><text class="m" x="662" y="598">DISTINCT id_usuario</text></g>
+  <g class="node do" data-k="rc-exp"><rect x="900" y="560" width="222" height="46" rx="9"/><text class="t" x="916" y="582">exposure_cell (T9)</text><text class="m" x="916" y="598">hex × hora · 188k linhas</text></g>
+  <g class="node do" data-k="rc-hll"><rect x="646" y="620" width="240" height="48" rx="9"/><text class="t" x="662" y="642">hll_audiencia (RECAL-00)</text><text class="m" x="662" y="658">HLL no Redis · insumo CONS-05</text></g>
+  <g class="node do" data-k="rc-med"><rect x="900" y="620" width="222" height="46" rx="9"/><text class="t" x="916" y="642" style="font-size:12px">fonte_medida (RECAL-01)</text><text class="m" x="916" y="658">recompute --fonte=medida</text></g>
+  <g class="node do" data-k="rc-line"><rect x="646" y="700" width="240" height="48" rx="9"/><text class="t" x="662" y="722">line_reach (T8)</text><text class="m" x="662" y="738">audiência do corredor</text></g>
+  <g class="node do" data-k="rc-face"><rect x="900" y="700" width="222" height="48" rx="9"/><text class="t" x="916" y="722">face_reach (T10)</text><text class="m" x="916" y="738">impressão/reach/freq</text></g>
+  <g class="node do" data-k="nz-anal"><rect x="646" y="780" width="240" height="64" rx="9"/><text class="t" x="662" y="805">analise/ (T6)</text><text class="m" x="662" y="823">ddl · seed · prospeccao</text><text class="m" x="662" y="838">materialize · validate</text></g>
+  <g class="node do" data-k="nz-ficha"><rect x="900" y="780" width="222" height="64" rx="9"/><text class="t" x="916" y="805">gen_ficha_4107</text><text class="m" x="916" y="823">relatório HTML</text><text class="m" x="916" y="838" style="font-size:9.5px">(não é build)</text></g>
+
+  <!-- ── externo ─────────────────────────────── -->
+  <g class="node store" data-k="x-minio"><rect x="1294" y="148" width="150" height="60" rx="9"/><text class="t" x="1310" y="174">MinIO</text><text class="m" x="1310" y="192">bucket uai-ooh</text><text class="m" x="1310" y="204" style="font-size:9.5px">censo/PBH (s3://)</text></g>
+  <g class="node store" data-k="x-ooh"><rect x="1294" y="232" width="150" height="86" rx="9"/><text class="t" x="1310" y="258">banco ooh</text><text class="m" x="1310" y="276">raw · core · serving</text><text class="m" x="1310" y="291">PostGIS 31983</text><text class="m" x="1310" y="306" style="font-size:9.5px">dataset_version</text></g>
+  <g class="node store" data-k="x-redis"><rect x="1294" y="340" width="150" height="68" rx="9"/><text class="t" x="1310" y="366">Redis</text><text class="m" x="1310" y="384" style="font-size:9.5px">hll:hex:{} (RECAL-00)</text><text class="m" x="1310" y="399" style="font-size:9.5px">→ consolidador</text></g>
+  <g class="node store" data-k="x-medido"><rect x="1294" y="540" width="150" height="68" rx="9"/><text class="t" x="1310" y="566">schema medido</text><text class="m" x="1310" y="584">viagem · viagem_hex</text><text class="m" x="1310" y="599" style="font-size:9.5px">CONS-04 (F2)</text></g>
+
+  <!-- ── Domain · schema raw ─────────────────── -->
+  <g class="node domain" data-k="raw-gtfs"><rect x="36" y="948" width="336" height="92" rx="9"/><text class="t" x="52" y="973">raw GTFS / RT</text><text class="m" x="52" y="992">gtfs__routes · stops · trips · shapes</text><text class="m" x="52" y="1009">rt__vehicle_position (particionado)</text><text class="m" x="52" y="1026" style="font-size:9.5px">INFRA-02 · retenção 30d</text></g>
+  <g class="node domain" data-k="raw-pbh"><rect x="392" y="948" width="336" height="92" rx="9"/><text class="t" x="408" y="973">raw PBH</text><text class="m" x="408" y="992">pbh__ponto_onibus · mco · trecho</text><text class="m" x="408" y="1009">pbh__regional · matriz_od</text><text class="m" x="408" y="1026" style="font-size:9.5px">CKAN (PBH)</text></g>
+  <g class="node domain" data-k="raw-censo"><rect x="748" y="948" width="336" height="92" rx="9"/><text class="t" x="764" y="973">raw censo</text><text class="m" x="764" y="992">censo__setores · basico · renda</text><text class="m" x="764" y="1009">IBGE 2022 (MinIO)</text><text class="m" x="764" y="1026" style="font-size:9.5px">setor censitário</text></g>
+  <g class="node domain" data-k="raw-osm"><rect x="1104" y="948" width="336" height="92" rx="9"/><text class="t" x="1120" y="973">raw OSM / POI</text><text class="m" x="1120" y="992">osm__* (malha viária)</text><text class="m" x="1120" y="1009">poi__overture · fsq</text><text class="m" x="1120" y="1026" style="font-size:9.5px">manifest (paridade)</text></g>
+</svg>
+
+  <div class="src">uai-ooh-pipeline · ooh_pipeline/ · jun/2026</div>
+
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique num módulo</h3>
+    <div class="meta" id="d-meta">papel + responsabilidade</div>
+    <p id="d-body">Diagrama de módulos do pipeline Python: <b>CLI</b> (dispatch) → <b>common</b> (infra) → <b>ingestor</b> (loaders → schema <code>raw</code>) → <b>normalizer</b> (subpacotes raw→core→serving) → <b>externo</b>. O schema <code>raw</code> (fontes brutas) está embaixo. Chips acendem cada pipeline.</p>
+  </div>
+</div>
+
+<script>
+window.DETAIL = {
+  "cli-main": { t:"__main__.py", m:"CLI · roda-e-sai", b:"Entrada <code>python -m ooh_pipeline &lt;stage&gt; &lt;job&gt;</code>. <code>argparse</code> com dois subcomandos: <b>ingestor</b> e <b>normalizer</b>. Cada invocação roda UM job e termina (exit 0/!=0) — imagem GHCR não long-running, disparada por GitHub Actions no uai-infra." },
+  "cli-ing": { t:"_run_ingestor(job, extra)", m:"CLI · dispatch", b:"Mapeia o <code>job</code> (gtfs-static | rt-raw-ddl | osm | poi | censo | pbh | pbh-od | manifest | validate | regional) para o loader e chama <code>loader.main(extra)</code>." },
+  "cli-norm": { t:"_run_normalizer(job, extra)", m:"CLI · dispatch", b:"Resolve a pipeline via <code>importlib.import_module</code> a partir do dict <b>_NORMALIZER_PIPELINES</b> (7 pacotes) e chama <code>run.main(extra)</code>. <code>ficha-4107</code> é caso especial (relatório, não build)." },
+  "cm-chunk": { t:"ChunkedBuild (chunking.py)", m:"common · infra", b:"Build em chunks de chave com <b>commit incremental</b> e <b>resume</b>: <code>setup</code> / <code>all_keys</code> / <code>insert_chunk</code> / <code>finalize</code>. Re-run pula o que <code>core.build_progress</code> já registra. Base de quase todas as etapas de build do normalizer." },
+  "cm-storage": { t:"storage.py", m:"common · infra", b:"<code>resolve_source(uri)</code> — <code>s3://bucket/key</code> baixa do MinIO (boto3) pra cache local; <code>file://</code> usa local. Em dev sem MinIO, aponta as <code>OOH_SRC_*</code> para arquivos locais. Usado por <b>load_censo</b> e <b>load_pbh</b>." },
+  "cm-db": { t:"db.py", m:"common · infra", b:"<code>build_dsn()</code> monta o DSN em runtime 100% por env (DB_HOST/PORT/NAME/USER/PASSWORD) — ZERO secret no código. <code>connect()</code> → <code>psycopg.connect</code>. Também <code>sanitize_ident</code> / <code>dedup_idents</code>." },
+  "cm-redis": { t:"redis_client.py", m:"common · infra", b:"<code>connect()</code> com import <b>lazy</b> da lib <code>redis</code> (só quem usa paga o custo). Host/port/db/password por env. Usado pela etapa <b>hll_audiencia</b> (RECAL-00)." },
+  "ing-gtfs": { t:"load_gtfs_static", m:"ingestor → raw", b:"GTFS estático (routes/stops/trips/shapes) → <code>raw.gtfs__*</code>. Verdade do itinerário/paradas que alimenta a pipeline <b>identidades</b>." },
+  "ing-rt": { t:"load_gtfs_rt + rt_raw_*", m:"ingestor → raw", b:"GTFS-RT (posição de veículo) → <code>raw.rt__vehicle_position</code>. <b>rt_raw_ddl</b> cria a tabela particionada (INFRA-02); <b>rt_raw_retention</b> dropa partições > OOH_RT_RAW_RETENTION_DAYS (default 30)." },
+  "ing-osm": { t:"load_osm", m:"ingestor → raw", b:"Malha viária OpenStreetMap → <code>raw.osm__*</code>. Insumo do <b>road_segment</b> (contexto)." },
+  "ing-poi": { t:"load_poi_overture_fsq", m:"ingestor → raw", b:"Loader multi-fonte de POI (Overture + Foursquare) → <code>raw.poi__*</code>. Base da pipeline <b>poi</b> (contexto) e da prospecção por nicho." },
+  "ing-censo": { t:"load_censo", m:"ingestor → raw", b:"IBGE 2022 (setores/básico/renda) do MinIO → <code>raw.censo__*</code>. Insumo do <b>census_sector</b> (contexto) — população/renda por setor." },
+  "ing-pbh": { t:"load_pbh · regional · pbh-od", m:"ingestor → raw", b:"PBH CKAN: ponto-ônibus/MCO/trecho → <code>raw.pbh__*</code>; <b>regional</b> (9 regionais admin) → <code>raw.pbh__regional</code>; <b>pbh-od</b> (matriz OD, 3 arquivos → append) → <code>raw.pbh__matriz_od</code>." },
+  "ing-multi": { t:"load_multi · load_csv_generic", m:"ingestor → raw", b:"Loaders genéricos (CSV/multi-arquivo) — fonte ad-hoc parametrizada → schema <code>raw</code>." },
+  "ing-meta": { t:"manifest · validate", m:"ingestor · controle", b:"<b>manifest</b> grava/verifica a paridade do raw (count + checksum); <b>validate</b> roda os gates read-only da carga raw (Onda 1, T1)." },
+  "nz-iden": { t:"normalizer/identidades", m:"pipeline · raw→core (Épico 1)", b:"ORDEM: <code>dataset-version → line → stop(KNN) → trip-pattern → line-shape → line-stop → vehicle → trajectory → validate</code>. Materializa as identidades canônicas (304 linhas, 9.650 pontos), versionadas por <code>core.dataset_version</code>." },
+  "nz-ctx": { t:"normalizer/contexto", m:"pipeline · raw→core (Épico 2)", b:"ORDEM: <code>census-sector → poi → road-segment → regional → validate</code>. Estáticos por geografia (população/renda, POI categorizado, malha viária, 9 regionais)." },
+  "nz-met": { t:"normalizer/metricas_score", m:"pipeline · core (Épico 3)", b:"ORDEM: <code>model-params → calib-scenario → demanda → corredor → impressoes → score → line-demand-hourly → calib → materialize → validate</code>. Demanda, OTS, 5 sub-scores e curva 24h por linha." },
+  "nz-srv": { t:"normalizer/serving", m:"pipeline · core→serving (Épico 4)", b:"ORDEM: <code>ddl → materialize → validate</code>. Materializa tabelas planas (GeoJSON, sem PostGIS no consumo) no schema <code>serving</code> e faz o <b>swap</b> da versão ACTIVE — o que o <b>uai-ooh-intel</b> lê." },
+  "nz-grao": { t:"normalizer/grao_horario", m:"pipeline · core (T5)", b:"ORDEM: <code>line-exposure → line-load-segment → line-turnover → validate</code>. Grão horário da exposição/carga por segmento da linha." },
+  "nz-reach": { t:"normalizer/reach · run", m:"pipeline · core→core (F2-REACH)", b:"Reach-base (ADR-055). <b>ORDEM</b>: h3-cell → od-trip → line-reach → exposure-cell → face-reach → validate. <code>--fonte=medida</code> dispara a <b>ORDEM_RECOMPUTE_MEDIDA</b> (só line-reach → face-reach). <code>hll-audiencia</code> fica FORA do ORDEM (acionável à parte)." },
+  "rc-h3": { t:"h3_cell · od_trip (base)", m:"reach · etapa", b:"<b>h3_cell</b> monta a grade H3 (2.615 hexes). <b>od_trip</b> normaliza <code>raw.pbh__matriz_od</code> (TEXT) → <code>core.od_trip</code> tipada (~1,2M viagens) — base do COUNT(DISTINCT id_usuario)." },
+  "rc-od": { t:"od_trip → reach", m:"reach · pessoa-que-circula", b:"O <code>COUNT(DISTINCT id_usuario)</code> sobre <code>core.od_trip</code> destrava o reach real do corredor (proxy de pessoa que circula). Alimenta <b>line_reach</b> e <b>exposure_cell</b>." },
+  "rc-exp": { t:"exposure_cell (T9)", m:"reach · superfície", b:"<code>core.exposure_cell</code> — a camada invisível: hex H3 × tipo_dia × faixa_horária (2.615 × 3 × 24 = <b>188.280 linhas/versão</b>). Estáticos por hex + <code>unicos_hora</code>. Lida por <b>face_reach</b> (T10) e <b>serving.exposure_cell</b> (T11)." },
+  "rc-line": { t:"line_reach (T8)", m:"reach · corredor", b:"<code>core.line_reach</code> — audiência do corredor por linha/dia (D1), derivada do OD. Recomputável por fonte (estimada|medida)." },
+  "rc-face": { t:"face_reach (T10)", m:"reach · face", b:"<code>core.face_reach</code> — a tríade impressão/reach/frequência por face (D2). Depende de <b>exposure_cell</b>; recomputável por fonte." },
+  "rc-hll": { t:"hll_audiencia (RECAL-00)", m:"reach · Redis (fora do ORDEM)", b:"Materializa os HyperLogLog de audiência por <code>(hex × tipo_dia × faixa)</code> no Redis (chave <code>hll:hex:{h3}:{tipoDia}:{faixa}</code>) — insumo do consolidador CONS-05. <code>--flush</code> limpa antes de popular. Idempotente (PFADD)." },
+  "rc-med": { t:"fonte_medida (RECAL-01)", m:"reach · recompute medido", b:"Fonte MEDIDA da trajetória: <code>medido.viagem_hex ⨝ medido.viagem</code>. <code>reach --fonte=medida</code> recomputa só <b>line-reach → face-reach</b> (as fonte-independentes não re-rodam). Guarda dura: exige o schema <code>medido</code> materializado (CONS-04)." },
+  "nz-anal": { t:"normalizer/analise (T6)", m:"pipeline · prospecção", b:"ORDEM: <code>ddl → seed → prospeccao → materialize → validate</code>. Prospecção por nicho (POI categorizado). Abre versão IMPORTING no <b>prospeccao</b> e fecha ACTIVE no <b>materialize</b> (como o serving)." },
+  "nz-ficha": { t:"gen_ficha_4107", m:"normalizer · relatório", b:"Relatório HTML da linha 4107 (referência de validação). NÃO é pipeline de build — só lê o core e gera o HTML." },
+  "x-minio": { t:"MinIO", m:"externo · object store", b:"Bucket <code>uai-ooh</code> — arquivos brutos do censo (IBGE) e da PBH vivem aqui (<code>s3://</code>), não no git. Lido via <b>storage.resolve_source</b>." },
+  "x-ooh": { t:"banco ooh", m:"externo · PostgreSQL/PostGIS", b:"Schemas <code>raw</code> (fontes), <code>core</code> (PostGIS EPSG:31983, versionado por <code>dataset_version</code>) e <code>serving</code> (planas). Destino de toda escrita do pipeline. Ver Nível 2 (dados)." },
+  "x-redis": { t:"Redis", m:"externo · estado/sketch", b:"Chaves <code>hll:hex:{}</code> escritas por <b>hll_audiencia</b> (RECAL-00) — insumo do trip-consolidator (CONS-05). Ver Nível 3." },
+  "x-medido": { t:"schema medido", m:"externo · realtime (F2)", b:"<code>medido.viagem</code> / <code>medido.viagem_hex</code> materializados pelo consolidador (CONS-04). Fonte da trajetória MEDIDA do recompute RECAL-01." },
+  "raw-gtfs": { t:"raw · GTFS / RT", m:"schema raw", b:"<code>gtfs__routes · stops · trips · shapes</code> (estático) e <code>rt__vehicle_position</code> (particionado, INFRA-02, retenção 30d). Verdade do itinerário e posição." },
+  "raw-pbh": { t:"raw · PBH", m:"schema raw", b:"<code>pbh__ponto_onibus · mco · trecho</code>, <code>pbh__regional</code> (9 admin) e <code>pbh__matriz_od</code> (origem CKAN). Reconciliação com GTFS por KNN; OD vira <code>core.od_trip</code>." },
+  "raw-censo": { t:"raw · censo", m:"schema raw", b:"<code>censo__setores · basico · renda</code> (IBGE 2022, vindo do MinIO). Setor censitário → contexto demográfico (<b>census_sector</b>)." },
+  "raw-osm": { t:"raw · OSM / POI", m:"schema raw", b:"<code>osm__*</code> (malha viária) e <code>poi__overture · fsq</code>. Base de <b>road_segment</b> e da prospecção. <b>manifest</b> garante a paridade da carga." }
+};
+window.E2L = { "e-cli-ing":"l-cli-ing", "e-srv-out":"l-srv-out", "e-hll-redis":"l-hll-redis", "e-med-out":"l-med-out" };
+window.FLOWS = {
+  ingestao: { name:"Ingestão — loaders das fontes → schema raw",
+    edges:["e-cli-ing","e-ing-stor","e-ing-raw"],
+    nodes:["cli-main","cli-ing","ing-gtfs","ing-rt","ing-osm","ing-poi","ing-censo","ing-pbh","ing-multi","ing-meta","cm-storage","cm-db","x-minio","x-ooh","raw-gtfs","raw-pbh","raw-censo","raw-osm"],
+    steps:["<code>python -m ooh_pipeline ingestor &lt;job&gt;</code> → <b>_run_ingestor</b> → <code>loader.main()</code>","censo/pbh leem do <b>MinIO</b> via <b>storage.resolve_source</b> (s3://); demais de arquivo local","Cada loader grava no schema <code>raw</code> (gtfs/rt/osm/poi/censo/pbh); <b>manifest</b> confere a paridade"] },
+  normalizacao: { name:"Normalização — raw → core (identidades · contexto · métricas)",
+    edges:["e-cli-norm","e-iden-chunk","e-iden-raw","e-iden-ctx","e-ctx-met"],
+    nodes:["cli-main","cli-norm","cm-chunk","cm-db","nz-iden","nz-ctx","nz-met","nz-grao","x-ooh","raw-gtfs","raw-pbh","raw-censo"],
+    steps:["<code>normalizer &lt;pipeline&gt;</code> → <b>importlib</b> → <code>run.main</code> (ORDEM por etapa)","Cada etapa <b>build_*</b> roda via <b>ChunkedBuild</b> (commit incremental + resume por <code>core.build_progress</code>)","identidades → contexto → metricas_score escrevem o schema <code>core</code> (PostGIS), versionado por <code>dataset_version</code>"] },
+  serving: { name:"Serving — core → serving + swap ACTIVE",
+    edges:["e-cli-norm","e-met-srv","e-srv-out"],
+    nodes:["cli-main","cli-norm","nz-met","nz-srv","x-ooh"],
+    steps:["<code>normalizer serving</code> → ORDEM <code>ddl → materialize → validate</code>","Materializa tabelas planas (GeoJSON, sem PostGIS no consumo) no schema <code>serving</code>","Faz o <b>swap</b> da versão ACTIVE — é exatamente o que o <b>uai-ooh-intel</b> lê (read-only)"] },
+  reach: { name:"Reach / Recompute — od_trip → exposure → reach (estimada|medida)",
+    edges:["e-cli-norm","e-reach-od","e-od-exp","e-exp-line","e-exp-face","e-hll-redis","e-med-out"],
+    nodes:["cli-norm","nz-reach","rc-h3","rc-od","rc-exp","rc-line","rc-face","rc-hll","rc-med","cm-redis","x-ooh","x-redis","x-medido"],
+    steps:["<code>normalizer reach</code> → ORDEM <code>h3-cell → od-trip → line-reach → exposure-cell → face-reach</code>","<b>exposure_cell</b> (hex × hora, 188k) alimenta <b>face_reach</b>; <b>od_trip</b> destrava o reach do corredor","<b>hll_audiencia</b> (RECAL-00) materializa HLLs no Redis (fora do ORDEM); <b>fonte_medida</b> (RECAL-01) recomputa só line-reach → face-reach do schema <code>medido</code>"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

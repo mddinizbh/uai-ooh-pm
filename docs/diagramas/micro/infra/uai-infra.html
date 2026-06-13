@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uai-infra — deploy &amp; orquestração</title>
+<script>(function(){const s=localStorage.getItem('theme');const d=s?s==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);})();</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+<div class="bar">
+  <div>
+    <h1>uai-infra — deploy &amp; orquestração</h1>
+    <div class="sub">único repo que toca a VPS · Docker Compose + Nginx + GitHub Actions · push-to-deploy</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="deploy">Deploy</button>
+    <button class="chip" data-flow="pipeline">Pipeline (cron)</button>
+    <button class="chip" data-flow="nginx">Roteamento</button>
+    <button class="chip" data-flow="artefatos">Artefatos</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="../../01-arquitetura-microservicos.html">← macro</a>
+  <button id="themeToggle">Tema</button>
+</div>
+<div class="legend" id="legend">
+  <h4>Como ler</h4>
+  <div class="row"><span class="sw ext"></span> origem (repos) / VPS</div>
+  <div class="row"><span class="sw proc"></span> workflow do GitHub Actions</div>
+  <div class="row"><span class="sw store"></span> artefato de config (compose/nginx/.env)</div>
+  <div class="hint">repos publicam imagem no GHCR; o <b>uai-infra</b> faz o SSH e o <code>docker compose up</code>. <b>Repos nunca tocam a VPS.</b></div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1340 880" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Deploy e orquestração do uai-infra">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <g class="zone"><rect x="24" y="92" width="252" height="640" rx="14"/><text class="ztitle" x="40" y="120">Origem / CI</text></g>
+  <g class="zone"><rect x="300" y="92" width="624" height="640" rx="14"/><text class="ztitle" x="316" y="120">uai-infra · control plane</text></g>
+  <g class="zone"><rect x="944" y="92" width="372" height="640" rx="14"/><text class="ztitle" x="960" y="120">VPS /opt/uai</text></g>
+
+  <!-- edges -->
+  <path class="edge" id="e1" d="M149,220 C 149,230 149,238 149,246"/>
+  <path class="edge" id="e2" d="M149,306 L 149,332"/>
+  <path class="edge" id="e3" d="M258,362 C 286,360 292,258 372,256 C 470,255 560,255 636,254"/>
+  <path class="edge dash" id="e4" d="M608,200 C 620,200 628,202 636,204"/>
+  <path class="edge dash" id="e5" d="M608,300 C 620,290 628,252 636,234"/>
+  <path class="edge" id="e6" d="M636,250 C 620,340 615,388 608,392"/>
+  <path class="edge" id="e7" d="M924,210 C 958,208 988,210 1016,214"/>
+  <path class="edge" id="e8" d="M924,352 C 958,330 990,272 1016,252"/>
+  <path class="edge" id="e9" d="M608,322 C 628,440 700,462 820,462 C 920,462 970,462 1016,462"/>
+  <path class="edge dash" id="e10" d="M608,468 C 622,420 628,252 636,244"/>
+
+  <text class="elbl" id="le3" x="408" y="246">pull :latest</text>
+  <text class="elbl" id="le6" x="556" y="364">gera .env</text>
+  <text class="elbl" id="le7" x="952" y="200">SSH · compose up -d</text>
+  <text class="elbl" id="le8" x="952" y="296">--profile jobs run</text>
+  <text class="elbl" id="le9" x="800" y="448">config</text>
+
+  <!-- CI -->
+  <g class="node ext" data-k="repos"><rect x="40" y="160" width="218" height="60" rx="10"/><text class="t" x="58" y="186">repos uai-*</text><text class="m" x="58" y="206">push na main</text></g>
+  <g class="node do" data-k="gha"><rect x="40" y="246" width="218" height="60" rx="10"/><text class="t" x="58" y="272">GitHub Actions</text><text class="m" x="58" y="292">build da imagem</text></g>
+  <g class="node store" data-k="ghcr"><rect x="40" y="332" width="218" height="60" rx="10"/><text class="t" x="58" y="358">GHCR</text><text class="m" x="58" y="378">ghcr.io/mddinizbh/* · :sha</text></g>
+
+  <!-- infra-left: artefatos -->
+  <g class="node store" data-k="compose"><rect x="320" y="160" width="288" height="88" rx="10"/><text class="th" x="338" y="186">docker-compose.yml</text><text class="m" x="338" y="206">~28 serviços · rede uai-net</text><text class="m" x="338" y="222">profiles: jobs · prod</text><text class="m" x="338" y="238">só nginx exposto; resto em 127.0.0.1</text></g>
+  <g class="node store" data-k="nginx-conf"><rect x="320" y="268" width="288" height="72" rx="10"/><text class="th" x="338" y="294">nginx.conf</text><text class="m" x="338" y="314">host/path → upstream (resolver runtime)</text><text class="m" x="338" y="330">rewrites + TLS Let's Encrypt</text></g>
+  <g class="node store" data-k="env"><rect x="320" y="360" width="288" height="64" rx="10"/><text class="th" x="338" y="386">.env / secrets</text><text class="m" x="338" y="406">gerado dos GitHub Secrets → /opt/uai/.env</text></g>
+  <g class="node store" data-k="scripts"><rect x="320" y="444" width="288" height="56" rx="10"/><text class="th" x="338" y="470">scripts/</text><text class="m" x="338" y="488">init-letsencrypt · helpers de deploy</text></g>
+
+  <!-- infra-right: workflows -->
+  <g class="node do" data-k="deploy-wf"><rect x="636" y="160" width="288" height="104" rx="10"/><text class="th" x="654" y="186">deploy.yml</text><text class="n" x="654" y="205">workflow_dispatch</text><text class="m" x="654" y="224">SSH → VPS · docker login ghcr</text><text class="m" x="654" y="240">gera .env · baixa compose/nginx</text><text class="m" x="654" y="256">deploy_service: stop→rm→pull→up -d</text></g>
+  <g class="node do" data-k="pipe-wf"><rect x="636" y="288" width="288" height="128" rx="10"/><text class="th" x="654" y="314">run-pipeline.yml</text><text class="n" x="654" y="333">cron seg 06:00 UTC + dispatch</text><text class="m" x="654" y="352">SSH → compose --profile jobs</text><text class="m" x="654" y="368">run uai-ooh-pipeline &lt;job&gt;</text><text class="m" x="654" y="384">ooh-gtfs-sync antes (GTFS)</text><text class="m" x="654" y="400">+ crons F2: archive/retention/recompute</text></g>
+
+  <!-- VPS -->
+  <g class="node ext" data-k="vps"><rect x="1016" y="160" width="284" height="110" rx="10"/><text class="th" x="1034" y="186">VPS /opt/uai (srv1446714)</text><text class="m" x="1034" y="206">nginx :443 — único público</text><text class="m" x="1034" y="222">apps + postgres/redis/kafka/minio</text><text class="m" x="1034" y="238">docker compose up -d</text><text class="m" x="1034" y="256">repos NUNCA tocam a VPS</text></g>
+  <g class="node store" data-k="routes"><rect x="1016" y="300" width="284" height="236" rx="10"/><text class="th" x="1034" y="326">nginx — rotas</text><text class="m" x="1034" y="348">/ → uai-portal:3000</text><text class="m" x="1034" y="366">/api/auth → uai-auth:8084 (→/api/v1/auth)</text><text class="m" x="1034" y="384">/api/ooh → uai-ooh-intel:8085 (→/)</text><text class="m" x="1034" y="402">/api/cms → uai-cms:8081 (→/api)</text><text class="m" x="1034" y="420">/api/core → uai-core:8082 ⚪</text><text class="m" x="1034" y="438">/api/metrics → uai-tokenmetrics:8083 ⚪</text><text class="m" x="1034" y="456">n8n. → n8n:5678 ⚪</text><text class="m" x="1034" y="474">linhas. → uai-buslines 🗄️</text><text class="n" x="1034" y="496">clique → tabela completa</text><text class="m" x="1034" y="514">resolver 127.0.0.11 · 502 isolado</text></g>
+</svg>
+
+  <div class="src">uai-infra · docker-compose.yml · nginx.conf · .github/workflows · jun/2026</div>
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique num artefato</h3>
+    <div class="meta" id="d-meta">deploy centralizado</div>
+    <p id="d-body">O <b>uai-infra</b> é o único repo que toca a VPS: orquestra o <code>docker-compose.yml</code>, o <code>nginx.conf</code> e dois workflows (deploy + pipeline). Repos de app só publicam imagem no GHCR. Chips: Deploy · Pipeline · Roteamento · Artefatos.</p>
+  </div>
+</div>
+
+<script>
+window.DETAIL = {
+  repos: { t:"repos uai-*", m:"origem · CI", b:"Cada repo de aplicação (portal, auth, intel, pipeline, poller, consolidator, cms…) publica a imagem no <b>push da main</b> via GitHub Actions. Não tem acesso à VPS." },
+  gha: { t:"GitHub Actions (build)", m:"CI · por repo", b:"Builda a imagem Docker e empurra para o <b>GHCR</b> (<code>:latest</code> e <code>:sha</code>)." },
+  ghcr: { t:"GHCR", m:"registry de imagens", b:"<code>ghcr.io/mddinizbh/&lt;app&gt;</code>. O uai-infra faz <code>docker login</code> + <code>pull</code> no deploy." },
+  compose: { t:"docker-compose.yml", m:"artefato · stack única", b:"Orquestra <b>~28 serviços</b> na rede <code>uai-net</code>: infra (nginx, certbot, postgres, postgres-ooh, redis, kafka, minio, kafka-ui, n8n), <b>jobs</b> (<code>uai-ooh-pipeline</code>, <code>ooh-gtfs-sync</code> — profile <code>jobs</code>) e apps (portal, auth, intel, poller, consolidator, cms, core, tokenmetrics, spark, buslines+web — profile <code>prod</code>). <b>Só o nginx é exposto</b>; o resto fica em 127.0.0.1 / rede interna." },
+  "nginx-conf": { t:"nginx.conf", m:"artefato · roteamento", b:"Roteia por host + path para os upstreams, resolvendo em <b>runtime</b> (<code>set $up …; proxy_pass</code>) — sobe mesmo com serviço fora (502 isolado). Faz <code>rewrite</code> onde o prefixo muda. TLS Let's Encrypt (certbot). Veja a tabela de rotas →" },
+  env: { t:".env / secrets", m:"artefato · sem segredo no Git", b:"O <code>.env</code> real só existe em <code>/opt/uai/.env</code> na VPS, <b>gerado dos GitHub Secrets</b> no deploy (RULE-OPS-01). Keypair RS256, <code>UAI_INTERNAL_API_KEY</code>, hashes de seed — nada na imagem nem no Git." },
+  scripts: { t:"scripts/", m:"artefato · helpers", b:"<code>init-letsencrypt</code> e utilitários de deploy/manutenção baixados/rodados na VPS." },
+  "deploy-wf": { t:"deploy.yml", m:"workflow · deploy centralizado", b:"<b>workflow_dispatch.</b> Faz SSH em <code>/opt/uai</code>: (1) gera o <code>.env</code> dos Secrets, (2) baixa <code>docker-compose.yml</code>/<code>nginx.conf</code>/scripts (API do GitHub, ref=main), (3) <code>docker login ghcr.io</code>, (4) por serviço: <code>stop → rm -f → pull → up -d --force-recreate</code>." },
+  "pipe-wf": { t:"run-pipeline.yml", m:"workflow · jobs OOH", b:"<b>cron seg 06:00 UTC</b> + <code>workflow_dispatch</code> (input <code>job</code>). SSH → <code>docker compose --profile jobs run --rm uai-ooh-pipeline &lt;stage&gt; &lt;job&gt;</code> (limite 512M). Sincroniza o GTFS antes (<code>ooh-gtfs-sync</code>). No F2 também roda os crons de <b>archive/retention do raw</b> e o <b>recompute (RECAL)</b> (INFRA-04)." },
+  vps: { t:"VPS /opt/uai", m:"destino · srv1446714", b:"Ubuntu 24.04, KVM. <b>Só o nginx (:80/:443) é público</b>; postgres/postgres-ooh/redis/kafka/minio em 127.0.0.1 ou só na rede Docker. O uai-infra é o único com acesso SSH — repos nunca tocam a VPS." },
+  routes: { t:"nginx — tabela de rotas", m:"host / path → upstream", b:"<code>uaiagencia.com.br/</code> → portal:3000<br><code>/api/auth/</code> → auth:8084 (rewrite → /api/v1/auth)<br><code>/api/ooh/</code> → intel:8085 (rewrite → /)<br><code>/api/cms/</code> → cms:8081 (→ /api)<br><code>/api/core/</code> → core:8082 ⚪ (→ /api/agent)<br><code>/api/metrics/</code> → tokenmetrics:8083 ⚪<br><code>n8n.uaiagencia.com.br</code> → n8n:5678 ⚪<br><code>linhas.uaiagencia.com.br</code> → buslines 🗄️ (/api/internal → 404)<br>Upstreams resolvidos em runtime (resolver 127.0.0.11); 502 isolado por path." }
+};
+window.E2L = { "e3":"le3","e6":"le6","e7":"le7","e8":"le8","e9":"le9" };
+window.FLOWS = {
+  deploy: { name:"Deploy — push-to-deploy centralizado", edges:["e1","e2","e3","e6","e7"], nodes:["repos","gha","ghcr","deploy-wf","env","vps"],
+    steps:["Repo publica a imagem no GHCR (build no push da main)","<code>deploy.yml</code> faz SSH na VPS, gera o <code>.env</code> dos Secrets e <code>docker login</code>","Por serviço: <code>stop → rm → pull → up -d</code>. Repos nunca tocam a VPS"] },
+  pipeline: { name:"Pipeline OOH — cron seg 06:00 UTC", edges:["e8"], nodes:["pipe-wf","vps"],
+    steps:["<code>run-pipeline.yml</code> (cron semanal + dispatch) faz SSH na VPS","<code>docker compose --profile jobs run uai-ooh-pipeline &lt;job&gt;</code> (roda-e-sai)","No F2: também os crons de archive/retention do raw e o recompute (INFRA-04)"] },
+  nginx: { name:"Roteamento — nginx host/path → upstream", edges:["e5","e9"], nodes:["nginx-conf","routes","vps"],
+    steps:["<code>nginx.conf</code> define os upstreams (resolver runtime)","Tabela de rotas: /, /api/auth, /api/ooh, /api/cms, …","Só o nginx é público; 502 isolado por path quando um serviço está fora"] },
+  artefatos: { name:"Artefatos — o que o deploy aplica", edges:["e4","e5","e10"], nodes:["compose","nginx-conf","scripts","deploy-wf"],
+    steps:["O <code>deploy.yml</code> baixa compose + nginx + scripts (ref=main)","Gera o <code>.env</code> dos GitHub Secrets (zero segredo no Git)","Aplica tudo na VPS via docker compose"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

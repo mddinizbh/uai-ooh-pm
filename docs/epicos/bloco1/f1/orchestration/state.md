@@ -1,7 +1,7 @@
 # F1 — Handoff de estado (espelho)
 
 > Espelho legível de `state.json`. Fonte de verdade = banco `ooh` + repos.
-> Atualizado por: **module** · em **2026-06-06T14:38:07Z**
+> Atualizado por: **contract** · em **2026-06-06T14:53:03Z**
 
 ## Gates
 
@@ -22,7 +22,11 @@
 | `shell` | **partial** | `EP3-01` = done · `EP3-02` = partial · `EP3-03` = paused · auth_mode = **stub** |
 | `module` | **complete** | `EP4-01`..`EP4-09` = done (EP4-01..06, EP4-09, EP4-07, EP4-08) |
 
-> `contract` e `decisions` seguem vazios neste handoff.
+### Contract-check (back ↔ front)
+
+- **Verdict**: ✅ **aligned** — fonte do contrato: `derived-from-controllers`. Os 8 hooks da lane module batem 1:1 com os 7 endpoints F1 (`useLineGeo` e `useLinesGeo` compartilham `GET /api/lines/{id}/geo`; `useLineDetail` = `useLine` do handoff).
+- **Matched (8 hooks)**: `useLines` → `GET /api/lines` · `useRegions` → `GET /api/regions` · `useLineDetail` → `GET /api/lines/{id}` · `useLineMetrics` → `GET /api/lines/{id}/metrics` · `useRanking` → `GET /api/lines/ranking` · `useAggregate` → `POST /api/lines/aggregate` · `useLineGeo` → `GET /api/lines/{id}/geo` · `useLinesGeo` → batch do mesmo `/geo` (reusa cache).
+- ⚠️ **1 mismatch (major, não-crítico)** — `missing-endpoint`: o binário em `localhost:8085` é build **stale** do template. `/api/docs` (springdoc) expõe só `GET /api/ping` e `GET /api/lines` retorna 404. springdoc varre `@RestController` no startup → ausência confirma jar antigo, anterior aos controllers F1. É **staleness de deploy, não divergência de contrato**: rebuild/redeploy resolve sem tocar no contrato. Por isso `major`, não `critical`.
 
 ### Back — contrato exposto (para a lane front/module)
 
@@ -72,5 +76,6 @@
 - 🟠 **EP2-07 (lane back → partial)**: auth em modo **stub** — depende do bootstrap do `uai-auth` (gate RED) para SSO/introspecção RFC 7662 real.
 - 🔴 **uai-auth (bloqueante p/ SSO real)**: repo vazio (bootstrap pelo `epic-002-uai-auth-minimo`); até lá EP3-02/EP2-07 seguem em modo **stub** (sem RFC 7662 real).
 - 🟡 **repos (não-bloqueante)**: scaffold do F1 — `uai-ooh-intel` criado por EP2-01 (lane back **complete**); EP3-01 (forka `uai-portal` do `uai-spark`) já **done**.
+- 🟠 **deploy stale do intel (não-bloqueante p/ contrato)**: binário em `localhost:8085` é build antigo do template (`/api/docs` só `GET /api/ping`, `/api/lines` → 404). Rebuild/redeploy do `uai-ooh-intel` resolve — contrato em si está **aligned**.
 
 > Lane `module` fechada como **complete**: EP4-01..06 + EP4-09 + EP4-07 + EP4-08 done; 7 hooks de dados ligados ao contrato back.

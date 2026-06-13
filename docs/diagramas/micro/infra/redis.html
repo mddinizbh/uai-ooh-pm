@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redis — chaves &amp; contratos</title>
+<script>(function(){const s=localStorage.getItem('theme');const d=s?s==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);})();</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+<div class="bar">
+  <div>
+    <h1>Redis — chaves &amp; contratos</h1>
+    <div class="sub">cache · estado ao vivo (F2) · blacklist de jti (auth) · maxmemory 200mb allkeys-lru</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="aovivo">Acumulador ao vivo</button>
+    <button class="chip" data-flow="track">Estado/track</button>
+    <button class="chip" data-flow="hll">HLL audiência</button>
+    <button class="chip" data-flow="blacklist">Blacklist (auth)</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="../../01-arquitetura-microservicos.html">← macro</a>
+  <button id="themeToggle">Tema</button>
+</div>
+<div class="legend" id="legend">
+  <h4>Como ler</h4>
+  <div class="row"><span class="sw store"></span> chave/padrão — clique abre a <b>estrutura</b> (campos/contrato)</div>
+  <div class="row"><span class="sw svc"></span> escritor / leitor</div>
+  <div class="row"><span style="width:22px;border-top:1.6px solid var(--muted);display:inline-block"></span> escreve → / → lê</div>
+  <div class="hint">contrato CONS-05: o <b>consolidator é o único escritor</b> de <code>live:*</code>; o intel só lê. <code>blacklist:jti</code> é do auth.</div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1480 960" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Chaves e contratos do Redis">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <g class="zone"><rect x="24" y="92" width="252" height="844" rx="14"/><text class="ztitle" x="40" y="120">Escritores</text></g>
+  <g class="zone"><rect x="300" y="92" width="584" height="844" rx="14"/><text class="ztitle" x="316" y="120">Chaves · estrutura</text></g>
+  <g class="zone"><rect x="944" y="92" width="236" height="844" rx="14"/><text class="ztitle" x="960" y="120">Leitores</text></g>
+  <g class="zone"><rect x="1200" y="92" width="256" height="844" rx="14"/><text class="ztitle" x="1216" y="120">Geral / roadmap</text></g>
+
+  <!-- edges: escritas -->
+  <path class="edge" id="e-cons-veh"   d="M256,192 C 290,196 310,202 336,204"/>
+  <path class="edge" id="e-cons-hexes" d="M256,198 C 290,258 310,296 336,300"/>
+  <path class="edge" id="e-cons-line"  d="M256,204 C 290,318 310,368 336,372"/>
+  <path class="edge" id="e-cons-track" d="M256,208 C 290,378 310,440 336,444"/>
+  <path class="edge" id="e-cons-reach" d="M256,212 C 290,440 310,518 336,522"/>
+  <path class="edge" id="e-cons-impr"  d="M256,216 C 290,520 310,600 336,604"/>
+  <path class="edge" id="e-pipe-hllhex" d="M256,292 C 300,420 312,672 336,684"/>
+  <path class="edge" id="e-auth-bl"    d="M256,382 C 300,560 312,756 336,768"/>
+  <!-- edges: leituras -->
+  <path class="edge" id="e-veh-intel"  d="M884,204 C 916,202 936,200 944,200"/>
+  <path class="edge" id="e-line-intel" d="M884,372 C 916,320 930,232 944,210"/>
+  <path class="edge" id="e-reach-intel" d="M884,522 C 916,420 930,250 944,216"/>
+  <path class="edge" id="e-hllhex-cons" d="M884,684 C 916,560 930,360 944,314"/>
+  <path class="edge" id="e-bl-auth"    d="M884,768 C 916,600 930,430 944,394"/>
+
+  <text class="elbl" id="le-cons-veh" x="266" y="182">escreve · TTL 5min</text>
+  <text class="elbl" id="le-pipe-hllhex" x="262" y="430">RECAL-00</text>
+  <text class="elbl" id="le-veh-intel" x="892" y="194">lê (RT-01)</text>
+  <text class="elbl" id="le-auth-bl" x="262" y="540">logout/revoke</text>
+  <text class="elbl" id="le-bl-auth" x="892" y="430">introspect</text>
+
+  <!-- escritores -->
+  <g class="node do" data-k="w-cons"><rect x="40" y="160" width="216" height="74" rx="10"/><text class="t" x="58" y="188" style="font-size:13px">uai-ooh-trip-consolidator</text><text class="m" x="58" y="208">único escritor de live:*</text><text class="m" x="58" y="223">por posição + no fechamento</text></g>
+  <g class="node do" data-k="w-pipe"><rect x="40" y="260" width="216" height="64" rx="10"/><text class="t" x="58" y="288">uai-ooh-pipeline</text><text class="m" x="58" y="308">RECAL-00 → hll:hex</text></g>
+  <g class="node live" data-k="w-auth"><rect x="40" y="350" width="216" height="64" rx="10"/><text class="t" x="58" y="378">uai-auth</text><text class="m" x="58" y="398">logout/revoke → blacklist</text></g>
+
+  <!-- chaves -->
+  <g class="node store" data-k="k-vehicle"><rect x="336" y="150" width="548" height="110" rx="10"/><text class="th" x="354" y="176">live:vehicle:{code}</text><text class="n" x="354" y="195">HASH · TTL 5min · escritor: consolidator · leitor: intel</text><text class="m" x="354" y="214">lat · lon · bearing · lineId · tripId · currentStopSequence</text><text class="m" x="354" y="230">completudeParcial · impressoesParciais · alcanceParcial</text><text class="m" x="354" y="246">hexesVisitados · ts · startedAt · lastFeedTs · trackPointCount</text><text class="n" x="354" y="262">contrato CONS-05 (acumulador ao vivo)</text></g>
+  <g class="node store" data-k="k-hexes"><rect x="336" y="268" width="548" height="64" rx="10"/><text class="th" x="354" y="294">live:vehicle:{code}:hexes</text><text class="m" x="354" y="314">SET de índices H3 visitados na viagem atual</text><text class="n" x="354" y="328">escritor: consolidator</text></g>
+  <g class="node store" data-k="k-line"><rect x="336" y="340" width="548" height="64" rx="10"/><text class="th" x="354" y="366">live:line:{lineId}</text><text class="m" x="354" y="386">SET de vehicle_code ativos na linha (índice p/ o intel)</text><text class="n" x="354" y="400">escritor: consolidator · leitor: intel</text></g>
+  <g class="node store" data-k="k-track"><rect x="336" y="412" width="548" height="64" rx="10"/><text class="th" x="354" y="438">live:track:{code}</text><text class="m" x="354" y="458">LIST do traçado downsampled (drenado no fechamento)</text><text class="n" x="354" y="472">escritor: consolidator</text></g>
+  <g class="node store" data-k="k-reach"><rect x="336" y="484" width="548" height="80" rx="10"/><text class="th" x="354" y="510">live:reach:trip|day:{code}</text><text class="m" x="354" y="530">HLL de alcance com dedup (~±0,8%) — trip reseta, day acumula</text><text class="n" x="354" y="546">escritor: consolidator · leitor: intel</text></g>
+  <g class="node store" data-k="k-impr"><rect x="336" y="572" width="548" height="64" rx="10"/><text class="th" x="354" y="598">live:impr:day:{code}</text><text class="m" x="354" y="618">contador aditivo de impressões do dia (soma)</text><text class="n" x="354" y="632">escritor: consolidator · leitor: intel</text></g>
+  <g class="node store" data-k="k-hllhex"><rect x="336" y="644" width="548" height="80" rx="10"/><text class="th" x="354" y="670">hll:hex:{h3}:{tipoDia}:{faixa}</text><text class="m" x="354" y="690">HLL de audiência por hex×faixa (insumo do alcance ao vivo)</text><text class="n" x="354" y="706">escritor: pipeline (RECAL-00) · leitor: consolidator (read-only)</text></g>
+  <g class="node store" data-k="k-blacklist"><rect x="336" y="732" width="548" height="72" rx="10"/><text class="th" x="354" y="758">blacklist:jti:{jti}</text><text class="m" x="354" y="778">STRING · TTL = vida restante do token → revogação imediata</text><text class="n" x="354" y="794">escritor/leitor: uai-auth (logout/revoke ↔ introspect)</text></g>
+
+  <!-- leitores -->
+  <g class="node live" data-k="r-intel"><rect x="960" y="160" width="216" height="80" rx="10"/><text class="t" x="978" y="188">uai-ooh-intel</text><text class="m" x="978" y="208">lê live:* (só leitura)</text><text class="m" x="978" y="223">/realtime/positions</text></g>
+  <g class="node do" data-k="r-cons"><rect x="960" y="280" width="216" height="64" rx="10"/><text class="t" x="978" y="308" style="font-size:13px">trip-consolidator</text><text class="m" x="978" y="328">lê hll:hex (audiência)</text></g>
+  <g class="node live" data-k="r-auth"><rect x="960" y="360" width="216" height="64" rx="10"/><text class="t" x="978" y="388">uai-auth</text><text class="m" x="978" y="408">introspect → checa jti</text></g>
+
+  <!-- geral / roadmap -->
+  <g class="node store" data-k="i-cache"><rect x="1216" y="160" width="224" height="80" rx="10"/><text class="t" x="1234" y="188">cache transversal</text><text class="m" x="1234" y="208">sessões · respostas</text><text class="m" x="1234" y="223">maxmemory 200mb · allkeys-lru</text></g>
+  <g class="node off" data-k="i-chatmem"><rect x="1216" y="270" width="224" height="72" rx="10"/><text class="t" x="1234" y="298">ChatMemory</text><text class="m" x="1234" y="318">uai-core (LangChain4j)</text><text class="m" x="1234" y="333">roadmap · core off</text></g>
+</svg>
+
+  <div class="src">contrato CONS-05 · trip-consolidator · pipeline RECAL-00 · uai-auth · jun/2026</div>
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique numa chave</h3>
+    <div class="meta" id="d-meta">estrutura + escritor/leitor</div>
+    <p id="d-body">Os padrões de chave do Redis com o <b>que fica salvo</b> em cada um (HASH/SET/HLL/STRING/LIST), TTL e quem escreve/lê. O <code>live:*</code> é o acumulador ao vivo do F2 (contrato CONS-05); <code>blacklist:jti</code> dá revogação imediata ao auth.</p>
+  </div>
+</div>
+
+<script>
+window.DETAIL = {
+  "w-cons": { t:"uai-ooh-trip-consolidator", m:"escritor · único de live:*", b:"Contrato CONS-05: o consolidador é o <b>único escritor</b> de <code>live:*</code>. Por posição atualiza <code>live:vehicle</code>/<code>:hexes</code>/<code>live:line</code>/<code>live:reach</code>/<code>live:impr</code>/<code>live:track</code>; lê <code>hll:hex</code> p/ o alcance. TTL 5min. Ver o diagrama de classes." },
+  "w-pipe": { t:"uai-ooh-pipeline", m:"escritor · RECAL-00", b:"O job <code>reach hll-audiencia</code> (RECAL-00) materializa os HLLs de audiência por hex×faixa em <code>hll:hex:*</code> (insumo do alcance ao vivo, lido read-only pelo consolidador)." },
+  "w-auth": { t:"uai-auth", m:"escritor · blacklist", b:"No logout/revoke, joga o <code>jti</code> em <code>blacklist:jti:{jti}</code> com TTL = vida restante do token ⇒ revogação imediata." },
+  "k-vehicle": { t:"live:vehicle:{code}", m:"HASH · TTL 5min · CONS-05", note:"O estado ao vivo do veículo (acumulador). Escritor: consolidator · Leitor: intel (/realtime/positions). Renovado a cada update.", fields:[
+    {n:"lat / lon",ty:"num",d:"posição atual"},
+    {n:"bearing",ty:"num",d:"rumo"},
+    {n:"lineId",ty:"text",d:"linha resolvida do RT"},
+    {n:"tripId",ty:"text",d:"viagem atual"},
+    {n:"currentStopSequence",ty:"int",d:"sequência da parada"},
+    {n:"completudeParcial",ty:"num",d:"% do padrão coberto até agora"},
+    {n:"impressoesParciais",ty:"num",d:"impressões acumuladas (soma)"},
+    {n:"alcanceParcial",ty:"num",d:"alcance acumulado (via HLL)"},
+    {n:"hexesVisitados",ty:"int",d:"nº de hexes tocados"},
+    {n:"ts",ty:"int8",d:"último update"},
+    {n:"startedAt",ty:"int8",d:"início da viagem"},
+    {n:"lastFeedTs",ty:"int8",d:"cursor de idempotência"},
+    {n:"trackPointCount",ty:"int",d:"pontos no track"} ]},
+  "k-hexes": { t:"live:vehicle:{code}:hexes", m:"SET · consolidator", note:"Conjunto de índices H3 (res 9) visitados na viagem atual (pings). Usado para a cobertura ao vivo.", fields:[ {n:"membros",ty:"h3[]",d:"índices H3 com ping na viagem corrente"} ]},
+  "k-line": { t:"live:line:{lineId}", m:"SET · índice", note:"Conjunto de vehicle_code ativos numa linha — índice para o intel resolver 'carros desta linha' (RT-01).", fields:[ {n:"membros",ty:"text[]",d:"vehicle_code ativos na linha"} ]},
+  "k-track": { t:"live:track:{code}", m:"LIST · consolidator", note:"Traçado downsampled (~1/30s) acumulado durante a viagem; drenado no fechamento e enviado ao snap PostGIS.", fields:[ {n:"itens",ty:"point[]",d:"pontos (ts,lat,lon) downsampled"} ]},
+  "k-reach": { t:"live:reach:trip|day:{code}", m:"HLL · dedup ~±0,8%", note:"HyperLogLog de alcance: trip reseta no fechamento; day acumula no dia. Alcance ao vivo nunca por soma de hexes (dedup).", fields:[
+    {n:"live:reach:trip:{code}",ty:"HLL",d:"alcance único da viagem (reseta ao fechar)"},
+    {n:"live:reach:day:{code}",ty:"HLL",d:"alcance único do dia (acumula)"} ]},
+  "k-impr": { t:"live:impr:day:{code}", m:"counter · aditivo", note:"Contador de impressões do dia (soma incremental) — escritor consolidator, leitor intel.", fields:[ {n:"valor",ty:"int8",d:"impressões acumuladas no dia (soma)"} ]},
+  "k-hllhex": { t:"hll:hex:{h3}:{tipoDia}:{faixa}", m:"HLL · read-only p/ o cons", note:"HLL de audiência por (hex, tipo_dia, faixa) — materializado pela pipeline (RECAL-00, pós-OD). O consolidador lê para compor o alcance ao vivo com dedup.", fields:[ {n:"cardinalidade",ty:"HLL",d:"usuários únicos da OD naquele hex×faixa"} ]},
+  "k-blacklist": { t:"blacklist:jti:{jti}", m:"STRING · TTL = vida do token", note:"Marca um access token revogado. TTL = expiração restante. Escritor/leitor: uai-auth.", fields:[
+    {n:"key",ty:"text",d:"jti do token revogado"},
+    {n:"TTL",ty:"int",d:"= vida restante do token (auto-expira)"} ]},
+  "r-intel": { t:"uai-ooh-intel", m:"leitor · só leitura", b:"<code>/realtime/positions</code> e o acumulado ao vivo lêem <code>live:vehicle</code>/<code>live:line</code>/<code>live:reach</code>/<code>live:impr</code> via RedisPositionFeed (CONS-05). Nunca escreve." },
+  "r-cons": { t:"uai-ooh-trip-consolidator", m:"leitor · hll:hex", b:"Lê <code>hll:hex</code> (audiência por hex×faixa) para compor o alcance ao vivo com dedup. (É escritor de live:* e leitor de hll:hex.)" },
+  "r-auth": { t:"uai-auth", m:"leitor · introspect", b:"Em cada introspection, checa se o <code>jti</code> está em <code>blacklist:jti</code> — se estiver, o token é inválido (revogação imediata)." },
+  "i-cache": { t:"cache transversal", m:"cache · LRU", b:"Cache geral e sessões da plataforma. <code>maxmemory 200mb</code>, política <code>allkeys-lru</code>. Reconstruível — nunca fonte de verdade." },
+  "i-chatmem": { t:"ChatMemory (roadmap)", m:"uai-core · off", b:"Alvo: o uai-core usa o Redis só para a ChatMemory do LangChain4j (única função do LC4j). Hoje o core está off." }
+};
+window.E2L = { "e-cons-veh":"le-cons-veh","e-pipe-hllhex":"le-pipe-hllhex","e-veh-intel":"le-veh-intel","e-auth-bl":"le-auth-bl","e-bl-auth":"le-bl-auth" };
+window.FLOWS = {
+  aovivo: { name:"Acumulador ao vivo — consolidator escreve, intel lê", edges:["e-cons-veh","e-cons-line","e-cons-reach","e-cons-impr","e-veh-intel","e-line-intel","e-reach-intel"], nodes:["w-cons","k-vehicle","k-line","k-reach","k-impr","r-intel"],
+    steps:["Por posição, o consolidator atualiza <code>live:vehicle</code> (impressões/alcance) + <code>live:line</code> (índice)","Alcance via <code>live:reach</code> (HLL, dedup); impressões via <code>live:impr</code> (soma)","O intel lê tudo em <code>/realtime/positions</code> (só leitura, RT-01). TTL 5min"] },
+  track: { name:"Estado / track da viagem", edges:["e-cons-track","e-cons-hexes"], nodes:["w-cons","k-track","k-hexes"],
+    steps:["<code>live:track</code> (LIST) acumula o traçado downsampled","<code>live:vehicle:{code}:hexes</code> (SET) guarda os H3 visitados","Ambos drenados/usados no fechamento (snap PostGIS)"] },
+  hll: { name:"HLL de audiência — pipeline → consolidator", edges:["e-pipe-hllhex","e-hllhex-cons"], nodes:["w-pipe","k-hllhex","r-cons"],
+    steps:["A pipeline (RECAL-00) materializa <code>hll:hex</code> por hex×faixa","O consolidator lê (read-only) para compor o alcance ao vivo com dedup","Por isso o alcance ao vivo nunca é soma de hexes"] },
+  blacklist: { name:"Blacklist de jti — revogação imediata", edges:["e-auth-bl","e-bl-auth"], nodes:["w-auth","k-blacklist","r-auth"],
+    steps:["Logout/revoke joga o <code>jti</code> em <code>blacklist:jti</code> (TTL = vida do token)","Toda introspection checa a blacklist","Token revogado → inválido na hora (sem esperar expirar)"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

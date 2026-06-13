@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uai_auth — ER</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>uai_auth — entidades</h1>
+    <div class="sub">banco do uai-auth · Postgres :5432 · multi-tenant (tenant_id no JWT) · 3 tabelas</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="tenancy">Tenancy</button>
+    <button class="chip" data-flow="login">Login / JWT</button>
+    <button class="chip" data-flow="refresh">Refresh / rotação</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="postgres.html">← postgres :5432</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="legend" id="legend">
+  <h4>Como ler</h4>
+  <div class="row"><span class="sw store"></span> tabela — clique abre <b>todos os campos + descrição</b></div>
+  <div class="row"><span class="dotsw" style="background:var(--clay)"></span> 🔑 chave primária (PK)</div>
+  <div class="row"><span style="width:22px;border-top:1.6px solid var(--muted);display:inline-block"></span> join lógico (rótulo = chave / FK)</div>
+  <div class="hint">aqui as FK são <b>declaradas</b> (REFERENCES). Tudo é <b>single Postgres</b>, isolado do banco <code>ooh</code>. <b>tenant_id</b> entra no JWT (RS256/RS256); a <b>blacklist por jti</b> vive no Redis em runtime — não é tabela.</div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 760 560" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagrama ER do banco uai_auth">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <!-- grupos -->
+  <g class="zone"><rect x="24" y="92" width="248" height="444" rx="14"/><text class="ztitle" x="40" y="120">Tenancy</text></g>
+  <g class="zone"><rect x="288" y="92" width="448" height="444" rx="14"/><text class="ztitle" x="304" y="120">Identidade &amp; Sessão</text></g>
+
+  <!-- joins (rotulados pela FK) -->
+  <path class="edge" id="e-tenant-user" d="M248,250 C 300,250 320,250 312,250"/>
+  <path class="edge" id="e-user-token" d="M512,300 C 540,360 540,400 512,432"/>
+
+  <text class="elbl" id="l-tenant-user" x="280" y="244">tenant_id</text>
+  <text class="elbl" id="l-user-token" x="556" y="372">user_id</text>
+
+  <!-- ── Tenancy ───────────────────────────── -->
+  <g class="node table" data-k="tenant"><rect x="36" y="190" width="212" height="111" rx="9"/><text class="th" x="50" y="212">tenant</text><text class="pk" x="50" y="232">🔑 id</text><text class="m" x="50" y="248">name · active</text><text class="m" x="50" y="263">created_at</text><text class="m" x="50" y="278">conta da agência (uAI)</text><text class="n" x="50" y="294">4 campos</text></g>
+
+  <!-- ── Identidade & Sessão ───────────────── -->
+  <g class="node table" data-k="user_account"><rect x="312" y="150" width="212" height="126" rx="9"/><text class="th" x="326" y="172">user_account</text><text class="pk" x="326" y="192">🔑 id</text><text class="m" x="326" y="208">tenant_id ↗ · email (UQ)</text><text class="m" x="326" y="223">password_hash · role</text><text class="m" x="326" y="238">enabled · last_login_at</text><text class="m" x="326" y="253">usuário que loga (bcrypt 12)</text><text class="n" x="326" y="269">8 campos</text></g>
+  <g class="node table" data-k="refresh_token"><rect x="312" y="392" width="212" height="126" rx="9"/><text class="th" x="326" y="414">refresh_token</text><text class="pk" x="326" y="434">🔑 id</text><text class="m" x="326" y="450">user_id ↗ · token_hash (UQ)</text><text class="m" x="326" y="465">expires_at · revoked_at</text><text class="m" x="326" y="480">created_at</text><text class="m" x="326" y="495">sessão opaca rotacionada</text><text class="n" x="326" y="511">6 campos</text></g>
+</svg>
+
+  <div class="src">banco uai_auth · introspecção DDL Flyway V1__init.sql (+ seed V2/V3) · uai-auth · jun/2026</div>
+
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique numa tabela</h3>
+    <div class="meta" id="d-meta">todos os campos + descrição</div>
+    <p id="d-body">Diagrama ER do banco <b>uai_auth</b> (single Postgres, isolado do <code>ooh</code>). Cada card mostra a PK e campos-chave; <b>clique</b> abre <b>todos os campos com tipo e descrição</b>. Setas = FK declaradas (rótulo = chave). <b>tenant_id</b> viaja no JWT; a blacklist por <code>jti</code> é Redis em runtime, não tabela.</p>
+  </div>
+</div>
+
+<script>
+const CREATED = { n:"created_at", ty:"timestamptz", d:"criação do registro (default now())" };
+window.DETAIL = {
+  tenant: { t:"uai_auth.tenant", m:"conta / agência · 4 campos", note:"Raiz do isolamento multi-tenant. O id viaja no JWT (claim tenant) e segrega todo dado da plataforma. Seed inicial = a própria uAI (V2).", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK da conta (UUID atribuído na criação; seed fixo p/ a uAI)"},
+    {n:"name",ty:"text",d:"nome da conta/agência"},
+    {n:"active",ty:"bool",d:"conta ativa (default true; desliga o tenant sem apagar)"},
+    CREATED ]},
+  user_account: { t:"uai_auth.user_account", m:"usuário que loga · 8 campos", note:"Credencial de acesso. email é UNIQUE global; password_hash é bcrypt(strength 12); role define o papel no token. Pertence a um tenant (NOT NULL).", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK do usuário (default gen_random_uuid())"},
+    {n:"tenant_id",ty:"uuid",fk:true,d:"→ tenant.id (NOT NULL; isolamento multi-tenant, vira claim no JWT)"},
+    {n:"email",ty:"text",d:"login do usuário · UNIQUE global · indexado"},
+    {n:"password_hash",ty:"text",d:"hash bcrypt (strength 12) da senha; plaintext nunca persiste"},
+    {n:"role",ty:"text",d:"ADMIN | AGENCY_MANAGER | CLIENT_VIEWER | SELF_SERVICE_USER"},
+    {n:"enabled",ty:"bool",d:"login habilitado (default true)"},
+    CREATED,
+    {n:"last_login_at",ty:"timestamptz",nn:true,d:"último login bem-sucedido (nulo até o 1º acesso)"} ]},
+  refresh_token: { t:"uai_auth.refresh_token", m:"sessão opaca rotacionada · 6 campos", note:"Refresh token OPACO: persiste só o SHA-256 hex (token_hash UNIQUE), nunca o valor em claro. Rotacionado a cada uso (revoked_at marca o antigo). O access token (JWT RS256) não é gravado.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK do token (default gen_random_uuid())"},
+    {n:"user_id",ty:"uuid",fk:true,d:"→ user_account.id (NOT NULL; dono da sessão; indexado)"},
+    {n:"token_hash",ty:"text",d:"SHA-256 hex do refresh token opaco · UNIQUE (lookup por hash, não pelo valor)"},
+    {n:"expires_at",ty:"timestamptz",d:"expiração do refresh token"},
+    {n:"revoked_at",ty:"timestamptz",nn:true,d:"quando foi revogado/rotacionado (nulo = válido)"},
+    CREATED ]}
+};
+window.E2L = { "e-tenant-user":"l-tenant-user", "e-user-token":"l-user-token" };
+window.FLOWS = {
+  tenancy: { name:"Tenancy — tenant isola tudo",
+    edges:["e-tenant-user"],
+    nodes:["tenant","user_account"],
+    steps:["<b>tenant</b> é a raiz do isolamento; seed inicial = a própria <b>uAI</b> (V2)","Todo <b>user_account</b> tem <code>tenant_id</code> NOT NULL → <b>tenant</b>","O <code>tenant_id</code> vira claim no JWT e segrega o dado da plataforma"] },
+  login: { name:"Login / JWT — credencial → access token",
+    edges:["e-tenant-user"],
+    nodes:["tenant","user_account"],
+    steps:["<b>user_account</b> valida senha por <b>bcrypt(12)</b> contra <code>password_hash</code>","<b>role</b> + <code>tenant_id</code> entram no <b>JWT RS256</b> (access token, não persistido)","A blacklist por <code>jti</code> vive no <b>Redis</b> em runtime — não há tabela"] },
+  refresh: { name:"Refresh / rotação — sessão opaca",
+    edges:["e-user-token"],
+    nodes:["user_account","refresh_token"],
+    steps:["A cada login nasce um <b>refresh_token</b> opaco; persiste só o <b>SHA-256</b> (<code>token_hash</code> UNIQUE)","O lookup é pelo hash → <b>user_id</b> identifica o dono da sessão","Cada uso <b>rotaciona</b>: cria um novo e marca <code>revoked_at</code> no antigo"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uai_tokenmetrics · banco — ER</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>uai_tokenmetrics — entidades</h1>
+    <div class="sub">banco do uai-tokenmetrics · metering de custo LLM · tenant_id NOT NULL · 3 tabelas</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="catalogo">Catálogo</button>
+    <button class="chip" data-flow="evento">Evento (chamada)</button>
+    <button class="chip" data-flow="agregado">Agregado (mês)</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="postgres.html">← postgres :5432</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="legend" id="legend">
+  <h4>Como ler</h4>
+  <div class="row"><span class="sw store"></span> tabela — clique abre <b>todos os campos + descrição</b></div>
+  <div class="row"><span class="dotsw" style="background:var(--clay)"></span> 🔑 chave primária (PK)</div>
+  <div class="row"><span style="width:22px;border-top:1.6px solid var(--muted);display:inline-block"></span> join lógico (rótulo = chave)</div>
+  <div class="hint">Banco <b>uai_tokenmetrics</b> (separado do <code>ooh</code>). FK declarada só em <code>token_usage.model → model_pricing</code>. A agregação por mês é mantida por <b>TRIGGER</b> em <code>token_usage</code> (UPSERT) — não por escrita direta.</div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1080 620" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagrama ER do banco uai_tokenmetrics">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <!-- grupos -->
+  <g class="zone"><rect x="24" y="92" width="320" height="468" rx="14"/><text class="ztitle" x="40" y="120">Catálogo (preço por modelo)</text></g>
+  <g class="zone"><rect x="380" y="92" width="320" height="468" rx="14"/><text class="ztitle" x="396" y="120">Evento — 1 linha/chamada LLM</text></g>
+  <g class="zone"><rect x="736" y="92" width="320" height="468" rx="14"/><text class="ztitle" x="752" y="120">Agregado (rollup por mês)</text></g>
+
+  <!-- joins (rotulados pela chave) -->
+  <path class="edge" id="j-model-fk" d="M320,250 C 352,250 372,252 404,252" marker-end="url(#a-clay)"/>
+  <path class="edge" id="j-trg-agg" d="M676,300 C 718,300 718,252 760,252" marker-end="url(#a-mut)"/>
+
+  <text class="elbl" id="le-model-fk" x="362" y="244">model</text>
+  <text class="elbl" id="le-trg-agg" x="718" y="290">TRIGGER · UPSERT</text>
+
+  <!-- ── Catálogo ──────────────────────────── -->
+  <g class="node table" data-k="model_pricing"><rect x="48" y="186" width="272" height="128" rx="9"><title>model_pricing</title></rect><text class="th" x="64" y="210">model_pricing</text><text class="pk" x="64" y="231">🔑 model</text><text class="m" x="64" y="248">provider · currency</text><text class="m" x="64" y="263">input_price_per_1k</text><text class="m" x="64" y="278">output_price_per_1k · active</text><text class="n" x="64" y="296">7 campos · catálogo global</text></g>
+
+  <!-- ── Evento ────────────────────────────── -->
+  <g class="node table" data-k="token_usage"><rect x="404" y="160" width="272" height="184" rx="9"><title>token_usage</title></rect><text class="th" x="420" y="184">token_usage</text><text class="pk" x="420" y="205">🔑 id (uuid)</text><text class="m" x="420" y="222">tenant_id · campaign_id ↗</text><text class="m" x="420" y="237">agent_id · routine_id</text><text class="m" x="420" y="252">model ↗ · execution_type</text><text class="m" x="420" y="267">input_tokens · output_tokens</text><text class="m" x="420" y="282">cost_usd · cost_brl · status</text><text class="m" x="420" y="297">occurred_at (mês → rollup)</text><text class="n" x="420" y="315">14 campos · 1 linha/chamada</text></g>
+
+  <!-- ── Agregado ──────────────────────────── -->
+  <g class="node table" data-k="usage_aggregate"><rect x="760" y="160" width="272" height="184" rx="9"><title>usage_aggregate</title></rect><text class="th" x="776" y="184">usage_aggregate</text><text class="pk" x="776" y="205">🔑 id (uuid)</text><text class="m" x="776" y="222">⊕ tenant·campaign·agent·mês</text><text class="m" x="776" y="237">period_month (DATE_TRUNC)</text><text class="m" x="776" y="252">total_input_tokens</text><text class="m" x="776" y="267">total_output_tokens</text><text class="m" x="776" y="282">total_cost_usd · total_cost_brl</text><text class="m" x="776" y="297">call_count · updated_at</text><text class="n" x="776" y="315">11 campos · UPSERT por trigger</text></g>
+</svg>
+
+  <div class="src">banco uai_tokenmetrics · Flyway V1–V3 (uai-tokenmetrics) · jun/2026</div>
+
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique numa tabela</h3>
+    <div class="meta" id="d-meta">todos os campos + descrição</div>
+    <p id="d-body">Diagrama ER do banco <b>uai_tokenmetrics</b> (metering de custo LLM, multi-tenant). <b>token_usage</b> grava 1 linha por chamada de modelo; uma <b>TRIGGER</b> propaga cada insert para <b>usage_aggregate</b> (UPSERT por tenant+campanha+agente+mês). <b>model_pricing</b> é o catálogo global de preço por modelo (sem tenant_id). <b>Clique</b> numa tabela para ver todos os campos com tipo e descrição.</p>
+  </div>
+</div>
+
+<script>
+const TENANT = { n:"tenant_id", ty:"uuid", d:"tenant dono do registro (multi-tenant; ADR-041 / RULE-JAVA-03). NOT NULL." };
+const CAMPAIGN = { n:"campaign_id", ty:"uuid", fk:true, d:"campanha à qual o custo é atribuído (join lógico com a campanha no uai-core)." };
+const AGENT = { n:"agent_id", ty:"text", d:"agente/etapa que originou a chamada (ex.: copywriter, art-director)." };
+window.DETAIL = {
+  model_pricing: { t:"public.model_pricing", m:"catálogo global de preço · 7 campos", note:"Whitelist global de modelos e seus preços (input/output USD por 1k tokens). SEM tenant_id (ADR-041): preço é global, não por tenant. Referenciada por token_usage.model. Seed enxuto (adr-002: 5 modelos de M01); novos modelos entram via POST /api/pricing/models.", fields:[
+    {n:"model",ty:"text",pk:true,d:"PK — id do modelo (ex.: claude-sonnet-4-6, gpt-4o, gemini-2.5-pro)"},
+    {n:"provider",ty:"text",d:"provedor (anthropic | google | openai | n8n)"},
+    {n:"input_price_per_1k",ty:"num",d:"preço por 1k tokens de entrada, na moeda currency (NUMERIC 10,6)"},
+    {n:"output_price_per_1k",ty:"num",d:"preço por 1k tokens de saída (NUMERIC 10,6)"},
+    {n:"currency",ty:"char",d:"moeda do preço; default 'USD' (VARCHAR 3)"},
+    {n:"active",ty:"bool",d:"modelo ativo no catálogo; default TRUE"},
+    {n:"updated_at",ty:"timestamptz",d:"última atualização do preço; default NOW()"} ]},
+  token_usage: { t:"public.token_usage", m:"1 linha por chamada LLM · 14 campos", note:"Registro individual de cada chamada de modelo: quem (tenant/campanha/agente), qual modelo, quantos tokens e quanto custou (USD e BRL pré-calculados no Java — adr-005). FK em model garante consistência com model_pricing. AFTER INSERT dispara fn_update_usage_aggregate → usage_aggregate. Índices por tenant, agent, campaign, model e occurred_at DESC.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK — gen_random_uuid()"},
+    TENANT,
+    AGENT,
+    CAMPAIGN,
+    {n:"routine_id",ty:"uuid",nn:true,d:"rotina/execução agendada de origem (nullable)"},
+    {n:"model",ty:"text",fk:true,d:"→ model_pricing.model (FK NOT NULL; única FK declarada do banco)"},
+    {n:"input_tokens",ty:"int",d:"tokens de entrada da chamada; default 0"},
+    {n:"output_tokens",ty:"int",d:"tokens de saída da chamada; default 0"},
+    {n:"cost_usd",ty:"num",d:"custo em USD pré-calculado no serviço (NUMERIC 10,6); trigger só soma (adr-005)"},
+    {n:"cost_brl",ty:"num",d:"custo em BRL pré-calculado (USD→BRL) (NUMERIC 10,4)"},
+    {n:"execution_type",ty:"text",d:"tipo de execução que originou a chamada (VARCHAR 30)"},
+    {n:"status",ty:"text",d:"resultado da chamada; default 'SUCCESS' (VARCHAR 20)"},
+    {n:"occurred_at",ty:"timestamptz",d:"timestamp da chamada; default NOW(). DATE_TRUNC('month') vira period_month no agregado"} ]},
+  usage_aggregate: { t:"public.usage_aggregate", m:"rollup por tenant+campanha+agente+mês · 11 campos", note:"Agregação mantida por TRIGGER em token_usage: cada insert faz UPSERT (ON CONFLICT) na chave única (tenant_id, campaign_id, agent_id, period_month), somando tokens, custos e call_count. Não recalcula custo a partir de model_pricing — apenas soma o que o Java gravou (adr-005). Índices por tenant, campaign e period_month.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK — gen_random_uuid()"},
+    TENANT,
+    {n:"campaign_id",ty:"uuid",fk:true,d:"campanha agregada (parte da chave única uq_aggregate)"},
+    {n:"agent_id",ty:"text",d:"agente agregado (parte da chave única)"},
+    {n:"period_month",ty:"date",d:"mês de competência = DATE_TRUNC('month', occurred_at) (parte da chave única)"},
+    {n:"total_input_tokens",ty:"int8",d:"soma de input_tokens no grupo (BIGINT)"},
+    {n:"total_output_tokens",ty:"int8",d:"soma de output_tokens no grupo (BIGINT)"},
+    {n:"total_cost_usd",ty:"num",d:"soma de cost_usd no grupo (NUMERIC 12,6)"},
+    {n:"total_cost_brl",ty:"num",d:"soma de cost_brl no grupo (NUMERIC 12,4)"},
+    {n:"call_count",ty:"int",d:"nº de chamadas (token_usage) no grupo"},
+    {n:"updated_at",ty:"timestamptz",d:"última atualização do agregado; NOW() a cada UPSERT"} ]}
+};
+window.E2L = { "j-model-fk":"le-model-fk","j-trg-agg":"le-trg-agg" };
+window.FLOWS = {
+  catalogo: { name:"Catálogo — preço por modelo (global)",
+    edges:["j-model-fk"],
+    nodes:["model_pricing","token_usage"],
+    steps:["<b>model_pricing</b> é a whitelist global de modelos × preço (input/output USD por 1k tokens), <b>sem tenant_id</b>","<b>token_usage.model</b> tem FK para <b>model_pricing.model</b> — toda chamada referencia um modelo do catálogo","O custo NÃO é recalculado pelo banco a partir do catálogo: o serviço Java grava cost_usd/cost_brl já calculados (adr-005)"] },
+  evento: { name:"Evento — 1 linha por chamada LLM",
+    edges:["j-model-fk","j-trg-agg"],
+    nodes:["token_usage","model_pricing","usage_aggregate"],
+    steps:["<b>token_usage</b> grava 1 linha por chamada: tenant_id, campaign_id, agent_id, model, tokens e custo (USD/BRL)","Multi-tenant: <b>tenant_id</b> NOT NULL (ADR-041); índices por tenant/agent/campaign/model/occurred_at","Cada INSERT dispara a <b>TRIGGER</b> trg_token_usage_aggregate → atualiza usage_aggregate"] },
+  agregado: { name:"Agregado — rollup mensal por trigger",
+    edges:["j-trg-agg"],
+    nodes:["usage_aggregate","token_usage"],
+    steps:["A <b>TRIGGER</b> fn_update_usage_aggregate roda AFTER INSERT em token_usage e faz <b>UPSERT</b> em usage_aggregate","Chave única: (tenant_id, campaign_id, agent_id, period_month) — period_month = DATE_TRUNC('month', occurred_at)","ON CONFLICT soma total_input/output_tokens, total_cost_usd/brl e call_count — nunca recalcula do catálogo"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

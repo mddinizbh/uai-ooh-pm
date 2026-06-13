@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uai_cms — schema — ER</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>uai_cms — entidades</h1>
+    <div class="sub">banco do uai-cms · multi-tenant (tenant_id, FK+cascata, sem RLS) · 16 tabelas</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="nucleo">Núcleo</button>
+    <button class="chip" data-flow="campanha">Briefing / Campanha</button>
+    <button class="chip" data-flow="conteudo">Conteúdo</button>
+    <button class="chip" data-flow="midia">Métricas &amp; Mídia</button>
+    <button class="chip" data-flow="ooh">OOH</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="postgres.html">← postgres :5432</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="legend" id="legend">
+  <h4>Como ler</h4>
+  <div class="row"><span class="sw store"></span> tabela — clique abre <b>todos os campos + descrição</b></div>
+  <div class="row"><span class="dotsw" style="background:var(--clay)"></span> 🔑 chave primária (PK = UUID gen_random_uuid)</div>
+  <div class="row"><span style="width:22px;border-top:1.6px solid var(--muted);display:inline-block"></span> FK declarada (rótulo = chave)</div>
+  <div class="hint">no <code>uai_cms</code> as FK são <b>reais e declaradas</b> (ON DELETE CASCADE/SET NULL). Quase toda tabela carrega <code>tenant_id</code> → <b>tenant</b> (isolamento multi-tenant <b>por FK</b>, sem RLS). ⚠️ a lógica é <b>scaffold</b>, mas o <b>schema é maduro</b> (ENUMs, triggers updated_at, índices compostos).</div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1300 1050" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagrama ER do banco uai_cms">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <!-- grupos / lanes -->
+  <g class="zone"><rect x="24" y="92" width="236" height="936" rx="14"/><text class="ztitle" x="40" y="120">Núcleo</text></g>
+  <g class="zone"><rect x="276" y="92" width="236" height="936" rx="14"/><text class="ztitle" x="292" y="120">Briefing / Campanha</text></g>
+  <g class="zone"><rect x="528" y="92" width="236" height="936" rx="14"/><text class="ztitle" x="544" y="120">Conteúdo</text></g>
+  <g class="zone"><rect x="780" y="92" width="236" height="936" rx="14"/><text class="ztitle" x="796" y="120">Métricas &amp; Mídia</text></g>
+  <g class="zone"><rect x="1032" y="92" width="236" height="936" rx="14"/><text class="ztitle" x="1048" y="120">OOH</text></g>
+
+  <!-- joins (rotulados pela chave / FK) -->
+  <path class="edge" id="j-ten-user" d="M150,246 C 150,250 150,254 150,258"/>
+  <path class="edge" id="j-ten-client" d="M150,358 C 150,362 150,366 150,370"/>
+  <path class="edge" id="j-client-brief" d="M260,420 C 270,420 274,205 282,196"/>
+  <path class="edge" id="j-brief-camp" d="M394,261 C 394,265 394,269 394,273"/>
+  <path class="edge" id="j-camp-chan" d="M394,373 C 394,377 394,381 394,385"/>
+  <path class="edge" id="j-camp-rout" d="M394,500 C 394,560 394,625 394,685"/>
+  <path class="edge" id="j-chan-cont" d="M460,440 C 510,440 510,205 528,196"/>
+  <path class="edge" id="j-cont-appr" d="M634,261 C 634,265 634,269 634,273"/>
+  <path class="edge" id="j-cont-media" d="M634,373 C 634,377 634,381 634,385"/>
+  <path class="edge" id="j-cont-gprmt" d="M634,485 C 634,489 634,493 634,497"/>
+  <path class="edge" id="j-camp-metr" d="M490,404 C 514,390 514,135 514,131 C 514,128 600,128 660,128 C 780,128 860,131 860,150"/>
+  <path class="edge" id="j-ten-notif" d="M248,200 C 262,180 262,131 262,128 C 262,124 600,124 770,124 C 772,124 772,128 772,140 C 772,260 772,420 780,445 C 784,448 788,445 792,445"/>
+  <path class="edge" id="j-camp-ooh" d="M490,290 C 516,260 516,122 516,118 C 516,114 700,114 760,114 C 1000,114 1120,116 1120,150"/>
+
+  <text class="elbl" id="le-ten-user" x="158" y="256">tenant_id</text>
+  <text class="elbl" id="le-brief-camp" x="402" y="271">briefing_id</text>
+  <text class="elbl" id="le-cont-appr" x="642" y="271">content_id</text>
+  <text class="elbl" id="le-camp-ooh" x="940" y="124">campaign_id</text>
+  <text class="elbl" id="le-camp-metr" x="600" y="128">channel_id</text>
+  <text class="elbl" id="le-chan-cont" x="476" y="320">channel_id</text>
+
+  <!-- ── Núcleo ────────────────────────────── -->
+  <g class="node table" data-k="tenant"><rect x="36" y="150" width="212" height="96" rx="9"/><text class="th" x="50" y="172">tenant</text><text class="pk" x="50" y="192">🔑 id (uuid)</text><text class="m" x="50" y="208">name · slug · plan</text><text class="m" x="50" y="223">white_label_config · active</text><text class="n" x="50" y="239">8 campos · raiz multi-tenant</text></g>
+  <g class="node table" data-k="user_account"><rect x="36" y="262" width="212" height="96" rx="9"/><text class="th" x="50" y="284">user_account</text><text class="pk" x="50" y="304">🔑 id (uuid)</text><text class="m" x="50" y="320">tenant_id ↗ · email · role</text><text class="m" x="50" y="335">telegram_chat_id · active</text><text class="n" x="50" y="351">11 campos · role=enum</text></g>
+  <g class="node table" data-k="client"><rect x="36" y="374" width="212" height="111" rx="9"/><text class="th" x="50" y="396">client</text><text class="pk" x="50" y="416">🔑 id (uuid)</text><text class="m" x="50" y="432">tenant_id ↗ · user_id ↗</text><text class="m" x="50" y="447">company_name · segment</text><text class="m" x="50" y="462">contact_* · city · state</text><text class="n" x="50" y="478">13 campos · anunciante</text></g>
+
+  <!-- ── Briefing / Campanha ───────────────── -->
+  <g class="node table" data-k="briefing"><rect x="288" y="150" width="212" height="111" rx="9"/><text class="th" x="302" y="172">briefing</text><text class="pk" x="302" y="192">🔑 id (uuid)</text><text class="m" x="302" y="208">client_id ↗ · created_by ↗</text><text class="m" x="302" y="223">status · objective · budget</text><text class="m" x="302" y="238">generated_form · red_flags</text><text class="n" x="302" y="254">19 campos · status=enum</text></g>
+  <g class="node table" data-k="campaign"><rect x="288" y="277" width="212" height="111" rx="9"/><text class="th" x="302" y="299">campaign</text><text class="pk" x="302" y="319">🔑 id (uuid)</text><text class="m" x="302" y="335">client_id ↗ · briefing_id ↗</text><text class="m" x="302" y="350">name · status · media_plan</text><text class="m" x="302" y="365">brand_voice · pricing_*</text><text class="n" x="302" y="381">17 campos · status=enum</text></g>
+  <g class="node table" data-k="campaign_channel"><rect x="288" y="404" width="212" height="96" rx="9"/><text class="th" x="302" y="426">campaign_channel</text><text class="pk" x="302" y="446">🔑 id (uuid)</text><text class="m" x="302" y="462">campaign_id ↗ · channel_type</text><text class="m" x="302" y="477">active · auto_approve · pct</text><text class="n" x="302" y="493">10 campos · channel=enum</text></g>
+  <g class="node table" data-k="routine"><rect x="288" y="685" width="212" height="96" rx="9"/><text class="th" x="302" y="707">routine</text><text class="pk" x="302" y="727">🔑 id (uuid)</text><text class="m" x="302" y="743">campaign_id ↗ · cron_expr</text><text class="m" x="302" y="758">routine_type · next_trigger</text><text class="n" x="302" y="774">9 campos · pg_cron</text></g>
+  <g class="node table" data-k="execution"><rect x="288" y="797" width="212" height="96" rx="9"/><text class="th" x="302" y="819">execution</text><text class="pk" x="302" y="839">🔑 id (uuid)</text><text class="m" x="302" y="855">campaign_id ↗ · routine_id ↗</text><text class="m" x="302" y="870">status · agents_invoked</text><text class="n" x="302" y="886">10 campos · run de agentes</text></g>
+  <g class="node table" data-k="approval_rule"><rect x="288" y="909" width="212" height="96" rx="9"/><text class="th" x="302" y="931">approval_rule</text><text class="pk" x="302" y="951">🔑 id (uuid)</text><text class="m" x="302" y="967">tenant_id ↗ · campaign_id ↗</text><text class="m" x="302" y="982">auto_approve · channel/content</text><text class="n" x="302" y="998">9 campos · regra auto</text></g>
+
+  <!-- ── Conteúdo ──────────────────────────── -->
+  <g class="node table" data-k="content"><rect x="540" y="150" width="212" height="111" rx="9"/><text class="th" x="554" y="172">content</text><text class="pk" x="554" y="192">🔑 id (uuid)</text><text class="m" x="554" y="208">campaign_id ↗ · channel_id ↗</text><text class="m" x="554" y="223">parent_id ↗ · version · status</text><text class="m" x="554" y="238">title · body · headline · cta</text><text class="n" x="554" y="254">24 campos · status/type=enum</text></g>
+  <g class="node table" data-k="content_approval"><rect x="540" y="277" width="212" height="96" rx="9"/><text class="th" x="554" y="299">content_approval</text><text class="pk" x="554" y="319">🔑 id (uuid)</text><text class="m" x="554" y="335">content_id ↗ · reviewer_id ↗</text><text class="m" x="554" y="350">action · rejection_note</text><text class="n" x="554" y="366">7 campos · action=enum</text></g>
+  <g class="node table" data-k="media_asset"><rect x="540" y="389" width="212" height="96" rx="9"/><text class="th" x="554" y="411">media_asset</text><text class="pk" x="554" y="431">🔑 id (uuid)</text><text class="m" x="554" y="447">content_id ↗ · campaign_id ↗</text><text class="m" x="554" y="462">s3_key · s3_url · cdn_url</text><text class="n" x="554" y="478">14 campos · imagem/vídeo</text></g>
+  <g class="node table" data-k="generation_prompt"><rect x="540" y="501" width="212" height="111" rx="9"/><text class="th" x="554" y="523">generation_prompt</text><text class="pk" x="554" y="543">🔑 id (uuid)</text><text class="m" x="554" y="559">content_id ↗ · media_asset_id</text><text class="m" x="554" y="574">parent_prompt_id ↗ · attempt</text><text class="m" x="554" y="589">prompt_text · target_model</text><text class="n" x="554" y="605">16 campos · prompt de geração</text></g>
+
+  <!-- ── Métricas & Mídia ──────────────────── -->
+  <g class="node table" data-k="campaign_channel_metrics"><rect x="792" y="150" width="212" height="111" rx="9"/><text class="th" x="806" y="172" style="font-size:11.5px">campaign_channel_metrics</text><text class="pk" x="806" y="192">🔑 id (uuid)</text><text class="m" x="806" y="208">channel_id ↗ · period_date</text><text class="m" x="806" y="223">impressions · reach · clicks</text><text class="m" x="806" y="238">ctr · cpc · cpa · roas · gmb_*</text><text class="n" x="806" y="254">25 campos · uq(channel,date)</text></g>
+  <g class="node table" data-k="notification_log"><rect x="792" y="389" width="212" height="111" rx="9"/><text class="th" x="806" y="411">notification_log</text><text class="pk" x="806" y="431">🔑 id (uuid)</text><text class="m" x="806" y="447">tenant_id ↗ · user_id ↗</text><text class="m" x="806" y="462">channel · event_type</text><text class="m" x="806" y="477">reference_id · delivered</text><text class="n" x="806" y="493">11 campos · feed telegram</text></g>
+
+  <!-- ── OOH ───────────────────────────────── -->
+  <g class="node table" data-k="ooh_active_vehicle"><rect x="1044" y="150" width="212" height="111" rx="9"/><text class="th" x="1058" y="172">ooh_active_vehicle</text><text class="pk" x="1058" y="192">🔑 id (uuid)</text><text class="m" x="1058" y="208">vehicle_code (uq) ↗ feed RT</text><text class="m" x="1058" y="223">campaign_id ↗ · active</text><text class="m" x="1058" y="238">activated_at · deactivated_at</text><text class="n" x="1058" y="254">7 campos · ponte p/ OOH</text></g>
+</svg>
+
+  <div class="src">banco uai_cms · Flyway V1/V3/V5 (uai-cms) · introspecção DDL + descrições autoradas · jun/2026</div>
+
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique numa tabela</h3>
+    <div class="meta" id="d-meta">todos os campos + descrição</div>
+    <p id="d-body">Diagrama ER do banco <b>uai_cms</b> (uai-cms · scaffold da agência de marketing). 16 tabelas <b>multi-tenant por tenant_id</b> (FK declarada + ON DELETE CASCADE; <b>sem RLS</b>). Cada card mostra a PK (UUID) e campos-chave; <b>clique</b> abre <b>todos os campos com tipo e descrição</b>. Setas = FKs reais (rótulo = chave). <code>ooh_active_vehicle</code> é a ponte com a vertical OOH via <code>vehicle_code</code>.</p>
+  </div>
+</div>
+
+<script>
+const TEN = { n:"tenant_id", ty:"uuid", nn:false, fk:true, d:"→ tenant (ON DELETE CASCADE). Isolamento multi-tenant por FK; toda query filtra por tenant_id" };
+const CA  = { n:"created_at", ty:"timestamptz", d:"criação (DEFAULT now())" };
+const UA  = { n:"updated_at", ty:"timestamptz", d:"atualização (trigger trg_*_updated_at via set_updated_at())" };
+window.DETAIL = {
+  tenant: { t:"uai_cms.tenant", m:"raiz multi-tenant · 8 campos", note:"Raiz do isolamento. Toda tabela de negócio referencia tenant_id por FK (ON DELETE CASCADE) — sem RLS, o filtro é responsabilidade da aplicação.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK (gen_random_uuid)"},
+    {n:"name",ty:"text",d:"razão social / nome do tenant"},
+    {n:"slug",ty:"text",d:"slug único (uq_tenant_slug) p/ subdomínio/white-label"},
+    {n:"plan",ty:"text",d:"plano (DEFAULT 'BASIC')"},
+    {n:"white_label_config",ty:"jsonb",nn:true,d:"config de marca branca (logo, cores, domínio)"},
+    {n:"active",ty:"bool",d:"tenant ativo (DEFAULT true)"}, CA, UA ]},
+  user_account: { t:"uai_cms.user_account", m:"usuários · 11 campos", note:"Operadores do tenant. role=user_role (AGENCY_MANAGER | CLIENT_VIEWER | ADMIN). email único global.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"}, TEN,
+    {n:"email",ty:"text",d:"login (uq_user_email, único global)"},
+    {n:"password_hash",ty:"text",d:"hash da senha"},
+    {n:"name",ty:"text",d:"nome do usuário"},
+    {n:"role",ty:"enum",d:"user_role: AGENCY_MANAGER | CLIENT_VIEWER | ADMIN"},
+    {n:"telegram_chat_id",ty:"text",nn:true,d:"chat do Telegram p/ notificações"},
+    {n:"active",ty:"bool",d:"ativo (DEFAULT true)"},
+    {n:"last_login_at",ty:"timestamptz",nn:true,d:"último login"}, CA, UA ]},
+  client: { t:"uai_cms.client", m:"anunciante · 13 campos", note:"Cliente/anunciante do tenant. user_id opcional (FK ON DELETE SET NULL) liga a um CLIENT_VIEWER.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"}, TEN,
+    {n:"user_id",ty:"uuid",nn:true,fk:true,d:"→ user_account (ON DELETE SET NULL); acesso read-only do cliente"},
+    {n:"company_name",ty:"text",d:"nome da empresa anunciante"},
+    {n:"segment",ty:"text",nn:true,d:"segmento de mercado"},
+    {n:"contact_name",ty:"text",nn:true,d:"nome do contato"},
+    {n:"contact_phone",ty:"text",nn:true,d:"telefone"},
+    {n:"contact_email",ty:"text",nn:true,d:"email de contato"},
+    {n:"city",ty:"text",nn:true,d:"cidade"},
+    {n:"state",ty:"char",nn:true,d:"UF (2 chars)"},
+    {n:"active",ty:"bool",d:"ativo (DEFAULT true)"}, CA, UA ]},
+  briefing: { t:"uai_cms.briefing", m:"briefing do cliente · 19 campos", note:"Entrada do funil. status=briefing_status (DRAFT→…→CONFIRMED). Guarda o formulário gerado por IA e as respostas parseadas + red_flags.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"}, TEN,
+    {n:"client_id",ty:"uuid",fk:true,d:"→ client (ON DELETE CASCADE)"},
+    {n:"created_by",ty:"uuid",fk:true,d:"→ user_account (autor; sem cascade)"},
+    {n:"status",ty:"enum",d:"briefing_status: DRAFT | FORM_GENERATING | FORM_READY | RESPONSES_RECEIVED | FLAGGED | CONFIRMED"},
+    {n:"company_name",ty:"text",nn:true,d:"empresa (snapshot)"},
+    {n:"segment",ty:"text",nn:true,d:"segmento"},
+    {n:"objective",ty:"text",nn:true,d:"objetivo da campanha"},
+    {n:"monthly_budget_brl",ty:"num",nn:true,d:"orçamento mensal (R$)"},
+    {n:"selected_channels",ty:"jsonb",nn:true,d:"canais escolhidos"},
+    {n:"additional_info",ty:"text",nn:true,d:"infos extras"},
+    {n:"generated_form",ty:"jsonb",nn:true,d:"formulário gerado pela IA"},
+    {n:"form_generated_at",ty:"timestamptz",nn:true,d:"quando o form foi gerado"},
+    {n:"raw_response_text",ty:"text",nn:true,d:"respostas em texto cru"},
+    {n:"parsed_responses",ty:"jsonb",nn:true,d:"respostas estruturadas"},
+    {n:"specialist_context",ty:"jsonb",nn:true,d:"contexto p/ agentes especialistas"},
+    {n:"red_flags",ty:"jsonb",nn:true,d:"alertas detectados (→ status FLAGGED)"},
+    {n:"confirmed_at",ty:"timestamptz",nn:true,d:"confirmação da gestora"}, CA, UA ]},
+  campaign: { t:"uai_cms.campaign", m:"campanha · 17 campos", note:"Campanha derivada de um briefing. status=campaign_status. Carrega media_plan, brand_voice e a proposta de pricing (jsonb + s3_url).", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"}, TEN,
+    {n:"client_id",ty:"uuid",fk:true,d:"→ client (ON DELETE CASCADE)"},
+    {n:"briefing_id",ty:"uuid",fk:true,d:"→ briefing (origem; sem cascade)"},
+    {n:"name",ty:"text",d:"nome da campanha"},
+    {n:"status",ty:"enum",d:"campaign_status: ACTIVE | PAUSED | COMPLETED | CANCELLED"},
+    {n:"monthly_budget_brl",ty:"num",nn:true,d:"orçamento mensal (R$)"},
+    {n:"media_plan",ty:"jsonb",nn:true,d:"plano de mídia"},
+    {n:"brand_voice",ty:"jsonb",nn:true,d:"tom de voz da marca"},
+    {n:"target_audience",ty:"jsonb",nn:true,d:"público-alvo"},
+    {n:"restrictions",ty:"jsonb",nn:true,d:"restrições criativas"},
+    {n:"selected_package",ty:"text",nn:true,d:"pacote contratado"},
+    {n:"pricing_proposal",ty:"jsonb",nn:true,d:"proposta de preço"},
+    {n:"pricing_s3_url",ty:"text",nn:true,d:"PDF da proposta no S3"},
+    {n:"started_at",ty:"timestamptz",nn:true,d:"início"},
+    {n:"ended_at",ty:"timestamptz",nn:true,d:"fim"}, CA, UA ]},
+  campaign_channel: { t:"uai_cms.campaign_channel", m:"canal da campanha · 10 campos", note:"Canal ativo de uma campanha (channel_type). Define alocação de verba e auto-aprovação por canal.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"},
+    {n:"campaign_id",ty:"uuid",fk:true,d:"→ campaign (ON DELETE CASCADE)"},
+    {n:"channel_type",ty:"enum",d:"channel_type: META_ADS | GOOGLE_ADS | INSTAGRAM | SEO_LOCAL | YOUTUBE"},
+    {n:"active",ty:"bool",d:"canal ativo (DEFAULT true)"},
+    {n:"channel_config",ty:"jsonb",nn:true,d:"config específica do canal"},
+    {n:"specialist_context",ty:"jsonb",nn:true,d:"contexto p/ o agente do canal"},
+    {n:"budget_allocation_pct",ty:"num",nn:true,d:"% da verba no canal"},
+    {n:"auto_approve",ty:"bool",d:"auto-aprova conteúdo (DEFAULT false)"}, CA, UA ]},
+  routine: { t:"uai_cms.routine", m:"agendamento · 9 campos", note:"Rotina recorrente (cron) por campanha. Índice parcial idx_routine_next_trigger WHERE active alimenta o scheduler (pg_cron).", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"},
+    {n:"campaign_id",ty:"uuid",fk:true,d:"→ campaign (ON DELETE CASCADE)"},
+    {n:"cron_expression",ty:"text",d:"expressão cron do disparo"},
+    {n:"routine_type",ty:"text",d:"tipo da rotina (ex.: GENERATE | REPORT)"},
+    {n:"active",ty:"bool",d:"ativa (DEFAULT true)"},
+    {n:"last_triggered_at",ty:"timestamptz",nn:true,d:"último disparo"},
+    {n:"next_trigger_at",ty:"timestamptz",nn:true,d:"próximo disparo (índice parcial)"}, CA, UA ]},
+  execution: { t:"uai_cms.execution", m:"run de agentes · 10 campos", note:"Execução de uma rotina/ação manual. routine_id opcional (ON DELETE SET NULL). Sem updated_at (registro append-only).", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"},
+    {n:"campaign_id",ty:"uuid",fk:true,d:"→ campaign (ON DELETE CASCADE)"},
+    {n:"routine_id",ty:"uuid",nn:true,fk:true,d:"→ routine (ON DELETE SET NULL); null = disparo manual"},
+    {n:"execution_type",ty:"text",d:"tipo da execução"},
+    {n:"status",ty:"text",d:"RUNNING | … (DEFAULT 'RUNNING')"},
+    {n:"agents_invoked",ty:"jsonb",nn:true,d:"agentes acionados na run"},
+    {n:"result_summary",ty:"jsonb",nn:true,d:"resumo do resultado"},
+    {n:"error_message",ty:"text",nn:true,d:"mensagem de erro (se falhou)"},
+    {n:"started_at",ty:"timestamptz",d:"início (DEFAULT now())"},
+    {n:"finished_at",ty:"timestamptz",nn:true,d:"fim"} ]},
+  approval_rule: { t:"uai_cms.approval_rule", m:"regra de auto-aprovação · 9 campos", note:"Regra que decide auto-aprovação por (campaign?, channel_type?, content_type?). campaign_id opcional = regra global do tenant.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"}, TEN,
+    {n:"campaign_id",ty:"uuid",nn:true,fk:true,d:"→ campaign (ON DELETE CASCADE); null = regra do tenant"},
+    {n:"channel_type",ty:"enum",nn:true,d:"channel_type (escopo do canal)"},
+    {n:"content_type",ty:"enum",nn:true,d:"content_type (escopo do tipo)"},
+    {n:"auto_approve",ty:"bool",d:"auto-aprova quando casa (DEFAULT false)"},
+    {n:"description",ty:"text",nn:true,d:"descrição da regra"},
+    {n:"active",ty:"bool",d:"ativa (DEFAULT true)"}, CA, UA ]},
+  content: { t:"uai_cms.content", m:"peça de conteúdo · 24 campos", note:"Conteúdo gerado por agente. status=content_status, content_type. Versionado via (version, parent_id self-FK). channel_id → campaign_channel.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"}, TEN,
+    {n:"campaign_id",ty:"uuid",fk:true,d:"→ campaign (ON DELETE CASCADE)"},
+    {n:"channel_id",ty:"uuid",fk:true,d:"→ campaign_channel (ON DELETE CASCADE)"},
+    {n:"execution_id",ty:"uuid",nn:true,fk:true,d:"→ execution (ON DELETE SET NULL); run que gerou"},
+    {n:"content_type",ty:"enum",d:"content_type: COPY | IMAGE | VIDEO | REPORT | MEDIA_PLAN"},
+    {n:"status",ty:"enum",d:"content_status: GENERATING | PENDING_APPROVAL | APPROVED | PUBLISHED | REJECTED | FAILED"},
+    {n:"version",ty:"int",d:"nº da versão (DEFAULT 1)"},
+    {n:"parent_id",ty:"uuid",nn:true,fk:true,d:"→ content (self-FK; versão anterior, ON DELETE SET NULL)"},
+    {n:"title",ty:"text",nn:true,d:"título"},
+    {n:"body",ty:"text",nn:true,d:"corpo/copy"},
+    {n:"headline",ty:"text",nn:true,d:"headline"},
+    {n:"cta",ty:"text",nn:true,d:"call to action"},
+    {n:"hashtags",ty:"text[]",nn:true,d:"hashtags"},
+    {n:"ai_prompt",ty:"text",nn:true,d:"prompt usado"},
+    {n:"prompt_metadata",ty:"jsonb",nn:true,d:"metadados do prompt"},
+    {n:"agent_id",ty:"text",nn:true,d:"id do agente gerador"},
+    {n:"model_used",ty:"text",nn:true,d:"modelo de IA usado"},
+    {n:"variation_index",ty:"int",nn:true,d:"índice da variação (A/B)"},
+    {n:"scheduled_publish_at",ty:"timestamptz",nn:true,d:"publicação agendada"},
+    {n:"published_at",ty:"timestamptz",nn:true,d:"publicado em"},
+    {n:"external_post_id",ty:"text",nn:true,d:"id do post na plataforma externa"}, CA, UA ]},
+  content_approval: { t:"uai_cms.content_approval", m:"histórico de aprovação · 7 campos", note:"Log de aprovação/rejeição de um content. action=approval_action. Append-only (sem updated_at).", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"},
+    {n:"content_id",ty:"uuid",fk:true,d:"→ content (ON DELETE CASCADE)"},
+    {n:"reviewer_id",ty:"uuid",nn:true,fk:true,d:"→ user_account (revisor, ON DELETE SET NULL)"},
+    {n:"action",ty:"enum",d:"approval_action: APPROVED | REJECTED | AUTO_APPROVED"},
+    {n:"rejection_note",ty:"text",nn:true,d:"motivo da rejeição"},
+    {n:"auto_approve_rule",ty:"text",nn:true,d:"regra que auto-aprovou (rastro)"}, CA ]},
+  media_asset: { t:"uai_cms.media_asset", m:"asset de mídia · 14 campos", note:"Arquivo (imagem/vídeo) de um content, armazenado em S3/CDN. Append-only.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"},
+    {n:"content_id",ty:"uuid",fk:true,d:"→ content (ON DELETE CASCADE)"},
+    {n:"campaign_id",ty:"uuid",fk:true,d:"→ campaign (ON DELETE CASCADE)"},
+    {n:"s3_key",ty:"text",d:"chave do objeto no S3"},
+    {n:"s3_url",ty:"text",d:"URL no S3"},
+    {n:"cdn_url",ty:"text",nn:true,d:"URL no CDN"},
+    {n:"thumbnail_url",ty:"text",nn:true,d:"thumbnail"},
+    {n:"media_type",ty:"text",nn:true,d:"tipo de mídia"},
+    {n:"mime_type",ty:"text",nn:true,d:"MIME"},
+    {n:"file_size_bytes",ty:"int8",nn:true,d:"tamanho (bytes)"},
+    {n:"width",ty:"int",nn:true,d:"largura px"},
+    {n:"height",ty:"int",nn:true,d:"altura px"},
+    {n:"duration_seconds",ty:"int",nn:true,d:"duração (vídeo)"},
+    {n:"generation_model",ty:"text",nn:true,d:"modelo gerador (ex.: dall-e, sora)"} ]},
+  generation_prompt: { t:"uai_cms.generation_prompt", m:"prompt de geração · 16 campos", note:"Prompt de geração de mídia (versionado por attempt_number + parent_prompt_id self-FK). Liga content e media_asset gerado.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"}, TEN,
+    {n:"content_id",ty:"uuid",fk:true,d:"→ content (ON DELETE CASCADE)"},
+    {n:"media_asset_id",ty:"uuid",nn:true,fk:true,d:"→ media_asset (ON DELETE SET NULL); asset resultante"},
+    {n:"prompt_text",ty:"text",d:"prompt principal"},
+    {n:"negative_prompt",ty:"text",nn:true,d:"negative prompt"},
+    {n:"style_preset",ty:"text",nn:true,d:"preset de estilo"},
+    {n:"agent_reasoning",ty:"text",nn:true,d:"raciocínio do agente"},
+    {n:"target_model",ty:"text",d:"modelo-alvo da geração"},
+    {n:"target_dimensions",ty:"text",nn:true,d:"dimensões alvo (ex.: 1080x1080)"},
+    {n:"generation_params",ty:"jsonb",nn:true,d:"parâmetros (seed, steps…)"},
+    {n:"attempt_number",ty:"int",d:"nº da tentativa (DEFAULT 1)"},
+    {n:"parent_prompt_id",ty:"uuid",nn:true,fk:true,d:"→ generation_prompt (self-FK, ON DELETE SET NULL)"},
+    {n:"status",ty:"text",d:"PENDING | … (DEFAULT 'PENDING')"},
+    {n:"rejection_reason",ty:"text",nn:true,d:"motivo de rejeição"}, CA ]},
+  campaign_channel_metrics: { t:"uai_cms.campaign_channel_metrics", m:"métricas diárias · 25 campos", note:"Métricas diárias por canal (uq_metrics_channel_date = uq(channel_id, period_date)). Cobre performance paga + orgânico + GMB. Append/upsert por dia.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"},
+    {n:"campaign_id",ty:"uuid",fk:true,d:"→ campaign (ON DELETE CASCADE)"},
+    {n:"channel_id",ty:"uuid",fk:true,d:"→ campaign_channel (ON DELETE CASCADE)"},
+    {n:"period_date",ty:"date",d:"dia da métrica (uq com channel_id)"},
+    {n:"impressions",ty:"int8",d:"impressões (DEFAULT 0)"},
+    {n:"reach",ty:"int8",d:"alcance (DEFAULT 0)"},
+    {n:"clicks",ty:"int8",d:"cliques (DEFAULT 0)"},
+    {n:"ctr",ty:"num",nn:true,d:"click-through rate"},
+    {n:"conversions",ty:"int",d:"conversões (DEFAULT 0)"},
+    {n:"cost_brl",ty:"num",nn:true,d:"custo (R$)"},
+    {n:"cpc_brl",ty:"num",nn:true,d:"custo por clique"},
+    {n:"cpa_brl",ty:"num",nn:true,d:"custo por aquisição"},
+    {n:"roas",ty:"num",nn:true,d:"return on ad spend"},
+    {n:"likes",ty:"int",d:"curtidas (DEFAULT 0)"},
+    {n:"comments",ty:"int",d:"comentários (DEFAULT 0)"},
+    {n:"shares",ty:"int",d:"compartilhamentos (DEFAULT 0)"},
+    {n:"followers_gained",ty:"int",d:"seguidores ganhos (DEFAULT 0)"},
+    {n:"gmb_views",ty:"int",nn:true,d:"visualizações no Google Meu Negócio"},
+    {n:"gmb_calls",ty:"int",nn:true,d:"ligações via GMB"},
+    {n:"gmb_directions",ty:"int",nn:true,d:"rotas via GMB"},
+    {n:"new_reviews",ty:"int",nn:true,d:"novas avaliações"},
+    {n:"avg_rating",ty:"num",nn:true,d:"nota média"},
+    {n:"raw_data",ty:"jsonb",nn:true,d:"payload bruto da plataforma"},
+    {n:"ingested_at",ty:"timestamptz",d:"ingestão (DEFAULT now())"} ]},
+  notification_log: { t:"uai_cms.notification_log", m:"log de notificações · 11 campos", note:"Notificações enviadas ao usuário (Telegram/email). reference_id/type apontam genericamente p/ a entidade do evento. Append-only.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"}, TEN,
+    {n:"user_id",ty:"uuid",fk:true,d:"→ user_account (ON DELETE CASCADE)"},
+    {n:"channel",ty:"text",d:"canal de envio (ex.: telegram, email)"},
+    {n:"event_type",ty:"text",d:"tipo do evento"},
+    {n:"reference_id",ty:"uuid",nn:true,d:"id da entidade referenciada (polimórfico)"},
+    {n:"reference_type",ty:"text",nn:true,d:"tipo da entidade referenciada"},
+    {n:"message",ty:"text",nn:true,d:"mensagem"},
+    {n:"delivered",ty:"bool",d:"entregue (DEFAULT false)"},
+    {n:"delivered_at",ty:"timestamptz",nn:true,d:"entregue em"}, CA ]},
+  ooh_active_vehicle: { t:"uai_cms.ooh_active_vehicle", m:"ponte OOH · 7 campos (V5)", note:"Carros com mídia OOH ativa. vehicle_code (uq) correlaciona com o GTFS-RT da vertical OOH (core.vehicle.vehicle_code). campaign_id opcional liga à campanha. ⚠️ é o único elo entre o cms e o domínio OOH.", fields:[
+    {n:"id",ty:"uuid",pk:true,d:"PK"},
+    {n:"vehicle_code",ty:"text",fk:true,d:"código do veículo no feed RT (uq_ooh_active_vehicle_code); junção lógica com core.vehicle (banco ooh)"},
+    {n:"active",ty:"bool",d:"OOH ativo no veículo (DEFAULT true)"},
+    {n:"campaign_id",ty:"uuid",nn:true,fk:true,d:"→ campaign (sem cascade); null = veículo sem campanha vinculada"},
+    {n:"activated_at",ty:"timestamptz",d:"ativação (DEFAULT now())"},
+    {n:"deactivated_at",ty:"timestamptz",nn:true,d:"desativação"}, UA ]}
+};
+window.E2L = { "j-ten-user":"le-ten-user","j-brief-camp":"le-brief-camp","j-cont-appr":"le-cont-appr","j-camp-ooh":"le-camp-ooh","j-camp-metr":"le-camp-metr","j-chan-cont":"le-chan-cont" };
+window.FLOWS = {
+  nucleo: { name:"Núcleo — tenant ancora tudo (multi-tenant por FK)",
+    edges:["j-ten-user","j-ten-client"],
+    nodes:["tenant","user_account","client"],
+    steps:["<b>tenant</b> é a raiz: <b>user_account</b> e <b>client</b> penduram por <code>tenant_id</code> (FK + ON DELETE CASCADE)","Isolamento é <b>por FK, sem RLS</b> — a app filtra <code>tenant_id</code> em toda query","<b>client</b> (anunciante) pode ter um <b>user_account</b> read-only (CLIENT_VIEWER)"] },
+  campanha: { name:"Briefing / Campanha — funil do briefing à execução",
+    edges:["j-client-brief","j-brief-camp","j-camp-chan","j-camp-rout"],
+    nodes:["client","briefing","campaign","campaign_channel","routine","execution","approval_rule"],
+    steps:["<b>briefing</b> (status=enum) nasce do <b>client</b> e vira <b>campaign</b> (briefing_id)","<b>campaign_channel</b> abre canais (channel_type=enum) com verba e auto-aprovação","<b>routine</b> (cron) dispara <b>execution</b> (run de agentes); <b>approval_rule</b> decide auto-aprovação"] },
+  conteudo: { name:"Conteúdo — geração, versão e aprovação",
+    edges:["j-chan-cont","j-cont-appr","j-cont-media","j-cont-gprmt"],
+    nodes:["content","content_approval","media_asset","generation_prompt","campaign_channel"],
+    steps:["<b>content</b> (status/type=enum) é gerado por agente no <b>campaign_channel</b>; versionado por (version, parent_id self-FK)","<b>content_approval</b> registra APPROVED/REJECTED/AUTO_APPROVED (action=enum)","<b>media_asset</b> (S3/CDN) e <b>generation_prompt</b> (prompt versionado) materializam imagem/vídeo"] },
+  midia: { name:"Métricas & Mídia — performance e notificações",
+    edges:["j-camp-metr","j-ten-notif"],
+    nodes:["campaign_channel_metrics","notification_log","campaign_channel"],
+    steps:["<b>campaign_channel_metrics</b> ingere métricas diárias por canal — uq(channel_id, period_date)","Cobre pago (impressions/reach/cpc/roas), orgânico (likes/shares) e GMB (views/calls)","<b>notification_log</b> registra avisos ao usuário (Telegram/email), referência polimórfica"] },
+  ooh: { name:"OOH — ponte do cms com a vertical de ônibus",
+    edges:["j-camp-ooh"],
+    nodes:["ooh_active_vehicle","campaign"],
+    steps:["<b>ooh_active_vehicle</b> (V5) marca os carros com mídia OOH ativa","<code>vehicle_code</code> (uq) correlaciona com o GTFS-RT — junção lógica com <code>core.vehicle</code> (banco ooh)","<code>campaign_id</code> liga o veículo a uma <b>campaign</b> do cms — único elo cms ↔ OOH"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

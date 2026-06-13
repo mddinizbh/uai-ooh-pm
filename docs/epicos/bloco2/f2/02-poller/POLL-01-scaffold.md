@@ -1,7 +1,9 @@
-# POLL-01 — scaffold do `uai-ooh-realtime-poller`
+# POLL-01 — scaffold do `uai-ooh-realtime-poller` — ✅ ENTREGUE (2026-06-09)
 
-> F2 (Bloco 2) · lane **poller** · **Repo-alvo:** `uai-ooh-realtime-poller` *(NOVO)* · **Stack:** Python · **worker contínuo**
-> **Destrava:** POLL-02/03.
+> F2 (Bloco 2) · lane **poller** · **Repo-alvo:** `uai-ooh-realtime-poller` · **Stack:** Python · **worker contínuo**
+> **✅ Entregue:** commit `3de5f8c` — CLI `python -m poller` (forever/once/healthcheck), config 100% env
+> (RULE-OPS-01), clients Kafka+Postgres, Dockerfile multi-stage non-root, CI (ruff+pytest→GHCR).
+> Run: [`F2-infra-poller-golive.md`](../../../runs/F2-infra-poller-golive.md). **Destravou:** POLL-02/03.
 
 ## Objetivo
 Criar o repo do poller (worker que roda em loop) + config + clients (Kafka, Postgres). **Regerar de template** se houver base equivalente.

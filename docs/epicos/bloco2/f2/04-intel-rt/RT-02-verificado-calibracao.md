@@ -1,24 +1,29 @@
-# RT-02 — verificado por linha + loop de calibração
+# RT-02 — verificado por linha (medido vs estimado, selo por métrica)
 
 > F2 (Bloco 2) · lane **intel-rt** · **Repo-alvo:** `uai-ooh-intel` *(estende F1)* · **Stack:** Java/Spring
-> **Depende de:** `core.trip_executed` + `pattern_stop_exposure.v_real` (CONS-04). **É o produto central do F2.**
+> **Depende de:** `medido.viagem`/`parada_velocidade` (CONS-04) + `face_reach`/`line_reach` **fonte medida** no serving (RECAL-01, lane 06). **É o produto central do F2.** · *(Reescrito 2026-06-10 — era "reaplica a fórmula F1 com v_real", pré-face-centric)*
 
 ## Objetivo
-Expor o **verificado por linha** (do `trip_executed` + `v_real`) **lado a lado com o estimado** do F1 — o loop **verificado→estimado** que valida/estreita a ±35%.
+Expor o **verificado por linha** lado a lado com o **estimado** — o loop que mostra a faixa de
+incerteza **estreitando** quando trajetória/frequência/velocidade viram **reais**.
 
 ## Como executar
-- `GET /api/lines/{id}/verified` → **viagens/dia reais**, km, completude média, **velocidade real média** (de `trip_executed`/`v_real`).
-- **Comparação:** colocar ao lado do estimado do F1 — frequência GTFS vs real, velocidade assumida vs `v_real`, e **o quanto a faixa ±35% se estreita** com o medido.
-- **Alcance recalculado:** reaplica a **fórmula de alcance do F1** (`serving.line_metrics` + corredor) **substituindo a velocidade pelo `v_real`** → alcance/impressões "com velocidade e frequência reais". Reage ao **`ooh.trip.completed`** pra frescura.
-- Leitura plana do `core`/`serving` (sem `ST_*` — agrega counts/médias).
+- `GET /api/lines/{id}/verified` →
+  - **do `medido` (read-only):** viagens/dia reais, km, completude média, velocidade real média;
+  - **do `serving` (recomputado pela lane 06):** `face_reach`/`line_reach` **fonte medida** vs **fonte estimada** — mesma fórmula da Onda 2, só muda a trajetória;
+  - **comparação:** frequência GTFS vs real · velocidade assumida vs `v_real` · reach/impressões estimado vs medido.
+- **Selo de confiança por métrica (ADR-058)** no payload — substitui o boolean `aindaEstimativa`:
+  trajetória/frequência/velocidade = **medidas**; reach segue "audiência do corredor"; coeficientes de
+  **visada continuam cegos** (só Fase C calibra) → o reach recomputado **continua estimativa**, com faixa menor.
+- **Frescura:** cache por linha invalidado pelo **`ooh.trip.completed`** (consumer no intel) — não recalcula por request.
+- Leitura plana (sem `ST_*` — ADR-003).
 
-## Decisão / fronteira
-- **F2 expõe a comparação** (verificado vs estimado). A **recalibração efetiva do score** (atualizar `model_params`/coeficientes a partir do `v_real`) é um passo do **normalizer/pipeline**, não do intel.
-- **Aqui = AGREGADO por linha** (read-time, reage ao evento). O **acumulador de alcance ao vivo** (por-posição, incremental, "subindo em tempo real") é **pós-F2**, num **módulo de stream separado** — não o consolidador (fatos) nem o hot-path do intel. **Mesma fórmula → reconcilia** (soma incremental ≈ este agregado). Ver `../README.md` §Futuro.
-- ⚠️ **Continua estimativa:** só a velocidade vira real; coeficientes não calibrados.
+## Decisões / fronteira
+- O intel **expõe** a comparação; o **recompute** é da lane 06 (pipeline, ADR-050) — o intel nunca re-deriva o modelo.
+- O acumulado **ao vivo** é o RT-01/CONS-05; aqui é o **agregado consolidado** — mesma régua, reconciliam.
 
 ## Critério de pronto (verificável)
-- `GET verified?line=4107` → números reais (viagens/dia, km, velocidade) + comparação com o estimado; a faixa ±35% comentada vs o real. **Verificado marcado como sólido (medido).**
+- `GET verified?line=4107` → números reais + comparação + selo por métrica; atualiza ao fechar viagem; IT com seed de `medido`/serving.
 
 ## Produz
 - docs/epicos/runs/RT-02-verificado-calibracao.md

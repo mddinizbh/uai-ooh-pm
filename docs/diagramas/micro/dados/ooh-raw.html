@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ooh · schema raw — landing</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>ooh · raw — entidades (landing)</h1>
+    <div class="sub">landing zone · tudo TEXT · sem PK/FK · fiel à fonte · 35 tabelas</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="gtfs">GTFS</button>
+    <button class="chip" data-flow="censo">Censo</button>
+    <button class="chip" data-flow="pbh">PBH</button>
+    <button class="chip" data-flow="poi">POI</button>
+    <button class="chip" data-flow="rt">RT</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="postgres-ooh.html">← postgres-ooh</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="legend" id="legend">
+  <h4>Como ler</h4>
+  <div class="row"><span class="sw store"></span> tabela landing — clique abre <b>todos os campos + descrição</b></div>
+  <div class="row"><span class="dotsw" style="background:var(--clay)"></span> 🔑 chave de junção lógica (não há PK declarada)</div>
+  <div class="row"><span style="width:22px;border-top:1.6px solid var(--muted);display:inline-block"></span> join lógico que a normalização usa (rótulo = chave)</div>
+  <div class="hint">landing = <b>tudo TEXT</b>, <b>sem PK/FK</b>, fiel ao CSV/GTFS/WKT original. Cada tabela carrega housekeeping <code>_arquivo_origem</code> · <code>_carregado_em</code> · <code>_linha_num</code>. As setas são as <b>chaves que o normalizer aplica</b> ao promover raw → core.</div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1544 1180" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagrama ER do schema raw (landing)">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <!-- grupos (lanes por fonte) -->
+  <g class="zone"><rect x="24" y="92" width="488" height="1064" rx="14"/><text class="ztitle" x="40" y="120">GTFS (estático)</text><text class="zsub" x="40" y="136">spec GTFS · 12 tabelas · feed BHTrans</text></g>
+  <g class="zone"><rect x="528" y="92" width="236" height="1064" rx="14"/><text class="ztitle" x="544" y="120">Censo 2022</text><text class="zsub" x="544" y="136">IBGE · 3 tabelas · setor</text></g>
+  <g class="zone"><rect x="780" y="92" width="488" height="1064" rx="14"/><text class="ztitle" x="796" y="120">PBH (dados abertos)</text><text class="zsub" x="796" y="136">BHTrans/PBH · 14 tabelas</text></g>
+  <g class="zone"><rect x="1284" y="92" width="236" height="1064" rx="14"/><text class="ztitle" x="1300" y="120">POI · RT · meta</text><text class="zsub" x="1300" y="136">3 fontes POI · 4 RT · manifest</text></g>
+
+  <!-- joins lógicos que o normalizer aplica (rótulo = chave) -->
+  <path class="edge" id="e-routes-trips" d="M142,246 C 142,251 142,257 142,262"/>
+  <path class="edge" id="e-trips-stoptimes" d="M142,373 C 142,378 142,384 142,389"/>
+  <path class="edge" id="e-trips-shapes" d="M170,373 C 188,500 188,560 178,643"/>
+  <path class="edge" id="e-stops-ponto" d="M248,571 C 400,571 600,571 760,571 C 772,571 772,450 772,332 C 778,332 784,332 792,332"/>
+  <path class="edge" id="e-renda-setor" d="M646,261 C 646,266 646,272 646,277"/>
+  <path class="edge" id="e-agreg-setor" d="M646,404 C 646,399 646,393 646,388"/>
+  <path class="edge" id="e-mco-trips" d="M792,205 C 772,205 772,250 772,269 C 700,269 580,269 540,269 C 522,265 510,250 510,239 C 430,239 340,239 290,239 C 274,239 262,265 262,290 C 262,308 256,317 248,317"/>
+  <path class="edge" id="e-embarque-ponto" d="M898,404 C 898,399 898,393 898,388"/>
+  <path class="edge" id="e-od-setor" d="M1032,205 C 1018,205 1018,240 1018,269 C 980,269 850,269 772,269 C 762,269 752,300 752,332"/>
+
+  <text class="elbl" id="l-routes-trips" x="150" y="258">route_id</text>
+  <text class="elbl" id="l-trips-stoptimes" x="150" y="385">trip_id</text>
+  <text class="elbl" id="l-stops-ponto" x="600" y="560">geo KNN ≤50m</text>
+  <text class="elbl" id="l-renda-setor" x="652" y="272">cd_setor</text>
+  <text class="elbl" id="l-mco-trips" x="560" y="263">linha ↔ short_name</text>
+  <text class="elbl" id="l-embarque-ponto" x="906" y="399">siu</text>
+  <text class="elbl" id="l-od-setor" x="1010" y="263">h3 → setor</text>
+
+  <!-- ══════════ GTFS (2 colunas: x=36 / x=276) ══════════ -->
+  <g class="node table" data-k="gtfs__routes"><rect x="36" y="150" width="212" height="96" rx="9"/><text class="th" x="50" y="172">gtfs__routes</text><text class="pk" x="50" y="192">🔑 route_id</text><text class="m" x="50" y="208">route_short_name · long</text><text class="m" x="50" y="223">route_type · agency_id</text><text class="n" x="50" y="239">12 campos · 304 linhas</text></g>
+  <g class="node table" data-k="gtfs__trips"><rect x="36" y="262" width="212" height="111" rx="9"/><text class="th" x="50" y="284">gtfs__trips</text><text class="pk" x="50" y="304">🔑 trip_id</text><text class="m" x="50" y="320">route_id ↗ · service_id</text><text class="m" x="50" y="335">shape_id · direction_id</text><text class="m" x="50" y="350">trip_headsign</text><text class="n" x="50" y="366">14 campos · 107.604</text></g>
+  <g class="node table" data-k="gtfs__stop_times"><rect x="36" y="389" width="212" height="111" rx="9"/><text class="th" x="50" y="411">gtfs__stop_times</text><text class="pk" x="50" y="431">🔑 trip_id·stop_sequence</text><text class="m" x="50" y="447">stop_id ↗ · arrival_time</text><text class="m" x="50" y="462">departure_time · pickup</text><text class="m" x="50" y="477">6,2M linhas (maior tabela)</text><text class="n" x="50" y="493">13 campos</text></g>
+  <g class="node table" data-k="gtfs__stops"><rect x="36" y="516" width="212" height="111" rx="9"/><text class="th" x="50" y="538">gtfs__stops</text><text class="pk" x="50" y="558">🔑 stop_id</text><text class="m" x="50" y="574">stop_name · stop_code</text><text class="m" x="50" y="589">stop_lat · stop_lon (4326)</text><text class="m" x="50" y="604">zone_id · location_type</text><text class="n" x="50" y="620">16 campos · 9.650</text></g>
+  <g class="node table" data-k="gtfs__shapes"><rect x="36" y="643" width="212" height="96" rx="9"/><text class="th" x="50" y="665">gtfs__shapes</text><text class="pk" x="50" y="685">🔑 shape_id·pt_sequence</text><text class="m" x="50" y="701">shape_pt_lat · pt_lon</text><text class="m" x="50" y="716">shape_dist_traveled</text><text class="n" x="50" y="732">8 campos · 231.530</text></g>
+  <g class="node table" data-k="gtfs__calendar"><rect x="36" y="755" width="212" height="96" rx="9"/><text class="th" x="50" y="777">gtfs__calendar</text><text class="pk" x="50" y="797">🔑 service_id</text><text class="m" x="50" y="813">monday…sunday · datas</text><text class="m" x="50" y="828">tipo de dia operacional</text><text class="n" x="50" y="844">14 campos · 14</text></g>
+  <g class="node table" data-k="gtfs__calendar_dates"><rect x="36" y="867" width="212" height="81" rx="9"/><text class="th" x="50" y="889">gtfs__calendar_dates</text><text class="pk" x="50" y="909">🔑 service_id·date</text><text class="m" x="50" y="925">exception_type</text><text class="n" x="50" y="941">6 campos · exceções</text></g>
+  <g class="node table" data-k="gtfs__agency"><rect x="36" y="964" width="212" height="81" rx="9"/><text class="th" x="50" y="986">gtfs__agency</text><text class="pk" x="50" y="1006">🔑 agency_id</text><text class="m" x="50" y="1022">agency_name · timezone</text><text class="n" x="50" y="1038">10 campos · operadoras</text></g>
+
+  <g class="node table" data-k="gtfs__feed_info"><rect x="276" y="150" width="212" height="81" rx="9"/><text class="th" x="290" y="172">gtfs__feed_info</text><text class="pk" x="290" y="192">🔑 feed_version</text><text class="m" x="290" y="208">publisher · start/end_date</text><text class="n" x="290" y="224">11 campos · 1 linha</text></g>
+  <g class="node table" data-k="gtfs__fare_attributes"><rect x="276" y="247" width="212" height="81" rx="9"/><text class="th" x="290" y="269">gtfs__fare_attributes</text><text class="pk" x="290" y="289">🔑 fare_id</text><text class="m" x="290" y="305">price · currency · transfers</text><text class="n" x="290" y="321">10 campos · tarifas</text></g>
+  <g class="node table" data-k="gtfs__fare_rules"><rect x="276" y="344" width="212" height="81" rx="9"/><text class="th" x="290" y="366">gtfs__fare_rules</text><text class="pk" x="290" y="386">🔑 fare_id·route_id</text><text class="m" x="290" y="402">origin_id · destination_id</text><text class="n" x="290" y="418">8 campos · regras</text></g>
+  <g class="node table" data-k="gtfs__translations"><rect x="276" y="441" width="212" height="81" rx="9"/><text class="th" x="290" y="463">gtfs__translations</text><text class="pk" x="290" y="483">🔑 table·field·record_id</text><text class="m" x="290" y="499">language · translation</text><text class="n" x="290" y="515">8 campos · i18n</text></g>
+
+  <!-- ══════════ Censo (x=540) ══════════ -->
+  <g class="node table" data-k="censo__renda_responsavel_bh"><rect x="540" y="150" width="212" height="111" rx="9"/><text class="th" x="554" y="172" style="font-size:11.5px">censo__renda_responsavel_bh</text><text class="pk" x="554" y="192">🔑 cd_setor</text><text class="m" x="554" y="208">v06004 (renda média) ↗</text><text class="m" x="554" y="223">v06006 (mediana)</text><text class="m" x="554" y="238">v06001/02/03/05</text><text class="n" x="554" y="254">10 campos · 5.137</text></g>
+  <g class="node table" data-k="censo__setores_bh"><rect x="540" y="277" width="212" height="111" rx="9"/><text class="th" x="554" y="299">censo__setores_bh</text><text class="pk" x="554" y="319">🔑 cd_setor</text><text class="m" x="554" y="335">nm_bairro · area_km2</text><text class="m" x="554" y="350">geometria WKT (4674)</text><text class="m" x="554" y="365">malha de setores 2022</text><text class="n" x="554" y="381">33 campos · 5.167</text></g>
+  <g class="node table" data-k="censo__agregados_basico_bh"><rect x="540" y="404" width="212" height="111" rx="9"/><text class="th" x="554" y="426">censo__agregados_basico_bh</text><text class="pk" x="554" y="446">🔑 cd_setor</text><text class="m" x="554" y="462">v0001…v0009 (pop/dom)</text><text class="m" x="554" y="477">nm_bairro · cd_regiao</text><text class="m" x="554" y="492">agregados básicos IBGE</text><text class="n" x="554" y="508">41 campos · 5.166</text></g>
+
+  <!-- ══════════ PBH (2 colunas: x=792 / x=1032) ══════════ -->
+  <g class="node table" data-k="pbh__mco_consolidado"><rect x="792" y="150" width="212" height="111" rx="9"/><text class="th" x="806" y="172">pbh__mco_consolidado</text><text class="pk" x="806" y="192">🔑 viagem</text><text class="m" x="806" y="208">linha ↗ · veiculo · tipo_dia</text><text class="m" x="806" y="223">total_usuarios · extensao</text><text class="m" x="806" y="238">saída/chegada · catraca</text><text class="n" x="806" y="254">24 campos · 815.887</text></g>
+  <g class="node table" data-k="pbh__ponto_onibus"><rect x="792" y="277" width="212" height="111" rx="9"/><text class="th" x="806" y="299">pbh__ponto_onibus</text><text class="pk" x="806" y="319">🔑 id_ponto_onibus_linha</text><text class="m" x="806" y="335">cod_linha · nome_linha</text><text class="m" x="806" y="350">identificador_ponto_onibus</text><text class="m" x="806" y="365">geometria WKT POINT (31983)</text><text class="n" x="806" y="381">10 campos · 70.100</text></g>
+  <g class="node table" data-k="pbh__embarque_ped_sublinha"><rect x="792" y="404" width="212" height="111" rx="9"/><text class="th" x="806" y="426">pbh__embarque_ped_sublinha</text><text class="pk" x="806" y="446">🔑 siu · linha</text><text class="m" x="806" y="462">c_0…c_23 (embarque/hora)</text><text class="m" x="806" y="477">total_geral · lat/lon</text><text class="m" x="806" y="492">curva horária por ponto</text><text class="n" x="806" y="508">39 campos · 61.226</text></g>
+  <g class="node table" data-k="pbh__trecho_logradouro"><rect x="792" y="531" width="212" height="111" rx="9"/><text class="th" x="806" y="553">pbh__trecho_logradouro</text><text class="pk" x="806" y="573">🔑 id_trecho_logradouro</text><text class="m" x="806" y="589">nome_logradouro · largura</text><text class="m" x="806" y="604">desc_sigla_tipo_lograd</text><text class="m" x="806" y="619">geometria LINESTRING</text><text class="n" x="806" y="635">12 campos · 55.143</text></g>
+  <g class="node table" data-k="pbh__estacao_onibus"><rect x="792" y="658" width="212" height="96" rx="9"/><text class="th" x="806" y="680">pbh__estacao_onibus</text><text class="pk" x="806" y="700">🔑 id_estpb</text><text class="m" x="806" y="716">nome · tipo · corredor_move</text><text class="m" x="806" y="731">geometria WKT (31983)</text><text class="n" x="806" y="747">13 campos · 52 estações</text></g>
+  <g class="node table" data-k="pbh__regional"><rect x="792" y="770" width="212" height="96" rx="9"/><text class="th" x="806" y="792">pbh__regional</text><text class="pk" x="806" y="812">🔑 nome</text><text class="m" x="806" y="828">n_setores · area_km2</text><text class="m" x="806" y="843">geometria MultiPolygon</text><text class="n" x="806" y="859">7 campos · 9 regionais</text></g>
+  <g class="node table" data-k="pbh__velocidade_corredores"><rect x="792" y="882" width="212" height="96" rx="9"/><text class="th" x="806" y="904">pbh__velocidade_corredores</text><text class="pk" x="806" y="924">🔑 id</text><text class="m" x="806" y="940">via · sentido · horário</text><text class="m" x="806" y="955">lat/long (vírgula)</text><text class="n" x="806" y="971">11 campos · 257.214</text></g>
+  <g class="node table" data-k="pbh__fiscalizacao_eletronica"><rect x="792" y="994" width="212" height="96" rx="9"/><text class="th" x="806" y="1016" style="font-size:11px">pbh__fiscalizacao_eletronica</text><text class="pk" x="806" y="1036">🔑 id_fiscalizacao_eletronica</text><text class="m" x="806" y="1052">velocidade_regulamentar</text><text class="m" x="806" y="1067">geometria POINT (radar)</text><text class="n" x="806" y="1083">12 campos · 287</text></g>
+
+  <g class="node table" data-k="pbh__matriz_od"><rect x="1032" y="150" width="212" height="111" rx="9"/><text class="th" x="1046" y="172">pbh__matriz_od</text><text class="pk" x="1046" y="192">🔑 id_usuario·data·faixa</text><text class="m" x="1046" y="208">h3_origem ↗ · h3_destino</text><text class="m" x="1046" y="223">tipo_cartao · faixa_horaria</text><text class="m" x="1046" y="238">geometria_origem/destino</text><text class="n" x="1046" y="254">11 campos · 1.203.389</text></g>
+  <g class="node table" data-k="pbh__pesq_movimentacao_sobe_desce"><rect x="1032" y="277" width="212" height="111" rx="9"/><text class="th" x="1046" y="299" style="font-size:9.5px">pbh__pesq_movimentacao_sobe_desce</text><text class="pk" x="1046" y="319">🔑 linha_sublinha·rota·seq</text><text class="m" x="1046" y="335">embarque · desembarque</text><text class="m" x="1046" y="350">saldo · total_passageiros</text><text class="m" x="1046" y="365">latitude · longitude · PED</text><text class="n" x="1046" y="381">18 campos</text></g>
+  <g class="node table" data-k="pbh__pesq_tempo_viagem"><rect x="1032" y="404" width="212" height="96" rx="9"/><text class="th" x="1046" y="426">pbh__pesq_tempo_viagem</text><text class="pk" x="1046" y="446">🔑 linha_sublinha·rota·data</text><text class="m" x="1046" y="462">hora_inicio · hora_termino</text><text class="m" x="1046" y="477">tempo_viagem · hora_prog</text><text class="n" x="1046" y="493">13 campos</text></g>
+  <g class="node table" data-k="pbh__pesq_fator_rotatividade"><rect x="1032" y="516" width="212" height="96" rx="9"/><text class="th" x="1046" y="538" style="font-size:11px">pbh__pesq_fator_rotatividade</text><text class="pk" x="1046" y="558">🔑 linha_sublinha·rota·hora</text><text class="m" x="1046" y="574">fator_rotatividade</text><text class="m" x="1046" y="589">total/maior nº passageiros</text><text class="n" x="1046" y="605">13 campos</text></g>
+
+  <!-- ══════════ POI · RT · meta (x=1296) ══════════ -->
+  <g class="node table" data-k="overture__poi"><rect x="1296" y="150" width="212" height="111" rx="9"/><text class="th" x="1310" y="172">overture__poi</text><text class="pk" x="1310" y="192">🔑 overture_id</text><text class="m" x="1310" y="208">nome · categoria · brand</text><text class="m" x="1310" y="223">lat · lon · confidence</text><text class="m" x="1310" y="238">categories_json · social</text><text class="n" x="1310" y="254">17 campos · 113.814</text></g>
+  <g class="node table" data-k="fsq__poi"><rect x="1296" y="277" width="212" height="111" rx="9"/><text class="th" x="1310" y="299">fsq__poi</text><text class="pk" x="1310" y="319">🔑 fsq_place_id</text><text class="m" x="1310" y="335">nome · categorias_array</text><text class="m" x="1310" y="350">lat · lon · confidence</text><text class="m" x="1310" y="365">website · phone · email</text><text class="n" x="1310" y="381">16 campos · 132.061</text></g>
+  <g class="node table" data-k="osm__poi"><rect x="1296" y="404" width="212" height="111" rx="9"/><text class="th" x="1310" y="426">osm__poi</text><text class="pk" x="1310" y="446">🔑 osm_type·osm_id</text><text class="m" x="1310" y="462">name · categoria · amenity</text><text class="m" x="1310" y="477">shop · lat · lon (4326)</text><text class="m" x="1310" y="492">tags (JSON cru)</text><text class="n" x="1310" y="508">13 campos · 2.478</text></g>
+  <g class="node table" data-k="rt__vehicle_position"><rect x="1296" y="531" width="212" height="111" rx="9"/><text class="th" x="1310" y="553">rt__vehicle_position</text><text class="pk" x="1310" y="573">🔑 (mãe particionada)</text><text class="m" x="1310" y="589">vehicle_id · route_id · trip</text><text class="m" x="1310" y="604">lat · lon · bearing · status</text><text class="m" x="1310" y="619">_feed_timestamp (RANGE)</text><text class="n" x="1310" y="635">11 campos · 5,7M</text></g>
+  <g class="node table" data-k="rt__vehicle_position_p20260610"><rect x="1296" y="658" width="212" height="111" rx="9"/><text class="th" x="1310" y="680" style="font-size:10.5px">rt__vehicle_position_pYYYYMMDD</text><text class="pk" x="1310" y="700">🔑 partições por dia</text><text class="m" x="1310" y="716">p20260610 · p20260611</text><text class="m" x="1310" y="731">p20260612 (RANGE diário)</text><text class="m" x="1310" y="746">mesmo schema da mãe</text><text class="n" x="1310" y="762">11 campos · 3 partições</text></g>
+  <g class="node table" data-k="_manifest"><rect x="1296" y="785" width="212" height="96" rx="9"/><text class="th" x="1310" y="807">_manifest</text><text class="pk" x="1310" y="827">🔑 tabela</text><text class="m" x="1310" y="843">n_linhas · checksum</text><text class="m" x="1310" y="858">fontes · registrado_em</text><text class="n" x="1310" y="874">5 campos · NOT NULL</text></g>
+</svg>
+
+  <div class="src">banco ooh · schema raw · introspecção MCP postgres-ooh (35 tab · ~492 col · 222 com comentário) · jun/2026</div>
+
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique numa tabela</h3>
+    <div class="meta" id="d-meta">todos os campos + descrição</div>
+    <p id="d-body">Diagrama da <b>landing zone</b> (schema <code>raw</code>): tudo <b>TEXT</b>, <b>sem PK/FK declarada</b>, fiel à fonte. Cada card mostra a chave de junção lógica e campos-chave; <b>clique</b> abre <b>todos os campos com tipo e descrição</b>. As setas são as <b>chaves que o normalizer aplica</b> ao promover raw → <code>core</code>. Toda tabela carrega <code>_arquivo_origem</code> · <code>_carregado_em</code> · <code>_linha_num</code>.</p>
+  </div>
+</div>
+
+<script>
+const ORIG = { n:"_arquivo_origem", ty:"text", nn:true, d:"housekeeping: arquivo de origem do load" };
+const LOAD = { n:"_carregado_em", ty:"timestamptz", nn:true, d:"housekeeping: quando a linha foi carregada" };
+const LNUM = { n:"_linha_num", ty:"int8", nn:true, d:"housekeeping: nº da linha no arquivo de origem" };
+const HK = [ORIG, LOAD, LNUM];
+window.DETAIL = {
+  // ── GTFS ──────────────────────────────────────────────
+  gtfs__routes: { t:"raw.gtfs__routes", m:"GTFS · 12 campos · 304", note:"Catálogo de linhas do GTFS (route). Promove → core.line; route_id vira line_id, route_short_name vira short_name (chave de junção com MCO/embarque).", fields:[
+    {n:"route_id",ty:"text",nn:true,pk:true,d:"id da rota GTFS (chave; → core.line.line_id)"},
+    {n:"agency_id",ty:"text",nn:true,d:"operadora (→ gtfs__agency)"},
+    {n:"route_short_name",ty:"text",nn:true,d:"código da linha (chave de junção com pbh__mco/embarque)"},
+    {n:"route_long_name",ty:"text",nn:true,d:"nome do itinerário"},
+    {n:"route_desc",ty:"text",nn:true,d:"descrição livre"},
+    {n:"route_type",ty:"text",nn:true,d:"tipo GTFS (3=ônibus)"},
+    {n:"route_url",ty:"text",nn:true,d:"URL da rota"},
+    {n:"route_color",ty:"text",nn:true,d:"cor de fundo (hex)"},
+    {n:"route_text_color",ty:"text",nn:true,d:"cor do texto (hex)"}, ...HK ]},
+  gtfs__trips: { t:"raw.gtfs__trips", m:"GTFS · 14 campos · 107.604", note:"Cada viagem de uma linha num service_id. Liga route↔shape↔stop_times. Base do trip_pattern (snap do RT).", fields:[
+    {n:"route_id",ty:"text",nn:true,fk:true,d:"→ gtfs__routes (chave route_id)"},
+    {n:"service_id",ty:"text",nn:true,d:"→ gtfs__calendar (tipo de dia)"},
+    {n:"trip_id",ty:"text",nn:true,d:"id da viagem (chave p/ stop_times)"},
+    {n:"trip_headsign",ty:"text",nn:true,d:"letreiro/destino"},
+    {n:"trip_short_name",ty:"text",nn:true,d:"nome curto da viagem"},
+    {n:"direction_id",ty:"text",nn:true,d:"sentido (0/1)"},
+    {n:"trip_direction_name",ty:"text",nn:true,d:"nome do sentido"},
+    {n:"block_id",ty:"text",nn:true,d:"bloco de serviço do veículo"},
+    {n:"shape_id",ty:"text",nn:true,d:"→ gtfs__shapes (traçado)"},
+    {n:"wheelchair_accessible",ty:"text",nn:true,d:"acessibilidade cadeirante"},
+    {n:"bikes_allowed",ty:"text",nn:true,d:"permite bicicleta"}, ...HK ]},
+  gtfs__stop_times: { t:"raw.gtfs__stop_times", m:"GTFS · 13 campos · 6,2M", note:"Maior tabela do banco: horário de cada parada de cada viagem. Define a sequência de paradas (→ core.line_stop / pattern_stop).", fields:[
+    {n:"trip_id",ty:"text",nn:true,fk:true,d:"→ gtfs__trips (chave)"},
+    {n:"arrival_time",ty:"text",nn:true,d:"chegada (HH:MM:SS, pode passar de 24h)"},
+    {n:"departure_time",ty:"text",nn:true,d:"partida"},
+    {n:"stop_id",ty:"text",nn:true,fk:true,d:"→ gtfs__stops"},
+    {n:"stop_sequence",ty:"text",nn:true,d:"ordem da parada na viagem"},
+    {n:"stop_headsign",ty:"text",nn:true,d:"letreiro nesta parada"},
+    {n:"pickup_type",ty:"text",nn:true,d:"tipo de embarque"},
+    {n:"drop_off_type",ty:"text",nn:true,d:"tipo de desembarque"},
+    {n:"shape_dist_traveled",ty:"text",nn:true,d:"distância acumulada no shape"},
+    {n:"timepoint",ty:"text",nn:true,d:"é ponto de controle de horário"}, ...HK ]},
+  gtfs__stops: { t:"raw.gtfs__stops", m:"GTFS · 16 campos · 9.650", note:"Pontos do GTFS (lat/lon WGS84). Promove → core.stop; reconciliado por KNN ≤50m com pbh__ponto_onibus.", fields:[
+    {n:"stop_id",ty:"text",nn:true,pk:true,d:"id do ponto GTFS (chave; → core.stop)"},
+    {n:"stop_code",ty:"text",nn:true,d:"código público do ponto"},
+    {n:"stop_name",ty:"text",nn:true,d:"nome do ponto"},
+    {n:"stop_desc",ty:"text",nn:true,d:"descrição"},
+    {n:"stop_lat",ty:"text",nn:true,d:"latitude WGS84 (4326)"},
+    {n:"stop_lon",ty:"text",nn:true,d:"longitude WGS84 (4326)"},
+    {n:"zone_id",ty:"text",nn:true,d:"zona tarifária"},
+    {n:"stop_url",ty:"text",nn:true,d:"URL do ponto"},
+    {n:"location_type",ty:"text",nn:true,d:"0=parada 1=estação"},
+    {n:"parent_station",ty:"text",nn:true,d:"estação-mãe"},
+    {n:"stop_timezone",ty:"text",nn:true,d:"fuso do ponto"},
+    {n:"wheelchair_boarding",ty:"text",nn:true,d:"acessibilidade"},
+    {n:"platform_code",ty:"text",nn:true,d:"código da plataforma"}, ...HK ]},
+  gtfs__shapes: { t:"raw.gtfs__shapes", m:"GTFS · 8 campos · 231.530", note:"Pontos do traçado de cada shape (linha geográfica). Agrupados por shape_id viram o LINESTRING do core.line_shape.", fields:[
+    {n:"shape_id",ty:"text",nn:true,pk:true,d:"id do traçado (chave)"},
+    {n:"shape_pt_lat",ty:"text",nn:true,d:"latitude do ponto WGS84"},
+    {n:"shape_pt_lon",ty:"text",nn:true,d:"longitude do ponto WGS84"},
+    {n:"shape_pt_sequence",ty:"text",nn:true,d:"ordem do ponto no traçado"},
+    {n:"shape_dist_traveled",ty:"text",nn:true,d:"distância acumulada"}, ...HK ]},
+  gtfs__calendar: { t:"raw.gtfs__calendar", m:"GTFS · 14 campos · 14", note:"Calendário de serviço: quais dias da semana cada service_id opera + janela de vigência. Base do service_type (util|sab|dom).", fields:[
+    {n:"service_id",ty:"text",nn:true,pk:true,d:"id do serviço (chave; → gtfs__trips)"},
+    {n:"service_name",ty:"text",nn:true,d:"nome do serviço"},
+    {n:"monday",ty:"text",nn:true,d:"opera segunda (0/1)"},
+    {n:"tuesday",ty:"text",nn:true,d:"opera terça"},
+    {n:"wednesday",ty:"text",nn:true,d:"opera quarta"},
+    {n:"thursday",ty:"text",nn:true,d:"opera quinta"},
+    {n:"friday",ty:"text",nn:true,d:"opera sexta"},
+    {n:"saturday",ty:"text",nn:true,d:"opera sábado"},
+    {n:"sunday",ty:"text",nn:true,d:"opera domingo"},
+    {n:"start_date",ty:"text",nn:true,d:"início de vigência"},
+    {n:"end_date",ty:"text",nn:true,d:"fim de vigência"}, ...HK ]},
+  gtfs__calendar_dates: { t:"raw.gtfs__calendar_dates", m:"GTFS · 6 campos", note:"Exceções ao calendário (feriado, operação extra). exception_type 1=adiciona 2=remove serviço numa data.", fields:[
+    {n:"service_id",ty:"text",nn:true,fk:true,d:"→ gtfs__calendar"},
+    {n:"date",ty:"text",nn:true,d:"data da exceção (YYYYMMDD)"},
+    {n:"exception_type",ty:"text",nn:true,d:"1=adiciona · 2=remove serviço"}, ...HK ]},
+  gtfs__agency: { t:"raw.gtfs__agency", m:"GTFS · 10 campos", note:"Operadoras do consórcio (route.agency_id → agency). Metadado; não entra no score.", fields:[
+    {n:"agency_id",ty:"text",nn:true,pk:true,d:"id da operadora (chave)"},
+    {n:"agency_name",ty:"text",nn:true,d:"nome da operadora"},
+    {n:"agency_url",ty:"text",nn:true,d:"site"},
+    {n:"agency_timezone",ty:"text",nn:true,d:"fuso horário"},
+    {n:"agency_lang",ty:"text",nn:true,d:"idioma"},
+    {n:"agency_phone",ty:"text",nn:true,d:"telefone"},
+    {n:"agency_fare_url",ty:"text",nn:true,d:"URL de tarifa"}, ...HK ]},
+  gtfs__feed_info: { t:"raw.gtfs__feed_info", m:"GTFS · 11 campos · 1", note:"Metadado do feed (1 linha): editor, versão e janela do feed GTFS. Usado p/ rastrear a versão da fonte.", fields:[
+    {n:"feed_publisher_name",ty:"text",nn:true,d:"editor do feed"},
+    {n:"feed_publisher_url",ty:"text",nn:true,d:"site do editor"},
+    {n:"feed_contact_email",ty:"text",nn:true,d:"contato"},
+    {n:"feed_contact_url",ty:"text",nn:true,d:"URL de contato"},
+    {n:"feed_lang",ty:"text",nn:true,d:"idioma do feed"},
+    {n:"feed_start_date",ty:"text",nn:true,d:"início da vigência do feed"},
+    {n:"feed_end_date",ty:"text",nn:true,d:"fim da vigência"},
+    {n:"feed_version",ty:"text",nn:true,pk:true,d:"versão do feed (chave)"}, ...HK ]},
+  gtfs__fare_attributes: { t:"raw.gtfs__fare_attributes", m:"GTFS · 10 campos", note:"Atributos de tarifa por fare_id (preço, moeda, transferências). Metadado tarifário; não usado no score.", fields:[
+    {n:"fare_id",ty:"text",nn:true,pk:true,d:"id da tarifa (chave)"},
+    {n:"price",ty:"text",nn:true,d:"valor"},
+    {n:"currency_type",ty:"text",nn:true,d:"moeda (BRL)"},
+    {n:"payment_method",ty:"text",nn:true,d:"forma de pagamento"},
+    {n:"transfers",ty:"text",nn:true,d:"nº de transferências permitidas"},
+    {n:"transfer_duration",ty:"text",nn:true,d:"janela de transferência (s)"},
+    {n:"agency_id",ty:"text",nn:true,fk:true,d:"→ gtfs__agency"}, ...HK ]},
+  gtfs__fare_rules: { t:"raw.gtfs__fare_rules", m:"GTFS · 8 campos", note:"Regras que associam tarifa a rota/zona. Metadado tarifário.", fields:[
+    {n:"fare_id",ty:"text",nn:true,fk:true,d:"→ gtfs__fare_attributes"},
+    {n:"route_id",ty:"text",nn:true,fk:true,d:"→ gtfs__routes"},
+    {n:"origin_id",ty:"text",nn:true,d:"zona de origem"},
+    {n:"destination_id",ty:"text",nn:true,d:"zona de destino"},
+    {n:"contains_id",ty:"text",nn:true,d:"zona contida"}, ...HK ]},
+  gtfs__translations: { t:"raw.gtfs__translations", m:"GTFS · 8 campos", note:"Traduções i18n de campos do GTFS (table/field/record → translation). Metadado.", fields:[
+    {n:"table_name",ty:"text",nn:true,d:"tabela traduzida"},
+    {n:"field_name",ty:"text",nn:true,d:"campo traduzido"},
+    {n:"record_id",ty:"text",nn:true,d:"id do registro alvo"},
+    {n:"language",ty:"text",nn:true,d:"idioma"},
+    {n:"translation",ty:"text",nn:true,d:"texto traduzido"}, ...HK ]},
+
+  // ── Censo 2022 ────────────────────────────────────────
+  censo__renda_responsavel_bh: { t:"raw.censo__renda_responsavel_bh", m:"Censo · 10 campos · 5.137", note:"Renda do RESPONSÁVEL pelo domicílio por setor (Censo 2022). v06004 (média) é a âncora de renda do core.census_sector. Junta por cd_setor.", fields:[
+    {n:"cd_setor",ty:"text",nn:true,pk:true,d:"código do setor censitário (chave de junção)"},
+    {n:"v06001",ty:"text",nn:true,d:"pessoas responsáveis em DPP ocupados"},
+    {n:"v06002",ty:"text",nn:true,d:"moradores em DPP ocupados"},
+    {n:"v06003",ty:"text",nn:true,d:"variância do nº de moradores"},
+    {n:"v06004",ty:"text",nn:true,fk:true,d:"renda nominal MÉDIA do responsável (R$) — âncora de renda → core.census_sector.renda_media_resp"},
+    {n:"v06005",ty:"text",nn:true,d:"variância do rendimento"},
+    {n:"v06006",ty:"text",nn:true,d:"renda nominal MEDIANA do responsável (R$)"}, ...HK ]},
+  censo__setores_bh: { t:"raw.censo__setores_bh", m:"Censo · 33 campos · 5.167", note:"Malha de setores censitários 2022 com hierarquia geográfica (bairro/distrito/regional) e geometria WKT em 4674. Promove → core.census_sector (4674→31983).", fields:[
+    {n:"cd_setor",ty:"text",nn:true,pk:true,d:"código do setor (chave de junção)"},
+    {n:"situacao",ty:"text",nn:true,d:"situação (urbano/rural)"},
+    {n:"area_km2",ty:"text",nn:true,d:"área do setor (km²)"},
+    {n:"nm_bairro",ty:"text",nn:true,d:"bairro"},
+    {n:"nm_dist",ty:"text",nn:true,d:"distrito"},
+    {n:"nm_subdist",ty:"text",nn:true,d:"subdistrito"},
+    {n:"nm_regiao",ty:"text",nn:true,d:"região"},
+    {n:"nm_mun",ty:"text",nn:true,d:"município"},
+    {n:"geometria",ty:"text",nn:true,fk:true,d:"WKT POLYGON em EPSG:4674 (SIRGAS2000 geográfico) — coords cruas, reprojetadas no core"},
+    {n:"…cd_*/nm_*",ty:"text",nn:true,d:"+18 colunas de códigos/nomes da hierarquia IBGE (uf/mun/dist/subdist/bairro/nu/fcu/aglom/rgint/rgi/concurb)"}, ...HK ]},
+  censo__agregados_basico_bh: { t:"raw.censo__agregados_basico_bh", m:"Censo · 41 campos · 5.166", note:"Agregados básicos do Censo 2022 por setor (população, domicílios via v0001…v0009) + mesma hierarquia geográfica. Junta por cd_setor.", fields:[
+    {n:"cd_setor",ty:"text",nn:true,pk:true,d:"código do setor (chave de junção)"},
+    {n:"nm_bairro",ty:"text",nn:true,d:"bairro"},
+    {n:"area_km2",ty:"text",nn:true,d:"área do setor (km²)"},
+    {n:"v0001",ty:"text",nn:true,d:"variável agregada IBGE (decimal vírgula) — população residente"},
+    {n:"v0002",ty:"text",nn:true,d:"variável agregada IBGE — ver dicionário Censo 2022"},
+    {n:"v0003",ty:"text",nn:true,d:"variável agregada IBGE"},
+    {n:"v0004",ty:"text",nn:true,d:"variável agregada IBGE"},
+    {n:"v0005",ty:"text",nn:true,d:"variável agregada IBGE — domicílios"},
+    {n:"v0006",ty:"text",nn:true,d:"variável agregada IBGE"},
+    {n:"v0007",ty:"text",nn:true,d:"variável agregada IBGE"},
+    {n:"v0008",ty:"text",nn:true,d:"variável agregada IBGE"},
+    {n:"v0009",ty:"text",nn:true,d:"variável agregada IBGE"},
+    {n:"…cd_*/nm_*",ty:"text",nn:true,d:"+17 colunas de hierarquia IBGE (igual a censo__setores_bh)"}, ...HK ]},
+
+  // ── PBH ───────────────────────────────────────────────
+  pbh__mco_consolidado: { t:"raw.pbh__mco_consolidado", m:"PBH · 24 campos · 815.887", note:"MCO consolidado: cada viagem operada com volume de usuários, veículo e tipo de dia. Casa com core.line por linha↔short_name (~99%); base do line_demand_daily.", fields:[
+    {n:"viagem",ty:"text",nn:true,pk:true,d:"id da viagem (chave)"},
+    {n:"linha",ty:"text",nn:true,fk:true,d:"código da linha (junção com core.line.short_name)"},
+    {n:"sublinha",ty:"text",nn:true,d:"sublinha"},
+    {n:"pc",ty:"text",nn:true,d:"ponto de controle"},
+    {n:"concessionaria",ty:"text",nn:true,d:"concessionária"},
+    {n:"saida",ty:"text",nn:true,d:"horário de saída"},
+    {n:"veiculo",ty:"text",nn:true,d:"código do veículo (junção com core.vehicle)"},
+    {n:"chegada",ty:"text",nn:true,d:"horário de chegada"},
+    {n:"catraca_saida",ty:"text",nn:true,d:"leitura da catraca na saída"},
+    {n:"catraca_chegada",ty:"text",nn:true,d:"leitura da catraca na chegada"},
+    {n:"tipo_dia",ty:"text",nn:true,d:"tipo de dia (útil/sáb/dom)"},
+    {n:"extensao",ty:"text",nn:true,d:"extensão da viagem"},
+    {n:"total_usuarios",ty:"text",nn:true,d:"usuários transportados (volume)"},
+    {n:"empresa_operadora",ty:"text",nn:true,d:"empresa operadora"},
+    {n:"…",ty:"text",nn:true,d:"+ ocorrencia/justificativa/falha_mecanica/evento_inseguro/indicador_fechamento/data_fechamento/col"}, ...HK ]},
+  pbh__ponto_onibus: { t:"raw.pbh__ponto_onibus", m:"PBH · 10 campos · 70.100", note:"Pontos de ônibus PBH com geometria WKT POINT (31983). Reconciliado com gtfs__stops por KNN ≤50m → enriquece core.stop (siu, bairro).", fields:[
+    {n:"id_ponto_onibus_linha",ty:"text",nn:true,pk:true,d:"id do ponto×linha (chave)"},
+    {n:"cod_linha",ty:"text",nn:true,d:"código da linha"},
+    {n:"nome_linha",ty:"text",nn:true,d:"nome da linha"},
+    {n:"nome_sub_linha",ty:"text",nn:true,d:"nome da sublinha"},
+    {n:"origem",ty:"text",nn:true,d:"origem do itinerário"},
+    {n:"identificador_ponto_onibus",ty:"text",nn:true,d:"identificador do ponto (SIU/PED)"},
+    {n:"geometria",ty:"text",nn:true,fk:true,d:"WKT POINT em EPSG:31983 (UTM 23S) — coords cruas; junção com stop por KNN ≤50m"}, ...HK ]},
+  pbh__embarque_ped_sublinha: { t:"raw.pbh__embarque_ped_sublinha", m:"PBH · 39 campos · 61.226", note:"Embarque por ponto (PED) por hora (c_0…c_23) por sublinha. Base da curva horária (core.line_boarding_profile). Junta por siu / linha.", fields:[
+    {n:"siu",ty:"text",nn:true,pk:true,d:"código SIU do ponto (chave; junção com core.stop.siu)"},
+    {n:"linha",ty:"text",nn:true,fk:true,d:"código da linha (junção com short_name)"},
+    {n:"sublinha",ty:"text",nn:true,d:"sublinha"},
+    {n:"pc",ty:"text",nn:true,d:"ponto de controle"},
+    {n:"endereço_do_ponto",ty:"text",nn:true,d:"endereço do ponto"},
+    {n:"seq",ty:"text",nn:true,d:"sequência do ponto na linha"},
+    {n:"c_0…c_23",ty:"text",nn:true,d:"embarques por faixa horária (24 colunas, 0h…23h)"},
+    {n:"total_geral",ty:"text",nn:true,d:"total de embarques"},
+    {n:"latitude_wgs84",ty:"text",nn:true,d:"latitude WGS84"},
+    {n:"longitude_wgs84",ty:"text",nn:true,d:"longitude WGS84"},
+    {n:"x",ty:"text",nn:true,d:"X em UTM SIRGAS2000 (31983)"},
+    {n:"y",ty:"text",nn:true,d:"Y em UTM SIRGAS2000 (31983)"}, ...HK ]},
+  pbh__trecho_logradouro: { t:"raw.pbh__trecho_logradouro", m:"PBH · 12 campos · 55.143", note:"Malha viária PBH (trechos com geometria LINESTRING). Promove → core.road_segment; largura+tipo viram o proxy classe_arterial.", fields:[
+    {n:"id_trecho_logradouro",ty:"text",nn:true,pk:true,d:"id do trecho (chave)"},
+    {n:"id_logradouro",ty:"text",nn:true,d:"id do logradouro"},
+    {n:"sigla_tipo_logradouro",ty:"text",nn:true,d:"sigla do tipo (AV/R/ROD)"},
+    {n:"desc_sigla_tipo_lograd",ty:"text",nn:true,d:"tipo por extenso (AVENIDA/RUA/RODOVIA)"},
+    {n:"nome_logradouro",ty:"text",nn:true,d:"nome da via"},
+    {n:"comprimento",ty:"text",nn:true,d:"comprimento do trecho (m)"},
+    {n:"largura",ty:"text",nn:true,d:"largura da via (m) — entra no proxy arterial"},
+    {n:"situacao",ty:"text",nn:true,d:"situação do trecho"},
+    {n:"geometria",ty:"text",nn:true,fk:true,d:"WKT LINESTRING em EPSG:31983 (coords cruas)"}, ...HK ]},
+  pbh__estacao_onibus: { t:"raw.pbh__estacao_onibus", m:"PBH · 13 campos · 52", note:"Estações/terminais do MOVE e troncais com geometria WKT (31983). Contexto de inventário; não entra no score do corredor.", fields:[
+    {n:"id_estpb",ty:"text",nn:true,pk:true,d:"id da estação (chave)"},
+    {n:"nome",ty:"text",nn:true,d:"nome da estação"},
+    {n:"tipo",ty:"text",nn:true,d:"tipo de estação"},
+    {n:"corredor_move",ty:"text",nn:true,d:"corredor MOVE"},
+    {n:"eixo_move",ty:"text",nn:true,d:"eixo MOVE"},
+    {n:"sistema_troncal",ty:"text",nn:true,d:"sistema troncal"},
+    {n:"integracao_fisica_metro",ty:"text",nn:true,d:"integração física com metrô"},
+    {n:"situacao",ty:"text",nn:true,d:"situação"},
+    {n:"gestor",ty:"text",nn:true,d:"gestor"},
+    {n:"geometria",ty:"text",nn:true,fk:true,d:"WKT em EPSG:31983 (coords cruas)"}, ...HK ]},
+  pbh__regional: { t:"raw.pbh__regional", m:"PBH · 7 campos · 9", note:"As 9 regionais administrativas de BH com geometria MultiPolygon (31983). Promove → core.regional; usada na herança de regional do setor/ponto.", fields:[
+    {n:"nome",ty:"text",nn:true,pk:true,d:"nome da regional (chave; 9 de BH)"},
+    {n:"geometria",ty:"text",nn:true,fk:true,d:"WKT MultiPolygon em EPSG:31983 (sem SRID embutido; normalizer faz ST_SetSRID 31983)"},
+    {n:"n_setores",ty:"text",nn:true,d:"nº de setores na regional"},
+    {n:"area_km2",ty:"text",nn:true,d:"área (km²)"}, ...HK ]},
+  pbh__velocidade_corredores: { t:"raw.pbh__velocidade_corredores", m:"PBH · 11 campos · 257.214", note:"Amostras de velocidade nos corredores por via/sentido/horário (lat/long com vírgula decimal). Insumo de velocidade real (F2).", fields:[
+    {n:"id",ty:"text",nn:true,pk:true,d:"id da amostra (chave)"},
+    {n:"codigo",ty:"text",nn:true,d:"código do corredor"},
+    {n:"via",ty:"text",nn:true,d:"via medida"},
+    {n:"sentido",ty:"text",nn:true,d:"sentido"},
+    {n:"horário",ty:"text",nn:true,d:"horário da amostra"},
+    {n:"lat",ty:"text",nn:true,d:"latitude WGS84 (graus decimais com vírgula)"},
+    {n:"long",ty:"text",nn:true,d:"longitude WGS84 (graus decimais com vírgula)"},
+    {n:"col",ty:"text",nn:true,d:"coluna extra (cabeçalho vazio)"}, ...HK ]},
+  pbh__fiscalizacao_eletronica: { t:"raw.pbh__fiscalizacao_eletronica", m:"PBH · 12 campos · 287", note:"Radares/controladores de trânsito com velocidade regulamentar e geometria POINT (31983). Contexto de via/velocidade regulamentar.", fields:[
+    {n:"id_fiscalizacao_eletronica",ty:"text",nn:true,pk:true,d:"id do equipamento (chave)"},
+    {n:"desc_loc_controlador_transito",ty:"text",nn:true,d:"local do controlador"},
+    {n:"desc_tipo_controlador_transito",ty:"text",nn:true,d:"tipo de controlador (radar/lombada)"},
+    {n:"velocidade_regulamentar",ty:"text",nn:true,d:"velocidade regulamentar (km/h)"},
+    {n:"sentido",ty:"text",nn:true,d:"sentido"},
+    {n:"sentido_fiscalizado",ty:"text",nn:true,d:"sentido fiscalizado"},
+    {n:"num_serie_atual",ty:"text",nn:true,d:"nº de série"},
+    {n:"cod_secundaria",ty:"text",nn:true,d:"código secundário"},
+    {n:"geometria",ty:"text",nn:true,fk:true,d:"WKT POINT em EPSG:31983 (coords cruas)"}, ...HK ]},
+  pbh__matriz_od: { t:"raw.pbh__matriz_od", m:"PBH · 11 campos · 1.203.389", note:"Matriz O-D de bilhetagem: cada viagem com origem/destino em hexágono H3. Base do core.od_trip / exposure_cell / reach. Junta H3 → setor/hex.", fields:[
+    {n:"id_usuario",ty:"text",nn:true,pk:true,d:"id do cartão (chave; dedup de reach)"},
+    {n:"tipo_cartao",ty:"text",nn:true,d:"tipo de cartão"},
+    {n:"data",ty:"text",nn:true,d:"data da viagem"},
+    {n:"faixa_horaria_origem",ty:"text",nn:true,d:"faixa horária da origem"},
+    {n:"h3_origem",ty:"text",nn:true,fk:true,d:"índice H3 de origem (junção H3 → core.h3_cell)"},
+    {n:"h3_destino",ty:"text",nn:true,fk:true,d:"índice H3 de destino"},
+    {n:"geometria_origem",ty:"text",nn:true,d:"WKT MULTIPOLYGON do hexágono de origem (31983)"},
+    {n:"geometria_destino",ty:"text",nn:true,d:"WKT MULTIPOLYGON do hexágono de destino (31983)"}, ...HK ]},
+  pbh__pesq_movimentacao_sobe_desce: { t:"raw.pbh__pesq_movimentacao_sobe_desce", m:"PBH · 18 campos", note:"Pesquisa de campo embarca/desembarca por PED (sobe/desce, saldo) por linha/rota. Insumo de perfil de carregamento.", fields:[
+    {n:"linha_sublinha",ty:"text",nn:true,pk:true,d:"linha/sublinha (chave)"},
+    {n:"servico",ty:"text",nn:true,d:"serviço"},
+    {n:"consorcio",ty:"text",nn:true,d:"consórcio"},
+    {n:"data_pesquisa",ty:"text",nn:true,d:"data da pesquisa"},
+    {n:"dia_semana",ty:"text",nn:true,d:"dia da semana"},
+    {n:"rota",ty:"text",nn:true,d:"rota"},
+    {n:"hora_viagem",ty:"text",nn:true,d:"hora da viagem"},
+    {n:"sequencia_do_ped",ty:"text",nn:true,d:"sequência do PED"},
+    {n:"endereco_do_ped",ty:"text",nn:true,d:"endereço do PED"},
+    {n:"embarque",ty:"text",nn:true,d:"embarques"},
+    {n:"desembarque",ty:"text",nn:true,d:"desembarques"},
+    {n:"saldo",ty:"text",nn:true,d:"saldo (a bordo)"},
+    {n:"total_passageiros",ty:"text",nn:true,d:"total de passageiros"},
+    {n:"latitude",ty:"text",nn:true,d:"latitude do PED"},
+    {n:"longitude",ty:"text",nn:true,d:"longitude do PED"}, ...HK ]},
+  pbh__pesq_tempo_viagem: { t:"raw.pbh__pesq_tempo_viagem", m:"PBH · 13 campos", note:"Pesquisa de campo de tempo de viagem (programado vs real) por linha/rota. Insumo de velocidade/operação.", fields:[
+    {n:"linha_sublinha",ty:"text",nn:true,pk:true,d:"linha/sublinha (chave)"},
+    {n:"servico",ty:"text",nn:true,d:"serviço"},
+    {n:"consorcio",ty:"text",nn:true,d:"consórcio"},
+    {n:"data_pesquisa",ty:"text",nn:true,d:"data da pesquisa"},
+    {n:"dia_semana",ty:"text",nn:true,d:"dia da semana"},
+    {n:"rota",ty:"text",nn:true,d:"rota"},
+    {n:"hora_programada",ty:"text",nn:true,d:"hora programada"},
+    {n:"hora_inicio",ty:"text",nn:true,d:"início real"},
+    {n:"hora_termino",ty:"text",nn:true,d:"término real"},
+    {n:"tempo_viagem",ty:"text",nn:true,d:"tempo de viagem"}, ...HK ]},
+  pbh__pesq_fator_rotatividade: { t:"raw.pbh__pesq_fator_rotatividade", m:"PBH · 13 campos", note:"Pesquisa de campo de fator de rotatividade (renovação de passageiros por viagem) por linha/rota. Insumo de carregamento.", fields:[
+    {n:"linha_sublinha",ty:"text",nn:true,pk:true,d:"linha/sublinha (chave)"},
+    {n:"servico",ty:"text",nn:true,d:"serviço"},
+    {n:"consorcio",ty:"text",nn:true,d:"consórcio"},
+    {n:"data_pesquisa",ty:"text",nn:true,d:"data da pesquisa"},
+    {n:"dia_semana",ty:"text",nn:true,d:"dia da semana"},
+    {n:"rota",ty:"text",nn:true,d:"rota"},
+    {n:"hora_viagem",ty:"text",nn:true,d:"hora da viagem"},
+    {n:"total_passageiros",ty:"text",nn:true,d:"total de passageiros"},
+    {n:"maior_numero_passageiro_transportado",ty:"text",nn:true,d:"maior carga simultânea"},
+    {n:"fator_rotatividade",ty:"text",nn:true,d:"fator de rotatividade"}, ...HK ]},
+
+  // ── POI ───────────────────────────────────────────────
+  overture__poi: { t:"raw.overture__poi", m:"POI · 17 campos · 113.814", note:"POIs do Overture Maps (tipos nativos: double/json). Fonte primária do score (grupo_ooh). Unificado com fsq/osm em core.poi por geo+nome.", fields:[
+    {n:"overture_id",ty:"text",nn:true,pk:true,d:"id Overture (chave)"},
+    {n:"nome",ty:"text",nn:true,d:"nome do POI"},
+    {n:"categoria",ty:"text",nn:true,d:"categoria primária"},
+    {n:"lat",ty:"num",nn:true,d:"latitude (double precision)"},
+    {n:"lon",ty:"num",nn:true,d:"longitude (double precision)"},
+    {n:"endereco_locality",ty:"text",nn:true,d:"localidade"},
+    {n:"endereco_region",ty:"text",nn:true,d:"região/UF"},
+    {n:"endereco_postcode",ty:"text",nn:true,d:"CEP"},
+    {n:"telefones",ty:"text",nn:true,d:"telefones"},
+    {n:"websites",ty:"text",nn:true,d:"sites"},
+    {n:"emails",ty:"text",nn:true,d:"emails"},
+    {n:"social_medias_json",ty:"jsonb",nn:true,d:"redes sociais (JSON)"},
+    {n:"brand",ty:"text",nn:true,d:"marca/rede"},
+    {n:"confidence",ty:"num",nn:true,d:"confiança da fonte"},
+    {n:"categories_json",ty:"jsonb",nn:true,d:"categorias completas (JSON)"},
+    {n:"addresses_json",ty:"jsonb",nn:true,d:"endereços (JSON)"},
+    LOAD ]},
+  fsq__poi: { t:"raw.fsq__poi", m:"POI · 16 campos · 132.061", note:"POIs do Foursquare/FSQ (tipos nativos varchar/double/json). Fonte multi-fonte p/ prospecção; deduplicada em core.poi por geo+nome.", fields:[
+    {n:"fsq_place_id",ty:"text",nn:true,pk:true,d:"id FSQ (chave)"},
+    {n:"nome",ty:"text",nn:true,d:"nome do POI"},
+    {n:"lat",ty:"num",nn:true,d:"latitude (double precision)"},
+    {n:"lon",ty:"num",nn:true,d:"longitude (double precision)"},
+    {n:"address_line_1",ty:"text",nn:true,d:"endereço linha 1"},
+    {n:"address_line_2",ty:"text",nn:true,d:"endereço linha 2"},
+    {n:"locality",ty:"text",nn:true,d:"localidade"},
+    {n:"region",ty:"text",nn:true,d:"região/UF"},
+    {n:"postcode",ty:"text",nn:true,d:"CEP"},
+    {n:"phone",ty:"text",nn:true,d:"telefone"},
+    {n:"website",ty:"text",nn:true,d:"site"},
+    {n:"email",ty:"text",nn:true,d:"email"},
+    {n:"categorias_array",ty:"text",nn:true,d:"categorias (array de text)"},
+    {n:"categorias_json",ty:"jsonb",nn:true,d:"categorias (JSON)"},
+    {n:"confidence",ty:"num",nn:true,d:"confiança da fonte"},
+    LOAD ]},
+  osm__poi: { t:"raw.osm__poi", m:"POI · 13 campos · 2.478", note:"POIs do OpenStreetMap (tudo TEXT; tags como JSON cru). Fonte de complemento p/ prospecção; unificada em core.poi por geo+nome.", fields:[
+    {n:"osm_type",ty:"text",nn:true,pk:true,d:"tipo OSM (node/way/relation) — parte da chave"},
+    {n:"osm_id",ty:"text",nn:true,pk:true,d:"id OSM — parte da chave"},
+    {n:"categoria",ty:"text",nn:true,d:"categoria derivada"},
+    {n:"categorias_todas",ty:"text",nn:true,d:"todas as categorias"},
+    {n:"name",ty:"text",nn:true,d:"nome do POI"},
+    {n:"amenity",ty:"text",nn:true,d:"tag amenity"},
+    {n:"shop",ty:"text",nn:true,d:"tag shop"},
+    {n:"lat",ty:"text",nn:true,d:"latitude WGS84 (4326); way/relation = center"},
+    {n:"lon",ty:"text",nn:true,d:"longitude WGS84 (4326); way/relation = center"},
+    {n:"tags",ty:"text",nn:true,d:"todas as tags OSM como JSON (texto cru)"}, ...HK ]},
+
+  // ── RT (realtime) + meta ──────────────────────────────
+  rt__vehicle_position: { t:"raw.rt__vehicle_position", m:"RT · 11 campos · 5,7M (mãe)", note:"GTFS-RT: posição dos veículos. Tabela MÃE particionada por RANGE em _feed_timestamp. Base do snap RT (F2) → trip_pattern / face_reach.", fields:[
+    {n:"vehicle_id",ty:"text",nn:true,d:"id do veículo no feed RT (chave de junção com core.vehicle.vehicle_code)"},
+    {n:"trip_id",ty:"text",nn:true,d:"viagem corrente (→ gtfs__trips)"},
+    {n:"route_id",ty:"text",nn:true,d:"rota corrente (→ gtfs__routes)"},
+    {n:"lat",ty:"text",nn:true,d:"latitude WGS84"},
+    {n:"lon",ty:"text",nn:true,d:"longitude WGS84"},
+    {n:"bearing",ty:"text",nn:true,d:"rumo (graus)"},
+    {n:"current_stop_sequence",ty:"text",nn:true,d:"sequência da parada corrente"},
+    {n:"current_status",ty:"text",nn:true,d:"status (IN_TRANSIT/STOPPED…)"},
+    {n:"feed_timestamp",ty:"text",nn:true,d:"timestamp do feed (TEXT cru, fiel à fonte)"},
+    {n:"_feed_timestamp",ty:"timestamptz",d:"to_timestamp(header.timestamp) — TIMESTAMPTZ; desvio consciente do raw-100%-TEXT: é a chave de partição RANGE"},
+    {n:"ingested_at",ty:"timestamptz",d:"quando a linha foi ingerida"} ]},
+  rt__vehicle_position_p20260610: { t:"raw.rt__vehicle_position_pYYYYMMDD", m:"RT · 11 campos · partições diárias", note:"Partições RANGE da rt__vehicle_position, uma por dia (p20260610/11/12…). Mesmo schema da mãe; o realtime grava na mãe e o Postgres roteia pela data.", fields:[
+    {n:"(partição)",ty:"text",nn:true,d:"p20260610, p20260611, p20260612 — uma partição por dia (RANGE em _feed_timestamp)"},
+    {n:"vehicle_id",ty:"text",nn:true,d:"id do veículo no feed RT"},
+    {n:"trip_id",ty:"text",nn:true,d:"viagem corrente"},
+    {n:"route_id",ty:"text",nn:true,d:"rota corrente"},
+    {n:"lat",ty:"text",nn:true,d:"latitude WGS84"},
+    {n:"lon",ty:"text",nn:true,d:"longitude WGS84"},
+    {n:"bearing",ty:"text",nn:true,d:"rumo (graus)"},
+    {n:"current_stop_sequence",ty:"text",nn:true,d:"sequência da parada corrente"},
+    {n:"current_status",ty:"text",nn:true,d:"status"},
+    {n:"feed_timestamp",ty:"text",nn:true,d:"timestamp do feed (TEXT cru)"},
+    {n:"_feed_timestamp",ty:"timestamptz",d:"chave de partição (TIMESTAMPTZ)"},
+    {n:"ingested_at",ty:"timestamptz",d:"quando ingerida"} ]},
+  _manifest: { t:"raw._manifest", m:"meta · 5 campos", note:"Manifesto de carga da landing: contagem e checksum por tabela. ÚNICA tabela do raw com colunas NOT NULL (é controle, não dado de fonte).", fields:[
+    {n:"tabela",ty:"text",d:"nome da tabela carregada (chave)"},
+    {n:"n_linhas",ty:"int8",d:"nº de linhas carregadas"},
+    {n:"checksum",ty:"text",d:"checksum do conteúdo (detecção de mudança)"},
+    {n:"fontes",ty:"text",nn:true,d:"fontes/arquivos consolidados"},
+    {n:"registrado_em",ty:"timestamptz",d:"quando o manifesto foi registrado"} ]}
+};
+window.E2L = {
+  "e-routes-trips":"l-routes-trips",
+  "e-trips-stoptimes":"l-trips-stoptimes",
+  "e-stops-ponto":"l-stops-ponto",
+  "e-renda-setor":"l-renda-setor",
+  "e-mco-trips":"l-mco-trips",
+  "e-embarque-ponto":"l-embarque-ponto",
+  "e-od-setor":"l-od-setor"
+};
+window.FLOWS = {
+  gtfs: { name:"GTFS — feed estático da BHTrans",
+    edges:["e-routes-trips","e-trips-stoptimes","e-trips-shapes"],
+    nodes:["gtfs__routes","gtfs__trips","gtfs__stop_times","gtfs__stops","gtfs__shapes","gtfs__calendar","gtfs__calendar_dates","gtfs__agency","gtfs__feed_info","gtfs__fare_attributes","gtfs__fare_rules","gtfs__translations"],
+    steps:["<b>routes</b> (304) → <b>trips</b> (107k) → <b>stop_times</b> (6,2M, maior tabela) → <b>stops</b> (9.650)","<b>shapes</b> (231k pontos) viram o LINESTRING do core.line_shape; <b>calendar</b> define util|sab|dom","routes/trips/stops/shapes/calendar promovem → core.line/stop/line_shape; fare/agency/translations/feed_info são metadado"] },
+  censo: { name:"Censo 2022 — renda, pop e malha por setor",
+    edges:["e-renda-setor","e-agreg-setor"],
+    nodes:["censo__renda_responsavel_bh","censo__setores_bh","censo__agregados_basico_bh"],
+    steps:["<b>setores_bh</b> traz a malha (geom WKT 4674) + hierarquia bairro/regional","<b>renda_responsavel_bh.v06004</b> (renda média do responsável) é a âncora de renda","<b>agregados_basico_bh</b> (v0001…v0009) dá pop/domicílios. Tudo junta por <code>cd_setor</code> → core.census_sector (4674→31983)"] },
+  pbh: { name:"PBH — operação, demanda, via, O-D",
+    edges:["e-mco-trips","e-embarque-ponto","e-stops-ponto","e-od-setor"],
+    nodes:["pbh__mco_consolidado","pbh__ponto_onibus","pbh__embarque_ped_sublinha","pbh__trecho_logradouro","pbh__estacao_onibus","pbh__regional","pbh__velocidade_corredores","pbh__fiscalizacao_eletronica","pbh__matriz_od","pbh__pesq_movimentacao_sobe_desce","pbh__pesq_tempo_viagem","pbh__pesq_fator_rotatividade"],
+    steps:["<b>mco_consolidado</b> (816k) casa com core.line por linha↔short_name → line_demand_daily; <b>embarque_ped_sublinha</b> (c_0…c_23) dá a curva horária","<b>ponto_onibus</b> reconcilia com gtfs__stops por geo KNN ≤50m; <b>trecho_logradouro</b> → core.road_segment (proxy arterial)","<b>matriz_od</b> (1,2M, bilhetagem H3) → core.od_trip/exposure/reach; <b>velocidade_corredores</b> + pesq_* alimentam velocidade/carregamento"] },
+  poi: { name:"POI — 3 fontes unificadas",
+    edges:[],
+    nodes:["overture__poi","fsq__poi","osm__poi"],
+    steps:["<b>overture__poi</b> (114k) é a fonte primária do score (grupo_ooh)","<b>fsq__poi</b> (132k) e <b>osm__poi</b> (2,5k) entram p/ prospecção multi-fonte","As 3 são unificadas e deduplicadas em core.poi por geo+nome (link_grupo_id)"] },
+  rt: { name:"RT — GTFS-RT particionado por dia",
+    edges:[],
+    nodes:["rt__vehicle_position","rt__vehicle_position_p20260610","_manifest"],
+    steps:["<b>rt__vehicle_position</b> (mãe, 5,7M) é particionada por RANGE em <code>_feed_timestamp</code>","As partições <b>pYYYYMMDD</b> (uma por dia) recebem o roteamento do Postgres — vehicle_id casa com core.vehicle.vehicle_code","<b>_manifest</b> é a única tabela NOT NULL: controle de carga (n_linhas, checksum) da landing"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

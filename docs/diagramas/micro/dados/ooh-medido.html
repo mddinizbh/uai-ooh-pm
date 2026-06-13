@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ooh · schema medido — ER</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>ooh · medido — entidades (fatos RT)</h1>
+    <div class="sub">fatos do mundo real (F2) · dono = trip-consolidator (Flyway) · fato puro</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="viagem">Fato viagem</button>
+    <button class="chip" data-flow="cobertura">Cobertura (grão)</button>
+    <button class="chip" data-flow="replay">Traçado / replay</button>
+    <button class="chip" data-flow="velocidade">Velocidade · v_real</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="postgres-ooh.html">← postgres-ooh</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="legend" id="legend">
+  <h4>Como ler</h4>
+  <div class="row"><span class="sw store"></span> tabela — clique abre <b>todos os campos + descrição</b></div>
+  <div class="row"><span class="dotsw" style="background:var(--clay)"></span> 🔑 chave primária (PK)</div>
+  <div class="row"><span style="width:22px;border-top:1.6px solid var(--muted);display:inline-block"></span> join lógico (rótulo = chave)</div>
+  <div class="hint">schema <code>medido</code> = <b>fato puro</b> do RT: sem <code>campaign_id</code>/<code>divergencia</code> (F2-#5). <code>viagem_id</code> liga <b>viagem</b> → hex/track/parada. <code>v_real</code> alimenta <code>core.pattern_stop_exposure</code>.</div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1200 760" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagrama ER do schema medido">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <!-- grupos / lanes -->
+  <g class="zone"><rect x="24" y="92" width="268" height="636" rx="14"/><text class="ztitle" x="40" y="120">Fato viagem (raiz)</text></g>
+  <g class="zone"><rect x="312" y="92" width="268" height="636" rx="14"/><text class="ztitle" x="328" y="120">Cobertura (grão face-centric)</text></g>
+  <g class="zone"><rect x="600" y="92" width="268" height="636" rx="14"/><text class="ztitle" x="616" y="120">Traçado (replay)</text></g>
+  <g class="zone"><rect x="888" y="92" width="288" height="636" rx="14"/><text class="ztitle" x="904" y="120">Velocidade na parada</text></g>
+
+  <!-- joins (rotulados pela chave) -->
+  <path class="edge" id="j-v-hex" d="M280,250 C 300,250 304,250 324,250"/>
+  <path class="edge" id="j-v-track" d="M280,320 C 360,400 380,400 460,400 C 600,400 700,400 700,310"/>
+  <path class="edge" id="j-v-parada" d="M280,300 C 380,440 500,440 600,440 C 760,440 980,440 980,310"/>
+  <path class="edge" id="j-parada-pse" d="M1032,306 C 1032,420 1032,520 1032,620"/>
+
+  <text class="elbl" id="le-v-hex" x="302" y="242">viagem_id</text>
+  <text class="elbl" id="le-v-track" x="440" y="395">viagem_id</text>
+  <text class="elbl" id="le-v-parada" x="560" y="435">viagem_id</text>
+  <text class="elbl" id="le-parada-pse" x="1040" y="468">v_real</text>
+
+  <!-- ── Fato viagem ───────────────────────── -->
+  <g class="node table" data-k="viagem"><rect x="36" y="150" width="244" height="180" rx="9"/><text class="th" x="50" y="172">viagem</text><text class="pk" x="50" y="192">🔑 viagem_id</text><text class="m" x="50" y="209">vehicle_code · trip_id_rt</text><text class="m" x="50" y="224">line_id · pattern_id</text><text class="m" x="50" y="239">service_date · started_at</text><text class="m" x="50" y="254">ended_at · close_reason</text><text class="m" x="50" y="269">km · completude</text><text class="m" x="50" y="284">pontos_servidos</text><text class="n" x="50" y="301">12 campos · 8.528 viagens</text></g>
+
+  <!-- ── Cobertura ─────────────────────────── -->
+  <g class="node table" data-k="viagem_hex"><rect x="324" y="150" width="244" height="180" rx="9"/><text class="th" x="338" y="172">viagem_hex</text><text class="pk" x="338" y="192">🔑 viagem_id·h3_index·faixa</text><text class="m" x="338" y="209">viagem_id ↗ · h3_index</text><text class="m" x="338" y="224">faixa_horaria (0–23)</text><text class="m" x="338" y="239">entrou_em · saiu_em</text><text class="m" x="338" y="254">dwell_s · fonte</text><text class="m" x="338" y="269">grão que o recompute lê</text><text class="n" x="338" y="290">7 campos · 287.826</text></g>
+
+  <!-- ── Traçado ───────────────────────────── -->
+  <g class="node table" data-k="viagem_track"><rect x="612" y="150" width="244" height="156" rx="9"/><text class="th" x="626" y="172">viagem_track</text><text class="pk" x="626" y="192">🔑 viagem_id·seq</text><text class="m" x="626" y="209">viagem_id ↗ · seq</text><text class="m" x="626" y="224">ts · lat · lon</text><text class="m" x="626" y="239">ponto a ponto p/ replay</text><text class="m" x="626" y="254">downsampled (~1/30s)</text><text class="n" x="626" y="271">5 campos · 359.800</text></g>
+
+  <!-- ── Velocidade na parada ──────────────── -->
+  <g class="node table" data-k="parada_velocidade"><rect x="900" y="150" width="264" height="156" rx="9"/><text class="th" x="914" y="172">parada_velocidade</text><text class="pk" x="914" y="192">🔑 viagem_id·stop_sequence</text><text class="m" x="914" y="209">viagem_id ↗ · stop_id</text><text class="m" x="914" y="224">stop_sequence</text><text class="m" x="914" y="239">v_real (km/h medida)</text><text class="m" x="914" y="254">agrega → pattern_stop_exposure</text><text class="n" x="914" y="271">4 campos · 226.395</text></g>
+
+  <!-- alvo do v_real no core (referência externa) -->
+  <g class="node table" data-k="pattern_stop_exposure"><rect x="900" y="620" width="264" height="96" rx="9"/><text class="th" x="914" y="642">core.pattern_stop_exposure</text><text class="pk" x="914" y="662">🔑 stop_id·faixa_horaria</text><text class="m" x="914" y="678">v_real (mediana medida) ↗</text><text class="m" x="914" y="693">consumidor do v_real (lane 06)</text><text class="n" x="914" y="709">6 campos · no schema core</text></g>
+</svg>
+
+  <div class="src">banco ooh · schema medido · introspecção MCP + V1__medido_schema.sql (trip-consolidator) · jun/2026</div>
+
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique numa tabela</h3>
+    <div class="meta" id="d-meta">todos os campos + descrição</div>
+    <p id="d-body">Diagrama ER do schema <b>medido</b> (fatos do mundo real, F2). <b>Fato puro</b>: sem <code>campaign_id</code> nem <code>divergencia</code> (F2-#5). Cada card mostra a PK e campos-chave; <b>clique</b> abre <b>todos os campos com tipo e descrição</b>. Setas = joins lógicos por <code>viagem_id</code>; <code>v_real</code> alimenta <code>core.pattern_stop_exposure</code>.</p>
+  </div>
+</div>
+
+<script>
+const VID = { n:"viagem_id", ty:"uuid", pk:true, fk:true, d:"→ medido.viagem (ON DELETE CASCADE) — raiz que liga hex/track/parada" };
+window.DETAIL = {
+  viagem: { t:"medido.viagem", m:"1 linha/viagem · 12 campos · 8.528", note:"O FATO da viagem (vive pra sempre). Reprocesso seguro por UNIQUE (vehicle_code, trip_id_rt, service_date, started_at) → ON CONFLICT DO NOTHING. line_id resolvido do RT (route_id→core.line) no close-time snap; core é só-leitura.", fields:[
+    {n:"viagem_id",ty:"uuid",pk:true,d:"PK (gen_random_uuid()); raiz dos joins do schema"},
+    {n:"vehicle_code",ty:"text",d:"= vehicle.id do feed RT (F2-#8); casa com core.vehicle.vehicle_code"},
+    {n:"trip_id_rt",ty:"text",d:"trip_id cru do GTFS-RT"},
+    {n:"line_id",ty:"text",nn:true,d:"do RT (route_id→core.line); NULL = padrão desconhecido"},
+    {n:"pattern_id",ty:"text",nn:true,d:"padrão de viagem resolvido (→ core.trip_pattern); pode ser NULL"},
+    {n:"service_date",ty:"date",d:"dia de serviço da viagem"},
+    {n:"started_at",ty:"timestamptz",d:"início da viagem (compõe a UNIQUE de reprocesso)"},
+    {n:"ended_at",ty:"timestamptz",d:"fim da viagem"},
+    {n:"close_reason",ty:"text",d:"motivo do fechamento (TripCloseReason: chegou ao terminal, timeout, etc.)"},
+    {n:"km",ty:"num",nn:true,d:"distância percorrida (km)"},
+    {n:"completude",ty:"num",nn:true,d:"0..1 — fração coberta; viagem parcial fecha com < 1"},
+    {n:"pontos_servidos",ty:"int",nn:true,d:"nº de paradas efetivamente servidas"} ]},
+  viagem_hex: { t:"medido.viagem_hex", m:"cobertura · grão face-centric · 7 · 287.826", note:"A COBERTURA — o grão que o recompute (lane 06) consome (F2-#3). Cada linha = um hex H3 (res 9) tocado pela viagem numa faixa horária. fonte distingue ping real de interpolação entre pings.", fields:[
+    VID,
+    {n:"h3_index",ty:"text",pk:true,d:"índice H3 res 9 (→ core.h3_cell)"},
+    {n:"faixa_horaria",ty:"int2",pk:true,d:"0..23 (hora local da passagem pelo hex)"},
+    {n:"entrou_em",ty:"timestamptz",nn:true,d:"timestamp de entrada no hex"},
+    {n:"saiu_em",ty:"timestamptz",nn:true,d:"timestamp de saída do hex"},
+    {n:"dwell_s",ty:"num",nn:true,d:"tempo de permanência no hex (segundos)"},
+    {n:"fonte",ty:"text",d:"'ping' (medido) | 'interpolado' (entre pings)"} ]},
+  viagem_track: { t:"medido.viagem_track", m:"traçado p/ replay · 5 · 359.800", note:"Track downsampled (~1/30s; na prática ≈ todos os pings, pois a cadência do feed > 30s). Usado para replay/visualização da trajetória, não para o recompute.", fields:[
+    VID,
+    {n:"seq",ty:"int",pk:true,d:"ordem do ponto na trajetória da viagem"},
+    {n:"ts",ty:"timestamptz",d:"timestamp do ponto"},
+    {n:"lat",ty:"num",nn:true,d:"latitude (WGS84) do ping"},
+    {n:"lon",ty:"num",nn:true,d:"longitude (WGS84) do ping"} ]},
+  parada_velocidade: { t:"medido.parada_velocidade", m:"v_real por parada · 4 · 226.395", note:"Velocidade real por parada da viagem; o pipeline agrega (mediana por stop_id×faixa) pro modelo em core.pattern_stop_exposure (lane 06).", fields:[
+    VID,
+    {n:"stop_id",ty:"text",d:"ponto servido (→ core.stop)"},
+    {n:"stop_sequence",ty:"int",pk:true,d:"ordem da parada na viagem (compõe a PK)"},
+    {n:"v_real",ty:"num",nn:true,d:"velocidade REAL medida na parada (km/h); alimenta core.pattern_stop_exposure.v_real"} ]},
+  "pattern_stop_exposure": { t:"core.pattern_stop_exposure", m:"alvo do v_real (schema core) · 6 · 3.013", note:"NÃO é do schema medido — é o consumidor. v_real = mediana de medido.parada_velocidade.v_real por (stop_id, faixa). MEDIDO (ADR-058).", fields:[
+    {n:"stop_id",ty:"text",pk:true,fk:true,d:"→ core.stop"},
+    {n:"faixa_horaria",ty:"int2",pk:true,d:"0–23"},
+    {n:"v_real",ty:"num",nn:true,d:"mediana de medido.parada_velocidade.v_real por (stop_id,faixa)"},
+    {n:"n_amostras",ty:"int",d:"nº de amostras agregadas"},
+    {n:"metodo",ty:"text",d:"medida"},
+    {n:"version_id",ty:"int",d:"FK lógica → core.dataset_version"} ]}
+};
+window.E2L = { "j-v-hex":"le-v-hex","j-v-track":"le-v-track","j-v-parada":"le-v-parada","j-parada-pse":"le-parada-pse" };
+window.FLOWS = {
+  viagem: { name:"Fato viagem — a raiz do schema medido",
+    edges:["j-v-hex","j-v-track","j-v-parada"],
+    nodes:["viagem","viagem_hex","viagem_track","parada_velocidade"],
+    steps:["<b>viagem</b> (8.528) é 1 linha por viagem fechada — o FATO que vive pra sempre","UNIQUE (vehicle_code, trip_id_rt, service_date, started_at) ⇒ reprocesso idempotente (ON CONFLICT DO NOTHING)","<code>viagem_id</code> (uuid) é a raiz: hex, track e parada_velocidade penduram nela (ON DELETE CASCADE)"] },
+  cobertura: { name:"Cobertura — viagem_hex é o grão do recompute",
+    edges:["j-v-hex"],
+    nodes:["viagem","viagem_hex"],
+    steps:["<b>viagem_hex</b> (287.826) = cada hex H3 res 9 tocado pela viagem numa faixa horária","<b>fonte</b> separa ping real de interpolado; <b>dwell_s</b> = permanência no hex","É o <b>grão face-centric</b> que a lane 06 (recompute) consome (F2-#3)"] },
+  replay: { name:"Traçado — viagem_track p/ replay",
+    edges:["j-v-track"],
+    nodes:["viagem","viagem_track"],
+    steps:["<b>viagem_track</b> (359.800) guarda lat/lon por <b>seq</b> ao longo da viagem","Downsampled ~1/30s (na prática ≈ todos os pings — feed > 30s)","Serve replay/visualização da trajetória, não entra no recompute"] },
+  velocidade: { name:"Velocidade — v_real → core.pattern_stop_exposure",
+    edges:["j-v-parada","j-parada-pse"],
+    nodes:["viagem","parada_velocidade","pattern_stop_exposure"],
+    steps:["<b>parada_velocidade</b> (226.395) tem <b>v_real</b> por parada da viagem","O pipeline agrega (mediana por stop_id×faixa) pro modelo (lane 06)","Alimenta <b>core.pattern_stop_exposure.v_real</b> — a única ponte medido→core"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

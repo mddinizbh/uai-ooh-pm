@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uAI OOH — Tempo real / verificado (F2)</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<style>
+  :root {
+    --bg: #FAF9F5; --surface: #FFFFFF; --surface2: #F0EEE6;
+    --ink: #141413; --body: #3D3D3A; --muted: #87867F;
+    --line: #D1CFC5; --line-soft: #E6E3DA;
+    --clay: #D97757; --clay-soft: rgba(217,119,87,0.10);
+    --olive: #788C5D; --olive-soft: rgba(120,140,93,0.12);
+    --gold: #C9A45C; --gold-soft: rgba(201,164,92,0.13);
+    --blue: #5B7E96; --blue-soft: rgba(91,126,150,0.12);
+    --zone: rgba(20,20,19,0.025); --zone-line: #D1CFC5;
+    --serif: ui-serif, Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  html.dark {
+    --bg: #141413; --surface: #1F1F1D; --surface2: #2A2A28;
+    --ink: #FAF9F5; --body: #D1CFC5; --muted: #87867F;
+    --line: #3D3D3A; --line-soft: #2A2A28;
+    --clay: #E48A6E; --clay-soft: rgba(228,138,110,0.14);
+    --olive: #9DB07C; --olive-soft: rgba(157,176,124,0.16);
+    --gold: #D4B36F; --gold-soft: rgba(212,179,111,0.16);
+    --blue: #7FA3BC; --blue-soft: rgba(127,163,188,0.16);
+    --zone: rgba(250,249,245,0.03); --zone-line: #3D3D3A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--body); font-family: var(--sans);
+    -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  .bar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 11px 20px; border-bottom: 1px solid var(--line-soft); flex: none;
+  }
+  .bar h1 { font-family: var(--serif); font-weight: 500; font-size: 19px; color: var(--ink); letter-spacing: -0.01em; }
+  .bar .sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
+  .spacer { flex: 1; }
+  .legend { display: flex; gap: 12px; align-items: center; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .legend i.ok { background: var(--olive); } .legend i.wip { background: var(--gold); } .legend i.off { background: var(--muted); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em;
+    padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px;
+    background: transparent; color: var(--muted); cursor: pointer; transition: all .15s ease;
+  }
+  .chip:hover { color: var(--ink); border-color: var(--muted); }
+  .chip.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  #themeToggle {
+    font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--muted); }
+  .navlink { font-family: var(--mono); font-size: 10.5px; color: var(--clay); text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }
+  .navlink:hover { border-color: var(--clay); }
+
+  .stage { flex: 1; position: relative; min-height: 0; }
+  .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .zone rect { fill: var(--zone); stroke: var(--zone-line); stroke-width: 1; stroke-dasharray: 5 5; }
+  .zone.roadmap rect { stroke-dasharray: 2 5; }
+  .zone .ztitle { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--muted); }
+  .zone .zsub { font-family: var(--mono); font-size: 10px; fill: var(--muted); opacity: 0.72; }
+
+  .node { cursor: pointer; }
+  .node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; transition: stroke .15s ease; }
+  .node:hover rect { stroke: var(--muted); }
+  .node.sel rect { stroke: var(--clay) !important; stroke-width: 2.4; }
+  .node .t  { font-family: var(--sans); font-size: 14px; font-weight: 650; fill: var(--ink); pointer-events: none; }
+  .node .m  { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); pointer-events: none; }
+  .node .n  { font-family: var(--mono); font-size: 10.5px; fill: var(--clay); pointer-events: none; }
+  .node .k  { font-family: var(--mono); font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase; fill: var(--clay); pointer-events: none; }
+  .node.store rect { fill: var(--surface2); }
+  .node.do rect { fill: var(--olive-soft); stroke: var(--olive); }
+  .node.bus rect { fill: var(--blue-soft); stroke: var(--blue); }
+  .node.ext rect { stroke-dasharray: 6 3; }
+  .node.pend rect { stroke-dasharray: 6 3; }
+  .node.off { opacity: 0.58; }
+  .node.off rect { stroke-dasharray: 5 4; }
+  .dot.ok { fill: var(--olive); } .dot.wip { fill: var(--gold); } .dot.off { fill: var(--muted); }
+
+  .edge { stroke: var(--muted); stroke-width: 1.6; fill: none; marker-end: url(#a-mut); transition: opacity .2s ease, stroke .2s ease; }
+  .edge.dash { stroke-dasharray: 5 4; opacity: 0.6; }
+  .elbl { font-family: var(--mono); font-size: 10px; fill: var(--muted); transition: opacity .2s ease; }
+
+  .stage.flowing .edge { opacity: 0.09; }
+  .stage.flowing .elbl { opacity: 0.09; }
+  .stage.flowing .node { opacity: 0.24; }
+  .stage.flowing .zone { opacity: 0.45; }
+  .stage.flowing .edge.lit {
+    opacity: 1; stroke: var(--clay); marker-end: url(#a-clay);
+    stroke-dasharray: 7 5; animation: march 0.9s linear infinite;
+  }
+  .stage.flowing .elbl.lit { opacity: 1; fill: var(--clay); }
+  .stage.flowing .node.lit { opacity: 1; }
+  .stage.flowing .node.lit rect { stroke: var(--clay); }
+  @keyframes march { to { stroke-dashoffset: -12; } }
+  @media (prefers-reduced-motion: reduce) { .stage.flowing .edge.lit { animation: none; } }
+
+  .card {
+    position: absolute; max-width: 410px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.10);
+  }
+  #detail { right: 16px; bottom: 16px; width: 390px; }
+  #detail h3 { font-family: var(--serif); font-weight: 500; font-size: 17px; color: var(--ink); margin-bottom: 2px; }
+  #detail .meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-bottom: 8px; }
+  #detail p { font-size: 12.5px; line-height: 1.55; }
+  #detail p code, #flowcap code { font-family: var(--mono); font-size: 11px; color: var(--clay); }
+  #flowcap { left: 16px; bottom: 16px; max-width: 490px; display: none; }
+  #flowcap.show { display: block; }
+  #flowcap .fname { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--clay); margin-bottom: 6px; }
+  #flowcap ol { margin-left: 18px; }
+  #flowcap li { font-size: 12.5px; line-height: 1.55; }
+  .src { position: absolute; top: 10px; right: 16px; font-family: var(--mono); font-size: 10px; color: var(--muted); opacity: 0.8; }
+  @media (max-width: 900px) {
+    body { overflow: auto; }
+    .stage { min-height: 86vh; }
+    #detail { position: static; width: auto; margin: 10px 16px; }
+    #flowcap { position: static; margin: 0 16px 16px; }
+  }
+  .legpanel { position:absolute; top:62px; left:16px; z-index:6; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:13px 15px; box-shadow:0 6px 24px rgba(0,0,0,.1); max-width:340px; display:none; }
+  .legpanel.show { display:block; }
+  .legpanel h4 { font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:0 0 7px; }
+  .legpanel h4:not(:first-child){ margin-top:12px; }
+  .legpanel .lr { display:flex; align-items:center; gap:8px; font-size:12px; line-height:1.5; color:var(--body); margin-bottom:3px; }
+  .legpanel .sw { width:20px; height:14px; border-radius:4px; border:1.5px solid var(--line); flex:none; }
+  .legpanel .sw.svc{background:var(--olive-soft);border-color:var(--olive)} .legpanel .sw.store{background:var(--surface2)} .legpanel .sw.bus{background:var(--blue-soft);border-color:var(--blue)} .legpanel .sw.proc{background:var(--olive-soft);border-color:var(--olive);border-style:dashed} .legpanel .sw.ext{background:transparent;border-style:dashed}
+  .legpanel .dt{width:11px;height:11px;border-radius:50%;flex:none} .legpanel .dt.ok{background:var(--olive)} .legpanel .dt.wip{background:var(--gold)} .legpanel .dt.off{background:var(--muted)}
+  .legpanel .hint{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:11px;line-height:1.6} .legpanel .hint b{color:var(--clay)}
+  .drill{cursor:pointer} .drill circle{fill:var(--clay-soft);stroke:var(--clay);stroke-width:1.3} .drill:hover circle{fill:var(--clay)} .drill text{font-family:var(--sans);font-size:13px;font-weight:700;fill:var(--clay);text-anchor:middle;pointer-events:none} .drill:hover text{fill:var(--bg)}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>uAI OOH — Tempo real / verificado (F2)</h1>
+    <div class="sub">motor MEDIDO · face-centric · poller → consolidador → medido → recompute · sem comercial</div>
+  </div>
+  <div class="spacer"></div>
+  <button id="legendBtn">Legenda</button>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="escrita">Escrita</button>
+    <button class="chip" data-flow="aovivo">Ao vivo</button>
+    <button class="chip" data-flow="fechamento">Fechamento</button>
+    <button class="chip" data-flow="recompute">Recompute D-1</button>
+    <button class="chip" data-flow="verificado">Verificado</button>
+    <button class="chip" data-flow="b3">Bloco 3</button>
+  </div>
+  <a class="navlink" href="index.html">⌂ Home</a>
+  <a class="navlink" href="02-fluxo-dados-pipeline.html">← Nível 2</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="stage" id="stage">
+<div class="legpanel" id="legpanel">
+  <h4>Tipo</h4>
+  <div class="lr"><span class="sw proc"></span> serviço / processo</div>
+  <div class="lr"><span class="sw store"></span> store / schema</div>
+  <div class="lr"><span class="sw bus"></span> event bus (Kafka)</div>
+  <div class="lr"><span class="sw ext"></span> fonte / roadmap</div>
+  <h4>Status</h4>
+  <div class="lr"><span class="dt ok"></span> live (prod)</div>
+  <div class="lr"><span class="dt wip"></span> validado e2e</div>
+  <div class="lr"><span class="dt off"></span> pendente / roadmap</div>
+  <div class="hint">clique = <b>detalhe</b> · <b>↳</b> = classes do serviço · chips = <b>fluxos</b></div>
+</div>
+<svg viewBox="0 0 1840 1020" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Arquitetura de tempo real F2 do vertical OOH">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/>
+    </marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/>
+    </marker>
+  </defs>
+
+  <!-- ── bands ─────────────────────────────── -->
+  <g class="zone">
+    <rect x="20" y="86" width="1800" height="404" rx="16"/>
+    <text class="ztitle" x="44" y="112">Caminho de escrita — motor medido</text>
+    <text class="zsub" x="44" y="130">GTFS-RT real → fatos consolidados · poller live em prod · consolidador validado no e2e</text>
+  </g>
+  <g class="zone">
+    <rect x="20" y="522" width="1480" height="468" rx="16"/>
+    <text class="ztitle" x="44" y="548">Recompute (D-1) + leitura verificada</text>
+    <text class="zsub" x="44" y="566">a trajetória medida re-deriva o modelo face-centric · selo ADR-058</text>
+  </g>
+  <g class="zone roadmap">
+    <rect x="1516" y="522" width="304" height="468" rx="16"/>
+    <text class="ztitle" x="1540" y="548">Bloco 3 · comercial</text>
+    <text class="zsub" x="1540" y="566">roadmap — fora do F2</text>
+  </g>
+
+  <!-- ── edges: escrita ────────────────────── -->
+  <path class="edge" id="e-rt-poll"     d="M212,300 L236,300"/>
+  <path class="edge" id="e-poll-raw"    d="M416,282 C 432,238 440,206 440,198"/>
+  <path class="edge" id="e-poll-kafka"  d="M416,318 C 432,360 440,398 440,408"/>
+  <path class="edge" id="e-kafka-cons"  d="M664,410 C 680,396 686,356 692,338"/>
+  <path class="edge" id="e-cons-redis"  d="M912,280 C 930,232 940,206 940,196"/>
+  <path class="edge" id="e-cons-medido" d="M912,322 C 928,323 936,324 940,324"/>
+  <path class="edge" id="e-cons-trip"   d="M912,376 C 930,418 936,438 940,440"/>
+
+  <!-- ── edges: recompute + leitura ────────── -->
+  <path class="edge" id="e-cw-rc"   d="M232,769 L256,769"/>
+  <path class="edge dash" id="e-med-rc" d="M992,390 C 700,560 470,648 362,704"/>
+  <path class="edge" id="e-rc-cm"   d="M452,742 C 466,722 472,716 480,710"/>
+  <path class="edge" id="e-cm-sm"   d="M620,782 L 620,798"/>
+  <path class="edge" id="e-sm-intel" d="M766,828 C 800,818 812,778 828,758"/>
+  <path class="edge" id="e-redis-intel" d="M1010,238 C 1004,440 952,604 900,660"/>
+  <path class="edge" id="e-intel-portal" d="M1078,746 L 1130,746"/>
+  <path class="edge dash" id="e-trip-b3" d="M1194,440 C 1400,520 1560,620 1636,700"/>
+
+  <!-- edge labels -->
+  <text class="elbl" id="l-rt-poll"     x="206" y="290" text-anchor="end">feed</text>
+  <text class="elbl" id="l-poll-raw"    x="384" y="232">landing 30d</text>
+  <text class="elbl" id="l-poll-kafka"  x="384" y="396">publish (key=vehicle_id)</text>
+  <text class="elbl" id="l-kafka-cons"  x="600" y="356">consume ~57 msg/s</text>
+  <text class="elbl" id="l-cons-redis"  x="836" y="232">por posição · h3 local</text>
+  <text class="elbl" id="l-cons-medido" x="846" y="316">no fechamento · snap PostGIS</text>
+  <text class="elbl" id="l-cons-trip"   x="836" y="404">publish enriquecido</text>
+  <text class="elbl" id="l-cw-rc"       x="214" y="760" text-anchor="end">× exposure_cell · od_trip</text>
+  <text class="elbl" id="l-med-rc"      x="690" y="600">batch D-1 (trajetória medida)</text>
+  <text class="elbl" id="l-rc-cm"       x="436" y="700" text-anchor="end">mesma fórmula, fonte medida</text>
+  <text class="elbl" id="l-sm-intel"    x="784" y="800">/lines/{id}/verified</text>
+  <text class="elbl" id="l-redis-intel" x="922" y="520">/realtime/positions</text>
+  <text class="elbl" id="l-intel-portal" x="1104" y="736" text-anchor="middle">SSE/WS</text>
+  <text class="elbl" id="l-trip-b3"     x="1360" y="566">ooh.trip.completed</text>
+
+  <!-- ── nodes: escrita ────────────────────── -->
+  <g class="node ext" data-k="rt">
+    <rect x="44" y="252" width="168" height="96" rx="10"/>
+    <text class="t" x="64" y="280">GTFS-RT</text>
+    <text class="m" x="64" y="300">PBH / mobilibus</text>
+    <text class="m" x="64" y="316">feed regenera ~15-30s</text>
+    <text class="m" x="64" y="332">positions (protobuf)</text>
+  </g>
+  <g class="node do" data-k="poller">
+    <circle class="dot ok" cx="396" cy="252" r="5"/>
+    <rect x="236" y="246" width="180" height="108" rx="10"/>
+    <text class="t" x="256" y="274">realtime-poller</text>
+    <text class="m" x="256" y="294">Python · poll ~15-20s</text>
+    <text class="m" x="256" y="310">143 ciclos/h · ~451v</text>
+    <text class="m" x="256" y="326">~105.940 linhas/h</text>
+    <text class="m" x="256" y="344">frota inteira (F2-#11)</text>
+  </g>
+  <g class="node store" data-k="rawrt">
+    <circle class="dot ok" cx="644" cy="156" r="5"/>
+    <rect x="440" y="152" width="224" height="90" rx="10"/>
+    <text class="t" x="460" y="180">raw.rt__vehicle_position</text>
+    <text class="n" x="460" y="200">5,68M · particionado/dia</text>
+    <text class="m" x="460" y="218">retenção 30d (quente)</text>
+    <text class="m" x="460" y="234">frio → MinIO (INFRA-03)</text>
+  </g>
+  <g class="node bus" data-k="kafka">
+    <circle class="dot ok" cx="644" cy="360" r="5"/>
+    <rect x="440" y="356" width="224" height="116" rx="10"/>
+    <text class="t" x="460" y="384">Kafka (KRaft)</text>
+    <text class="m" x="460" y="404">ooh.rt.position</text>
+    <text class="m" x="460" y="420">key=vehicle_id · retention 6h</text>
+    <text class="m" x="460" y="436">ooh.vehicle.status</text>
+    <text class="m" x="460" y="456">~57 msg/s</text>
+  </g>
+  <g class="node do" data-k="cons">
+    <circle class="dot wip" cx="892" cy="202" r="5"/>
+    <rect x="692" y="196" width="220" height="240" rx="10"/>
+    <text class="t" x="712" y="224">trip-consolidator</text>
+    <text class="k" x="712" y="242">Java · stream headless</text>
+    <text class="m" x="712" y="266">repo novo · do template</text>
+    <text class="m" x="712" y="286">por posição:</text>
+    <text class="m" x="712" y="302">  h3(lat,lon) LOCAL (sem DB)</text>
+    <text class="m" x="712" y="318">  acumula no Redis live:{}</text>
+    <text class="m" x="712" y="340">no fechamento:</text>
+    <text class="m" x="712" y="356">  snap PostGIS no shape</text>
+    <text class="m" x="712" y="372">  cobertura EXATA interpolada</text>
+    <text class="m" x="712" y="394">único escritor do Redis</text>
+    <text class="m" x="712" y="410">único dono do schema medido</text>
+    <text class="m" x="712" y="428">validado AO VIVO (e2e)</text>
+  </g>
+  <g class="node store" data-k="redis">
+    <circle class="dot wip" cx="1174" cy="152" r="5"/>
+    <rect x="940" y="148" width="254" height="92" rx="10"/>
+    <text class="t" x="960" y="176">Redis · live:{vehicle}</text>
+    <text class="m" x="960" y="196">HASH pos + acumulado · TTL 5min</text>
+    <text class="m" x="960" y="212">impressões (soma) · alcance (HLL)</text>
+    <text class="m" x="960" y="228">live:line SET · hll:hex (read-only)</text>
+  </g>
+  <g class="node store" data-k="medido">
+    <circle class="dot wip" cx="1174" cy="264" r="5"/>
+    <rect x="940" y="258" width="254" height="132" rx="10"/>
+    <text class="t" x="960" y="286">schema medido</text>
+    <text class="k" x="960" y="304">dono: consolidador (Flyway)</text>
+    <text class="m" x="960" y="326">viagem 8.528 · viagem_hex 287.826</text>
+    <text class="m" x="960" y="342">viagem_track 359.800</text>
+    <text class="m" x="960" y="358">parada_velocidade 226.395 (v_real)</text>
+    <text class="m" x="960" y="378">fato PURO — sem campaign_id (F2-#5)</text>
+  </g>
+  <g class="node bus" data-k="trip">
+    <circle class="dot wip" cx="1174" cy="412" r="5"/>
+    <rect x="940" y="408" width="254" height="66" rx="10"/>
+    <text class="t" x="960" y="434">Kafka · ooh.trip.completed</text>
+    <text class="m" x="960" y="454">contrato enriquecido (B3)</text>
+    <text class="m" x="960" y="470">não acessa medido/core direto</text>
+  </g>
+
+  <!-- ── nodes: recompute + leitura ────────── -->
+  <g class="node store off" data-k="coreworld">
+    <rect x="44" y="694" width="188" height="150" rx="10"/>
+    <text class="t" x="64" y="720">core · mundo (F1)</text>
+    <text class="m" x="64" y="742">exposure_cell (H3×hora)</text>
+    <text class="m" x="64" y="758">od_trip · h3_cell</text>
+    <text class="m" x="64" y="776">face_reach estimada 10.612</text>
+    <text class="m" x="64" y="792">line_reach estimada 22.994</text>
+    <text class="m" x="64" y="812">base do recompute medido</text>
+  </g>
+  <g class="node do" data-k="recompute">
+    <circle class="dot wip" cx="432" cy="710" r="5"/>
+    <rect x="256" y="704" width="196" height="132" rx="10"/>
+    <text class="t" x="276" y="732">pipeline · recompute</text>
+    <text class="k" x="276" y="750">lane 06 · ADR-050</text>
+    <text class="m" x="276" y="772">batch D-1</text>
+    <text class="m" x="276" y="788">medido × core.exposure_cell</text>
+    <text class="m" x="276" y="804">× core.od_trip</text>
+    <text class="m" x="276" y="824">RECAL-01 rodou no ooh vivo</text>
+  </g>
+  <g class="node store" data-k="coremed">
+    <circle class="dot wip" cx="746" cy="666" r="5"/>
+    <rect x="480" y="660" width="286" height="122" rx="10"/>
+    <text class="t" x="500" y="688">core · metodo = medida</text>
+    <text class="m" x="500" y="710">line_reach medida 13.437</text>
+    <text class="m" x="500" y="726">face_reach medida 2.698</text>
+    <text class="m" x="500" y="742">pattern_stop_exposure 3.013 (v_real)</text>
+    <text class="m" x="500" y="762">coexiste com a estimada</text>
+    <text class="m" x="500" y="776">a faixa de incerteza estreita</text>
+  </g>
+  <g class="node store" data-k="servmed">
+    <rect x="480" y="798" width="286" height="62" rx="10"/>
+    <text class="t" x="500" y="824" style="font-size:13px">serving · verificado (swap atômico)</text>
+    <text class="m" x="500" y="844">selo ADR-058 · só ACTIVE p/ o intel</text>
+  </g>
+  <g class="node do pend" data-k="intel">
+    <circle class="dot off" cx="1058" cy="666" r="5"/>
+    <rect x="828" y="660" width="250" height="172" rx="10"/>
+    <text class="t" x="848" y="688">uai-ooh-intel · RT</text>
+    <text class="k" x="848" y="706">estende o F1 · pendente</text>
+    <text class="m" x="848" y="728">read-only · sem PostGIS</text>
+    <text class="m" x="848" y="748">/realtime/positions</text>
+    <text class="m" x="848" y="764">  ← Redis live:{} (mapa+acum.)</text>
+    <text class="m" x="848" y="784">/lines/{id}/verified</text>
+    <text class="m" x="848" y="800">  ← serving + medido</text>
+    <text class="m" x="848" y="822">vehicle_id server-derived</text>
+  </g>
+  <g class="node pend" data-k="portal">
+    <circle class="dot off" cx="1360" cy="666" r="5"/>
+    <rect x="1130" y="660" width="250" height="172" rx="10"/>
+    <text class="t" x="1150" y="688">uai-portal · RT</text>
+    <text class="k" x="1150" y="706">estende o F1 · pendente</text>
+    <text class="m" x="1150" y="728">mapa ao vivo (MapLibre)</text>
+    <text class="m" x="1150" y="748">carros se movendo +</text>
+    <text class="m" x="1150" y="764">acumuladores SUBINDO</text>
+    <text class="m" x="1150" y="784">impressões + alcance (HLL ±0,8%)</text>
+    <text class="m" x="1150" y="806">verificado vs estimado</text>
+    <text class="m" x="1150" y="822">escopável por linha</text>
+  </g>
+  <g class="node ext off" data-k="b3">
+    <rect x="1540" y="700" width="256" height="140" rx="10"/>
+    <text class="t" x="1560" y="728">CMS · módulo OOH</text>
+    <text class="k" x="1560" y="746">Bloco 3 (F2-#9)</text>
+    <text class="m" x="1560" y="768">consome ooh.trip.completed</text>
+    <text class="m" x="1560" y="784">atribui placement / campanha</text>
+    <text class="m" x="1560" y="800">por vehicle_code × vigência</text>
+    <text class="m" x="1560" y="816">persiste no banco do CMS</text>
+    <text class="m" x="1560" y="832">tenant + RLS (ADR-052 rev.)</text>
+  </g>
+
+  <g class="drills">
+    <a class="drill" href="micro/servicos/poller.html"><circle cx="398" cy="336" r="11"/><text x="398" y="341">↳</text></a>
+    <a class="drill" href="micro/servicos/consolidator.html"><circle cx="896" cy="416" r="11"/><text x="896" y="421">↳</text></a>
+    <a class="drill" href="micro/servicos/intel.html"><circle cx="1062" cy="810" r="11"/><text x="1062" y="815">↳</text></a>
+    <a class="drill" href="micro/servicos/portal.html"><circle cx="1364" cy="810" r="11"/><text x="1364" y="815">↳</text></a>
+  </g>
+</svg>
+
+  <div class="src">epico-5 · bloco2/f2/README + state · banco ooh schema medido (jun/2026)</div>
+
+  <div class="card" id="flowcap">
+    <div class="fname" id="f-name"></div>
+    <ol id="f-steps"></ol>
+  </div>
+
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique em qualquer caixa</h3>
+    <div class="meta" id="d-meta">F2 · motor medido</div>
+    <p id="d-body">O F2 produz a trajetória <b>MEDIDA</b> (GTFS-RT real) e re-deriva o modelo face-centric da pipeline. <b>Só o motor, zero comercial</b> (F2-#1). Os chips acendem cada caminho — Escrita, Ao vivo, Fechamento, Recompute, Verificado, Bloco 3.</p>
+  </div>
+</div>
+
+<script>
+const DETAIL = {
+  rt:        { t:"GTFS-RT (PBH/mobilibus)", m:"fonte · feed ao vivo", b:"O feed <code>vehicle-positions</code> da PBH (protobuf) regenera a cada ~15-30s. É a verdade do mundo real que o F2 captura. (O feed <code>trip-updates</code>, 1:1 com positions, é âncora de calibração — pendência pós-F2.)" },
+  poller:    { t:"uai-ooh-realtime-poller 🟢", m:"escrita · Python · live em prod", b:"Polla o GTFS-RT a cada ~15-20s e faz duas coisas: <b>landa</b> o feed inteiro em <code>raw.rt__vehicle_position</code> (auditoria/replay) e <b>publica</b> em Kafka <code>ooh.rt.position</code> (lote por ciclo). <b>Frota inteira</b> (F2-#11): filtrar por linha quebraria calibração, reconstrução e replay. Medido em prod: <b>143 ciclos/h</b>, ~451 veíc/ciclo, ~105.940 linhas/h. ✅ entregue 2026-06-09." },
+  rawrt:     { t:"raw.rt__vehicle_position 🟢", m:"landing · particionado/dia", b:"Pouso bruto, fiel ao feed (TEXT), <b>particionado por dia</b> com retenção 30d quente. O histórico permite <b>replay</b> (o feed não tem rewind) e auditoria. Custo ~1,2-1,5 GB/dia → <b>INFRA-03</b>: frio em parquet/zstd no MinIO (~3-4,5 GB/mês)." },
+  kafka:     { t:"Kafka · ooh.rt.position 🟢", m:"event bus · KRaft", b:"O barramento entre poller e consolidador. <code>ooh.rt.position</code> (key=<code>vehicle_id</code>, retention 6h) + <code>ooh.vehicle.status</code> já criados e publicados (F2-#10). Custo real ~<b>57 msg/s</b> (trivial). <code>ooh.trip.completed</code> é o contrato enriquecido de saída." },
+  cons:      { t:"uai-ooh-trip-consolidator 🟡", m:"escrita · Java stream headless", b:"O coração do F2 (repo novo, do template). <b>Por posição</b>: calcula <code>h3(lat,lon)</code> em memória (lib H3, sem banco) e acumula estado no Redis <code>live:{vehicle}</code> (impressões subindo). <b>No fechamento</b> da viagem: faz <b>snap PostGIS</b> no shape → cobertura exata interpolada, grava o schema <code>medido</code> e publica <code>ooh.trip.completed</code>. Único escritor do Redis e dono do <code>medido</code> (F2-#4). Não se funde com o intel (write-path ≠ read-path). <b>Validado ao vivo no e2e</b>; ship a prod pendente." },
+  redis:     { t:"Redis · live:{vehicle}", m:"estado ao vivo · CONS-05", b:"O acumulador ao vivo (F2-#6). <code>live:vehicle:{code}</code> HASH(lat,lon,bearing,lineId,tripId,currentStopSequence,completudeParcial,<b>impressoesParciais</b>,<b>alcanceParcial</b>,hexesVisitados,ts), TTL 5min. <code>live:line:{id}</code> SET, <code>live:reach:trip|day</code> HLL, <code>hll:hex</code> HLL (read-only). Alcance ao vivo é <b>HLL com dedup ~±0,8%</b> — nunca soma de hexes; pode <b>superar</b> o estimado da linha quando o carro roda fora da rota." },
+  medido:    { t:"schema medido 🟡", m:"fatos do mundo real · Flyway", b:"Novo schema, <b>dono = consolidador</b> (F2-#3). Fatos consolidados: <code>medido.viagem</code> (8.528 — nº/km/completude), <code>medido.viagem_hex</code> (287.826 — por onde/quando, o grão face-centric), <code>medido.viagem_track</code> (359.800 — traçado p/ replay), <code>medido.parada_velocidade</code> (226.395 — <code>v_real</code> por ponto). <b>Fato puro</b>: <code>campaign_id</code> e <code>divergencia_linha</code> removidos (F2-#5) — atribuição é B3. Counts do <code>ooh</code> do e2e; em prod só após o ship." },
+  trip:      { t:"Kafka · ooh.trip.completed 🟡", m:"contrato de saída · enriquecido", b:"Evento por viagem fechada, <b>enriquecido</b> para que o consumidor (Bloco 3) <b>não precise acessar</b> <code>medido</code>/<code>core</code> (F2-#10). É a fronteira limpa entre o motor (sem tenant) e o comercial (tenant)." },
+  coreworld: { t:"core · mundo (F1)", m:"modelo estimado · entrada do recompute", b:"O modelo face-centric construído na Onda 1/2 com trajetória <b>estimada</b> (schedule GTFS): <code>exposure_cell</code> (H3×hora), <code>od_trip</code>, <code>face_reach</code> estimada (10.612), <code>line_reach</code> estimada (22.994). O recompute usa essas camadas e <b>só troca a fonte da trajetória</b> por medida." },
+  recompute: { t:"pipeline · recompute 🟡", m:"lane 06 · batch D-1 · ADR-050", b:"O recompute é <b>pipeline</b>, não serviço (F2-#7): roda D-1, cruza o <code>medido</code> com <code>core.exposure_cell</code> × <code>core.od_trip</code> pela <b>mesma fórmula da Onda 2</b>, trocando só a fonte da trajetória. <b>RECAL-01 rodou end-to-end no <code>ooh</code> vivo</b>; a medida passou a coexistir com a estimada." },
+  coremed:   { t:"core · metodo = medida 🟡", m:"o produto central do F2", b:"<code>face_reach</code>/<code>line_reach</code> recomputados com a trajetória <b>medida</b>, materializados com <code>metodo='medida'</code> ao lado da estimada: <b>line_reach medida 13.437</b> (vs estimada 22.994), <b>face_reach medida 2.698</b> (vs 10.612), <code>pattern_stop_exposure</code> 3.013 (com <code>v_real</code>). Trajetória, frequência e velocidade viram <b>reais</b> — a faixa de incerteza estreita. <b>Esse é o produto central do F2.</b>" },
+  servmed:   { t:"serving · verificado", m:"leitura do app · swap atômico", b:"O espelho plano da camada medida, promovido por swap atômico — o intel só enxerga o ACTIVE. Carrega o <b>selo ADR-058</b>: o RT torna reais trajetória/frequência/velocidade, mas <b>não</b> calibra os coeficientes de visada (quem efetivamente olha a face — estudo de campo, Fase C)." },
+  intel:     { t:"uai-ooh-intel · RT 🔲", m:"leitura · estende o F1 · pendente", b:"Estende o intel F1 (read-only, sem PostGIS). Dois endpoints sobre o mesmo <b>primitivo tenant-agnóstico</b> (\"posição/progresso/acumulado de um conjunto de <code>vehicle_id</code>\"): <code>/realtime/positions</code> (lê o Redis <code>live:{}</code> — mapa + acumulado) e <code>/lines/{id}/verified</code> (lê <code>serving</code>+<code>medido</code>). O conjunto de <code>vehicle_id</code> é <b>sempre server-derived</b> (anti-vazamento, F2-#2). Lane <b>pendente</b>." },
+  portal:    { t:"uai-portal · RT 🔲", m:"front · estende o F1 · pendente", b:"Estende o front F1. Entrega o <b>mapa ao vivo</b> (MapLibre) com os carros se movendo e os <b>acumuladores subindo</b> — impressões (soma) e alcance (HLL com dedup ~±0,8%), escopável por linha — e a visão <b>verificado vs estimado</b> (o loop que estreita a incerteza). Lane <b>pendente</b>." },
+  b3:        { t:"CMS · módulo OOH ⚪", m:"comercial · Bloco 3 · roadmap", b:"<b>Fora do F2.</b> No Bloco 3, o módulo OOH do <b>CMS</b> (não um serviço novo — F2-#9, revisa ADR-052) consome <code>ooh.trip.completed</code>, atribui a viagem a um placement/campanha por <code>vehicle_code</code> × vigência e persiste <b>no banco do CMS</b> (tenant + RLS). O <code>ooh</code> permanece sem tenant; o evento é a fronteira." }
+};
+
+const FLOWS = {
+  escrita: {
+    name: "Escrita — o motor medido (live)",
+    edges: ["e-rt-poll","e-poll-raw","e-poll-kafka","e-kafka-cons","e-cons-redis","e-cons-medido","e-cons-trip"],
+    nodes: ["rt","poller","rawrt","kafka","cons","redis","medido","trip"],
+    steps: ["O poller polla o GTFS-RT (~15-20s), <b>landa</b> em <code>raw.rt</code> e <b>publica</b> em Kafka <code>ooh.rt.position</code>","O consolidador consome o stream e, <b>por posição</b>, calcula <code>h3</code> local + acumula no Redis <code>live:{}</code>","<b>No fechamento</b> da viagem: snap PostGIS → grava <code>medido.*</code> e publica <code>ooh.trip.completed</code>"]
+  },
+  aovivo: {
+    name: "Ao vivo — acumuladores subindo (aprox.)",
+    edges: ["e-cons-redis","e-redis-intel","e-intel-portal"],
+    nodes: ["cons","redis","intel","portal"],
+    steps: ["A cada posição o consolidador atualiza <code>live:vehicle:{code}</code> (pos + impressões + alcance HLL)","O intel <code>/realtime/positions</code> lê o Redis (conjunto de <code>vehicle_id</code> server-derived)","O portal mostra os carros se movendo e os <b>acumuladores subindo</b> — selo: estimativa (ADR-058)"]
+  },
+  fechamento: {
+    name: "Fechamento — fato exato no schema medido",
+    edges: ["e-cons-medido","e-cons-trip"],
+    nodes: ["cons","medido","trip"],
+    steps: ["Viagem fecha por mudança de <code>trip_id</code> / reset de sequência / timeout / fim do padrão","Snap PostGIS no shape → cobertura <b>exata</b> → <code>medido.viagem</code> + <code>viagem_hex</code> + <code>viagem_track</code> + <code>parada_velocidade</code>","Publica <code>ooh.trip.completed</code> enriquecido — <b>fato puro, sem campaign_id</b> (F2-#5)"]
+  },
+  recompute: {
+    name: "Recompute D-1 — re-derivar com o medido",
+    edges: ["e-cw-rc","e-med-rc","e-rc-cm","e-cm-sm"],
+    nodes: ["coreworld","medido","recompute","coremed","servmed"],
+    steps: ["Batch D-1 na pipeline (ADR-050): cruza <code>medido</code> × <code>core.exposure_cell</code> × <code>core.od_trip</code>","<b>Mesma fórmula da Onda 2</b>, só troca a fonte da trajetória (estimada → medida)","Materializa <code>metodo='medida'</code>: line_reach 13.437, face_reach 2.698 — coexiste com a estimada e vira serving"]
+  },
+  verificado: {
+    name: "Verificado — o loop que estreita a incerteza",
+    edges: ["e-sm-intel","e-intel-portal"],
+    nodes: ["coremed","servmed","intel","portal"],
+    steps: ["O intel <code>/lines/{id}/verified</code> serve a camada medida (serving + medido), selo ADR-058","O portal mostra <b>verificado vs estimado</b> lado a lado","Honestidade: o RT torna reais trajetória/frequência/velocidade — <b>não</b> calibra a visada (Fase C)"]
+  },
+  b3: {
+    name: "Bloco 3 — comercial (roadmap, fora do F2)",
+    edges: ["e-trip-b3"],
+    nodes: ["trip","b3"],
+    steps: ["O módulo OOH do CMS consome <code>ooh.trip.completed</code> (contrato enriquecido)","Atribui a viagem a placement/campanha por <code>vehicle_code</code> × vigência","Persiste <b>no banco do CMS</b> (tenant + RLS) — o <code>ooh</code> segue sem tenant"]
+  }
+};
+
+const stage = document.getElementById('stage');
+const nodes = document.querySelectorAll('.node');
+const edges = document.querySelectorAll('.edge');
+const elbls = document.querySelectorAll('.elbl');
+const chips = document.querySelectorAll('.chip');
+const fcap = document.getElementById('flowcap');
+const E2L = { "e-rt-poll":"l-rt-poll","e-poll-raw":"l-poll-raw","e-poll-kafka":"l-poll-kafka","e-kafka-cons":"l-kafka-cons","e-cons-redis":"l-cons-redis","e-cons-medido":"l-cons-medido","e-cons-trip":"l-cons-trip","e-cw-rc":"l-cw-rc","e-med-rc":"l-med-rc","e-rc-cm":"l-rc-cm","e-sm-intel":"l-sm-intel","e-redis-intel":"l-redis-intel","e-intel-portal":"l-intel-portal","e-trip-b3":"l-trip-b3" };
+
+function setFlow(key) {
+  chips.forEach(c => c.classList.toggle('on', c.dataset.flow === key));
+  edges.forEach(e => e.classList.remove('lit'));
+  elbls.forEach(l => l.classList.remove('lit'));
+  nodes.forEach(n => n.classList.remove('lit'));
+  if (key === 'all') { stage.classList.remove('flowing'); fcap.classList.remove('show'); return; }
+  const f = FLOWS[key];
+  stage.classList.add('flowing');
+  f.edges.forEach(id => { document.getElementById(id)?.classList.add('lit'); document.getElementById(E2L[id])?.classList.add('lit'); });
+  f.nodes.forEach(k => document.querySelector(`.node[data-k="${k}"]`)?.classList.add('lit'));
+  document.getElementById('f-name').textContent = f.name;
+  document.getElementById('f-steps').innerHTML = f.steps.map(s => `<li>${s}</li>`).join('');
+  fcap.classList.add('show');
+}
+chips.forEach(c => c.addEventListener('click', () => setFlow(c.dataset.flow)));
+
+nodes.forEach(n => n.addEventListener('click', () => {
+  nodes.forEach(x => x.classList.remove('sel'));
+  n.classList.add('sel');
+  const d = DETAIL[n.dataset.k];
+  if (!d) return;
+  document.getElementById('d-title').textContent = d.t;
+  document.getElementById('d-meta').textContent = d.m;
+  document.getElementById('d-body').innerHTML = d.b;
+}));
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const dark = !document.documentElement.classList.contains('dark');
+  document.documentElement.classList.toggle('dark', dark);
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+});
+(function(){ const b=document.getElementById('legendBtn'), p=document.getElementById('legpanel');
+  if(b&&p){ b.addEventListener('click',()=>p.classList.toggle('show')); document.addEventListener('keydown',e=>{if(e.key==='Escape')p.classList.remove('show');}); } })();
+</script>
+</body>
+</html>

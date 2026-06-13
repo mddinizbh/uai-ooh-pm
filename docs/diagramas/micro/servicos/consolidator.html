@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uai-ooh-trip-consolidator — diagrama de classes</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>uai-ooh-trip-consolidator · classes</h1>
+    <div class="sub">Java 21 · hexagonal · com.uai.ooh.consolidator · stream Kafka headless (F2)</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="onposition">onPosition</button>
+    <button class="chip" data-flow="fechamento">Fechamento</button>
+    <button class="chip" data-flow="timeout">Timeout</button>
+    <button class="chip" data-flow="linha">Linha do RT</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="../../03-tempo-real-f2.html">← macro</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="legend" id="legend">
+  <h4>Tipo de classe</h4>
+  <div class="row"><span class="sw ext"></span> Adapter IN — listener Kafka / scheduler (driving)</div>
+  <div class="row"><span class="sw bus"></span> Port OUT — interface (hexágono)</div>
+  <div class="row"><span class="sw svc"></span> Application — reconstrução / acumuladores</div>
+  <div class="row"><span class="sw store"></span> Adapter OUT — Redis/JDBC/Kafka (driven)</div>
+  <div class="row"><span class="sw" style="background:var(--violet-soft);border-color:var(--violet)"></span> Domain — records / sealed</div>
+  <div class="hint">clique numa classe = <b>detalhe</b> · chips = <b>caminhos de caso de uso</b> · seta tracejada = <b>implements</b></div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1420 1040" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagrama de classes do uai-ooh-trip-consolidator">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <!-- ── lanes ─────────────────────────────── -->
+  <g class="zone"><rect x="24" y="92" width="204" height="742" rx="14"/><text class="ztitle" x="40" y="120">Adapter IN</text></g>
+  <g class="zone"><rect x="236" y="92" width="276" height="742" rx="14"/><text class="ztitle" x="252" y="120">Application</text></g>
+  <g class="zone"><rect x="520" y="92" width="214" height="742" rx="14"/><text class="ztitle" x="536" y="120">Port OUT</text></g>
+  <g class="zone"><rect x="742" y="92" width="262" height="742" rx="14"/><text class="ztitle" x="758" y="120">Adapter OUT</text></g>
+  <g class="zone"><rect x="1012" y="92" width="384" height="742" rx="14"/><text class="ztitle" x="1028" y="120">Externo</text></g>
+  <g class="zone"><rect x="24" y="854" width="1372" height="162" rx="14"/><text class="ztitle" x="40" y="882">Domain · model (records + enums sealed)</text></g>
+
+  <!-- ── edges ─────────────────────────────── -->
+  <!-- onPosition: listener → reconstructor → updater → accumulator / h3 / state store -->
+  <path class="edge" id="e-list-recon" d="M218,178 C 226,180 230,188 240,192"/>
+  <path class="edge" id="e-recon-upd"  d="M380,200 C 390,212 392,228 388,240"/>
+  <path class="edge" id="e-upd-acc"    d="M388,272 C 392,290 392,308 388,320"/>
+  <path class="edge" id="e-upd-h3"     d="M388,256 C 430,256 470,200 484,180"/>
+  <path class="edge impl" id="e-h3-idx" d="M510,176 C 600,176 660,230 730,256"/>
+  <path class="edge" id="e-upd-state"  d="M460,256 C 560,260 620,180 720,176"/>
+  <path class="edge impl" id="e-st-redis" d="M712,178 C 724,180 730,184 740,186"/>
+  <path class="edge" id="e-redis-x"    d="M988,188 C 1000,196 1008,214 1018,222"/>
+  <path class="edge" id="e-acc-reach"  d="M460,332 C 560,338 620,304 720,300"/>
+  <path class="edge impl" id="e-rch-redis" d="M712,302 C 724,304 730,308 740,310"/>
+  <!-- fechamento: reconstructor → closeDetector ; → sink → metrics → medido → publisher -->
+  <path class="edge" id="e-recon-det"  d="M460,206 C 504,230 506,250 506,290 C 506,350 470,396 444,408"/>
+  <path class="edge impl" id="e-det-patt" d="M460,432 C 560,438 620,470 720,478"/>
+  <path class="edge" id="e-recon-sink"  d="M474,206 C 510,240 510,300 510,380 C 510,440 480,470 458,488"/>
+  <path class="edge impl" id="e-sink-medsink" d="M392,520 C 392,538 392,556 390,568"/>
+  <path class="edge" id="e-sink-metr"  d="M460,520 C 560,524 620,560 720,566"/>
+  <path class="edge impl" id="e-metr-pg" d="M712,568 C 724,570 730,574 740,576"/>
+  <path class="edge" id="e-pg-x"       d="M984,569 C 1000,560 1010,520 1023,487"/>
+  <path class="edge" id="e-sink-med"   d="M460,580 C 560,610 620,648 720,656"/>
+  <path class="edge impl" id="e-med-jdbc" d="M712,658 C 724,660 730,664 740,666"/>
+  <path class="edge" id="e-jdbc-x"      d="M984,661 C 1000,663 1010,665 1023,667"/>
+  <path class="edge" id="e-sink-pub"   d="M496,540 C 516,560 516,620 516,680 C 516,710 518,730 528,732"/>
+  <path class="edge impl" id="e-pub-kafka" d="M712,736 C 724,738 730,742 740,744"/>
+  <path class="edge" id="e-kafka-x"     d="M984,739 C 1080,741 1140,742 1211,743"/>
+  <!-- timeout -->
+  <path class="edge" id="e-sweep-recon" d="M218,272 C 226,260 230,224 240,212"/>
+  <!-- linha do RT -->
+  <path class="edge" id="e-recon-line" d="M496,200 C 514,220 514,300 514,400 C 514,450 516,478 528,482"/>
+  <path class="edge impl" id="e-line-core" d="M460,644 C 560,648 620,684 720,690"/>
+  <path class="edge" id="e-core-x"      d="M984,499 C 1000,503 1010,507 1023,511"/>
+
+  <text class="elbl" id="l-st-redis" x="744" y="170">Redis</text>
+  <text class="elbl" id="l-jdbc"     x="744" y="650">JDBC</text>
+  <text class="elbl" id="l-kafka"    x="744" y="728">Kafka</text>
+  <text class="elbl" id="l-core"     x="744" y="682">core RO</text>
+
+  <!-- ── Adapter IN ─────────────────────────── -->
+  <g class="node ext" data-k="a-listener"><rect x="36" y="148" width="182" height="58" rx="9"/><text class="t" x="52" y="174">PositionListener</text><text class="m" x="52" y="192">@KafkaListener · ack man.</text></g>
+  <g class="node ext" data-k="a-sweeper"><rect x="36" y="246" width="182" height="56" rx="9"/><text class="t" x="52" y="271">TripTimeoutSweeper</text><text class="m" x="52" y="289">@Scheduled · varre ativos</text></g>
+
+  <!-- ── Application ─────────────────────────── -->
+  <g class="node do" data-k="s-recon"><rect x="248" y="148" width="248" height="58" rx="9"/><text class="t" x="264" y="174">TripReconstructor</text><text class="m" x="264" y="192">onPosition · closeByTimeout</text></g>
+  <g class="node do" data-k="s-updater"><rect x="248" y="244" width="248" height="54" rx="9"/><text class="t" x="264" y="268">VehicleStateUpdater</text><text class="m" x="264" y="285">fold · H3 · downsample</text></g>
+  <g class="node do" data-k="s-acc"><rect x="248" y="316" width="248" height="50" rx="9"/><text class="t" x="264" y="339">LiveAccumulator</text><text class="m" x="264" y="355">impressões + reach HLL</text></g>
+  <g class="node do" data-k="s-detector"><rect x="248" y="408" width="248" height="56" rx="9"/><text class="t" x="264" y="433">DefaultTripCloseDetector</text><text class="m" x="264" y="452">5 condições de fechamento</text></g>
+  <g class="node do" data-k="s-sink"><rect x="248" y="488" width="248" height="58" rx="9"/><text class="t" x="264" y="514">MedidoTripClosedSink</text><text class="m" x="264" y="532">snap → medido → emit</text></g>
+  <g class="node" data-k="s-ruler"><rect x="248" y="588" width="248" height="50" rx="9"/><text class="t" x="264" y="611">LiveCompletenessRuler</text><text class="m" x="264" y="628">completudeParcial</text></g>
+  <g class="node" data-k="s-h3"><rect x="248" y="650" width="248" height="50" rx="9"/><text class="t" x="264" y="673">H3Indexer</text><text class="m" x="264" y="689">res-9 · grid local</text></g>
+  <g class="node port" data-k="p-sinkif"><rect x="248" y="712" width="248" height="44" rx="9"/><text class="t" x="264" y="732" style="font-size:11.5px">ClosedTripSink</text><text class="k" x="264" y="747">seam · iface</text></g>
+  <g class="node port" data-k="p-hexres"><rect x="248" y="764" width="248" height="42" rx="9"/><text class="t" x="264" y="784" style="font-size:11.5px">HexResolver</text><text class="k" x="264" y="798">port app · iface</text></g>
+
+  <!-- ── Port OUT ────────────────────────────── -->
+  <g class="node port" data-k="po-state"><rect x="528" y="148" width="194" height="44" rx="9"/><text class="t" x="542" y="168" style="font-size:11.5px">LiveStateStore</text><text class="k" x="542" y="183">port out · live HASH</text></g>
+  <g class="node port" data-k="po-reach"><rect x="528" y="278" width="194" height="44" rx="9"/><text class="t" x="542" y="298" style="font-size:11.5px">LiveReachStore</text><text class="k" x="542" y="313">port out · HLL</text></g>
+  <g class="node port" data-k="po-track"><rect x="528" y="408" width="194" height="46" rx="9"/><text class="t" x="542" y="429" style="font-size:11.5px">TripTrackBuffer</text><text class="k" x="542" y="444">port out · track LIST</text></g>
+  <g class="node port" data-k="po-metr"><rect x="528" y="544" width="194" height="46" rx="9"/><text class="t" x="542" y="565" style="font-size:11px">TripMetricsCalculator</text><text class="k" x="542" y="580">port app · snap</text></g>
+  <g class="node port" data-k="po-med"><rect x="528" y="636" width="194" height="44" rx="9"/><text class="t" x="542" y="656" style="font-size:11.5px">MedidoRepository</text><text class="k" x="542" y="671">port out</text></g>
+  <g class="node port" data-k="po-pub"><rect x="528" y="714" width="194" height="44" rx="9"/><text class="t" x="542" y="734" style="font-size:11px">TripCompletedPublisher</text><text class="k" x="542" y="749">port out</text></g>
+  <g class="node port" data-k="po-line"><rect x="528" y="464" width="194" height="36" rx="9"/><text class="t" x="542" y="481" style="font-size:11.5px">LineResolver · catálogos</text><text class="k" x="542" y="494">+ ExposureCatalog · Pattern</text></g>
+
+  <!-- ── Adapter OUT ─────────────────────────── -->
+  <g class="node store" data-k="o-state"><rect x="750" y="148" width="234" height="50" rx="9"/><text class="t" x="766" y="170">RedisLiveStateStore</text><text class="m" x="766" y="186">live:vehicle HASH+hexes+line</text></g>
+  <g class="node store" data-k="o-reach"><rect x="750" y="278" width="234" height="48" rx="9"/><text class="t" x="766" y="300">RedisLiveReachStore</text><text class="m" x="766" y="316">live:reach trip|day · HLL</text></g>
+  <g class="node store" data-k="o-track"><rect x="750" y="408" width="234" height="48" rx="9"/><text class="t" x="766" y="430">RedisTripTrackBuffer</text><text class="m" x="766" y="446">live:track LIST · RPUSH</text></g>
+  <g class="node store" data-k="o-metr"><rect x="750" y="544" width="234" height="50" rx="9"/><text class="t" x="766" y="566">PostgisTripMetricsCalc</text><text class="m" x="766" y="582">ST_* SRID 31983 · km · v_real</text></g>
+  <g class="node store" data-k="o-med"><rect x="750" y="636" width="234" height="50" rx="9"/><text class="t" x="766" y="658">JdbcMedidoRepository</text><text class="m" x="766" y="674">medido.* · ON CONFLICT</text></g>
+  <g class="node store" data-k="o-pub"><rect x="750" y="714" width="234" height="50" rx="9"/><text class="t" x="766" y="736">KafkaTripCompletedPub</text><text class="m" x="766" y="752">key=vehicleCode</text></g>
+  <g class="node store" data-k="o-core"><rect x="750" y="468" width="234" height="62" rx="9"/><text class="t" x="766" y="490" style="font-size:13px">Core{Line·Exposure·Pattern}</text><text class="m" x="766" y="508">lê core (read-only)</text><text class="m" x="766" y="523">short_name → line_id</text></g>
+
+  <!-- ── Externo ─────────────────────────────── -->
+  <g class="node store" data-k="x-redis"><rect x="1024" y="148" width="170" height="72" rx="9"/><text class="t" x="1040" y="174">Redis</text><text class="m" x="1040" y="192">live:{} · HASH/SET/LIST</text><text class="m" x="1040" y="207">HLL · TTL 5min</text></g>
+  <g class="node store" data-k="x-medido"><rect x="1024" y="636" width="170" height="64" rx="9"/><text class="t" x="1040" y="662">schema medido</text><text class="m" x="1040" y="680">viagem · viagem_hex</text><text class="m" x="1040" y="695">viagem_track · veloc.</text></g>
+  <g class="node store" data-k="x-core"><rect x="1024" y="468" width="170" height="62" rx="9"/><text class="t" x="1040" y="494">schema core</text><text class="m" x="1040" y="512">line · exposure_cell</text><text class="m" x="1040" y="527">trip_pattern · h3cell</text></g>
+  <g class="node ext" data-k="x-kin"><rect x="1212" y="148" width="172" height="58" rx="9"/><text class="t" x="1228" y="174">Kafka in</text><text class="m" x="1228" y="192">ooh.rt.position</text></g>
+  <g class="node ext" data-k="x-kout"><rect x="1212" y="714" width="172" height="58" rx="9"/><text class="t" x="1228" y="740">Kafka out</text><text class="m" x="1228" y="758">ooh.trip.completed</text></g>
+
+  <!-- ── Domain ──────────────────────────────── -->
+  <g class="node domain" data-k="m-state"><rect x="36" y="908" width="318" height="92" rx="9"/><text class="t" x="52" y="933">estado / posição</text><text class="m" x="52" y="952">VehiclePosition · VehicleState</text><text class="m" x="52" y="969">LineMatch · HexVisit</text><text class="m" x="52" y="986">(fold · idempotência · H3 set)</text></g>
+  <g class="node domain" data-k="m-trip"><rect x="372" y="908" width="318" height="92" rx="9"/><text class="t" x="388" y="933">viagem fechada</text><text class="m" x="388" y="952">CompletedTrip · TripMetrics</text><text class="m" x="388" y="969">StopSpeed · OohTripCompleted</text><text class="m" x="388" y="986">(snap · km · completude)</text></g>
+  <g class="node domain" data-k="m-enum"><rect x="708" y="908" width="318" height="92" rx="9"/><text class="t" x="724" y="933">enums / sealed</text><text class="m" x="724" y="952">TripCloseReason (5 valores)</text><text class="m" x="724" y="969">FonteCobertura (PING·INTERP)</text><text class="m" x="724" y="986">HealthState (Up·Degraded·Down)</text></g>
+  <g class="node domain" data-k="m-cfg"><rect x="1044" y="908" width="334" height="92" rx="9"/><text class="t" x="1060" y="933">config / boot</text><text class="m" x="1060" y="952">KafkaConfig · RedisConfig</text><text class="m" x="1060" y="969">OohDataSourceConfig</text><text class="m" x="1060" y="986">SchedulingConfig · ServiceCalendar</text></g>
+</svg>
+
+  <div class="src">uai-ooh-trip-consolidator · com.uai.ooh.consolidator · jun/2026</div>
+
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique numa classe</h3>
+    <div class="meta" id="d-meta">papel + métodos</div>
+    <p id="d-body">Stream headless: <b>Adapter IN</b> (Kafka listener + scheduler) → <b>Application</b> (reconstrução de viagem) → <b>Port OUT</b> → <b>Adapter OUT</b> (Redis/JDBC/Kafka) → <b>Externo</b>. Domain (records/sealed) embaixo. Chips acendem os caminhos.</p>
+  </div>
+</div>
+
+<script>
+window.DETAIL = {
+  "a-listener": { t:"PositionListener", m:"adapter in · @KafkaListener", b:"Consome <code>ooh.rt.position</code> (groupId <code>trip-consolidator</code>, <b>ack manual</b>). <code>key=vehicleCode</code> mantém a ordem por veículo (INFRA-01). Cada posição vai pro <b>TripReconstructor.onPosition</b>; registro malformado é ack+skip." },
+  "a-sweeper": { t:"TripTimeoutSweeper", m:"adapter in · @Scheduled", b:"Sweep periódico (default 60s): itera <code>LiveStateStore.activeVehicleCodes()</code> e chama <b>TripReconstructor.closeByTimeout</b> em cada veículo que excedeu <code>TRIP_TIMEOUT_S</code>. Único caminho da condição TIMEOUT." },
+  "s-recon": { t:"TripReconstructor", m:"application · fronteira de viagem", b:"Dona da fronteira por veículo (CONS-03). <code>onPosition</code>: idempotência → <b>DefaultTripCloseDetector</b> → fold via <b>VehicleStateUpdater</b> OU fecha a viagem (linha resolvida do RT) e semeia a próxima. <code>closeByTimeout</code> fecha veículo silencioso." },
+  "s-updater": { t:"VehicleStateUpdater", m:"application · CONS-02", b:"Funde uma posição no <code>VehicleState</code>: idempotência (<code>feedTs ≤ lastFeedTs</code> dropa), H3 res-9 local (<b>HexResolver</b>), buffer downsample (~1/30s) no <b>TripTrackBuffer</b>, e acumula impr/reach via <b>LiveAccumulator</b>. Não decide fronteira." },
+  "s-acc": { t:"LiveAccumulator", m:"application · CONS-05", b:"Por novo hex da viagem: <code>impressões += exposure(hex,tipoDia,faixa)×coef</code> (<b>ExposureCatalog</b>) e PFMERGE no <code>live:reach:trip|day</code> (<b>LiveReachStore</b>, HLL ±0.8%). <code>resetTripReach</code> zera o sketch da viagem no fechamento." },
+  "s-detector": { t:"DefaultTripCloseDetector", m:"application · implements TripCloseDetector", b:"As 5 condições (prioridade): TRIP_ID_CHANGED, SERVICE_DATE_ROLL, SEQUENCE_RESET, LAST_STOP (rising-edge + guarda geográfica de hexes, anti-fragmentação) e TIMEOUT (sweep). LAST_STOP usa <b>TripPatternCatalog</b> por <code>short_name</code>." },
+  "s-sink": { t:"MedidoTripClosedSink", m:"application · implements ClosedTripSink (CONS-04)", b:"O sink real: snap via <b>TripMetricsCalculator</b> → persiste <b>MedidoRepository</b> (fato durável primeiro) → publica via <b>TripCompletedPublisher</b> → reseta reach. Snap nunca aborta o close (degrada p/ métricas vazias). Vence o <code>LoggingClosedTripSink</code> scaffold." },
+  "s-ruler": { t:"LiveCompletenessRuler", m:"application · CONS-05", b:"<code>completudeParcial = current_stop_sequence ÷ max(n_stops)</code> via <b>TripPatternCatalog</b> (mesmo régua do LAST_STOP). Clamp [0,1]; rota sem padrão ⇒ 0.0 (desconhecido, nunca inventado). Sem ida ao banco no hot path." },
+  "s-h3": { t:"H3Indexer", m:"application · implements HexResolver", b:"<code>latLngToCell(lat,lon,9)</code> in-process (h3-java). Boot carrega as 2.615 células <code>core.h3_cell</code> (res 9) do grid servido; ping fora do grid retorna null (posição/track avançam, sem hex)." },
+  "p-sinkif": { t:"ClosedTripSink", m:"application · interface (seam)", b:"Onde a viagem fechada vai depois de reconstruída. Default scaffold <b>LoggingClosedTripSink</b> (@ConditionalOnMissingBean); o <b>MedidoTripClosedSink</b> assume quando existe (CONS-04)." },
+  "p-hexres": { t:"HexResolver", m:"port app · interface", b:"Contrato de resolução H3 res-9 sobre o grid servido. <code>resolveOnGrid(lat,lon)</code> → índice h3 ou null. Implementado por <b>H3Indexer</b> (h3-java local)." },
+  "po-state": { t:"LiveStateStore", m:"port out · interface", b:"Estado ao vivo do veículo: <code>get/put/evict</code> + <code>activeVehicleCodes()</code>. Implementado por <b>RedisLiveStateStore</b> (HASH + hexes SET + line SET)." },
+  "po-reach": { t:"LiveReachStore", m:"port out · interface", b:"Sketches HLL de alcance por viagem/dia + impressões/dia. Implementado por <b>RedisLiveReachStore</b> (PFMERGE/PFCOUNT)." },
+  "po-track": { t:"TripTrackBuffer", m:"port out · interface", b:"Buffer do track downsampled da viagem: <code>append</code> / <code>drain</code>. Implementado por <b>RedisTripTrackBuffer</b> (LIST <code>live:track</code>)." },
+  "po-metr": { t:"TripMetricsCalculator", m:"port app · interface", b:"<code>compute(CompletedTrip)</code> → snap na shape: km, completude, v_real, cobertura H3 exata (ping ∪ interpolado). Implementado por <b>PostgisTripMetricsCalculator</b>." },
+  "po-med": { t:"MedidoRepository", m:"port out · interface", b:"<code>save(trip, metrics)</code> → <code>Optional&lt;UUID&gt; viagemId</code>, idempotente (ON CONFLICT). Implementado por <b>JdbcMedidoRepository</b>." },
+  "po-pub": { t:"TripCompletedPublisher", m:"port out · interface", b:"<code>publish(OohTripCompleted)</code> — evento enriquecido (o consumidor não lê <code>medido</code>, F2-#10). Implementado por <b>KafkaTripCompletedPublisher</b>." },
+  "po-line": { t:"Ports de catálogo (core)", m:"port out · interfaces", b:"<b>LineResolver</b> (rota RT → line_id, do RT nunca da MCO), <b>ExposureCatalog</b> (superfície de exposição) e <b>TripPatternCatalog</b> (terminus por <code>short_name</code>). Implementados pelos Core* sobre <code>core</code> (read-only)." },
+  "o-state": { t:"RedisLiveStateStore", m:"adapter out · Redis", b:"Contrato público CONS-05: HASH <code>live:vehicle:{code}</code> + SET de hexes da viagem + SET <code>live:line:{lineId}</code>, sob um TTL de segurança (~5min). Escrita do HASH+hexes pipelined num SESSION." },
+  "o-reach": { t:"RedisLiveReachStore", m:"adapter out · Redis", b:"<code>live:reach:trip|day:{code}</code> + <code>impr:day</code> via PFMERGE/PFCOUNT (HLL). TTL da viagem acompanha o estado ao vivo; o do dia expira no virar do dia de serviço." },
+  "o-track": { t:"RedisTripTrackBuffer", m:"adapter out · Redis", b:"LIST <code>live:track:{code}</code> (RPUSH de pings downsampled, fora do HASH CONS-05). Mesmo TTL de segurança; <code>drain</code> no fechamento alimenta o snap (CONS-04)." },
+  "o-metr": { t:"PostgisTripMetricsCalculator", m:"adapter out · PostGIS", b:"Best-fit shape em <code>core.line_shape</code>; <code>ST_LineLocatePoint</code>/<code>ST_Distance</code> projetam cada ponto (SRID 31983) → km, cobertura (ping ∪ interpolado), v_real por parada. Snap só no close." },
+  "o-med": { t:"JdbcMedidoRepository", m:"adapter out · JdbcTemplate", b:"Escreve <code>medido.viagem</code> + <code>viagem_hex</code> + <code>viagem_track</code> + <code>parada_velocidade</code>. <code>viagem</code> com <code>ON CONFLICT (...) DO NOTHING RETURNING viagem_id</code> (reprocesso seguro)." },
+  "o-pub": { t:"KafkaTripCompletedPublisher", m:"adapter out · Kafka", b:"Publica <code>ooh.trip.completed</code>, <code>key=vehicleCode</code> (mesmo contrato de partição da entrada). Valor = <code>OohTripCompleted</code> (JSON achatado, enriquecido). Produtor idempotente." },
+  "o-core": { t:"Core{Line·Exposure·Pattern}Catalog", m:"adapter out · JDBC core RO", b:"<b>CoreLineResolver</b> mapeia <code>short_name → line_id</code> (do RT); <b>CoreExposureCatalog</b> lê <code>core.exposure_cell</code>; <b>CoreTripPatternCatalog</b> indexa o terminus por <code>short_name</code> (trap: nunca pelo route_id GTFS)." },
+  "x-redis": { t:"Redis", m:"externo · estado ao vivo", b:"Contrato <code>live:{}</code> (HASH/SET/LIST) + sketches HLL, TTL ~5min. Lido pelo uai-ooh-intel (RT-01). Ver Nível 3." },
+  "x-medido": { t:"schema medido", m:"externo · fatos verificados", b:"<code>viagem</code>, <code>viagem_hex</code>, <code>viagem_track</code>, <code>parada_velocidade</code> — os fatos duráveis da viagem fechada (escrita pelo consolidador)." },
+  "x-core": { t:"schema core", m:"externo · read-only (F2-#3)", b:"<code>line</code>, <code>exposure_cell</code>, <code>trip_pattern</code>, <code>h3_cell</code>, <code>line_shape</code> — modelo lido no <code>version_id</code> corrente. Só leitura." },
+  "x-kin": { t:"Kafka — ooh.rt.position", m:"externo · entrada", b:"Stream de posições do poller RT (key=vehicleCode, ordem por veículo). Consumido pelo <b>PositionListener</b>." },
+  "x-kout": { t:"Kafka — ooh.trip.completed", m:"externo · saída", b:"Evento de viagem fechada enriquecido (km, hexes, faixas), key=vehicleCode. Publicado pelo <b>KafkaTripCompletedPublisher</b>." },
+  "m-state": { t:"Domain · estado / posição", m:"records", b:"<code>VehiclePosition</code>, <code>VehicleState</code> (fold + idempotência + set de hexes ping), <code>LineMatch</code>, <code>HexVisit</code> — value objects do hot path." },
+  "m-trip": { t:"Domain · viagem fechada", m:"records", b:"<code>CompletedTrip</code> (<code>fromClosedState</code>), <code>TripMetrics</code> (km/completude/v_real, <code>empty()</code>), <code>StopSpeed</code>, <code>OohTripCompleted</code> (evento achatado <code>of(...)</code>)." },
+  "m-enum": { t:"Domain · enums / sealed", m:"tipos finitos", b:"<code>TripCloseReason</code> (TRIP_ID_CHANGED | SEQUENCE_RESET | TIMEOUT | LAST_STOP | SERVICE_DATE_ROLL), <code>FonteCobertura</code> (PING | INTERPOLADO), <code>HealthState</code> (Up | Degraded | Down)." },
+  "m-cfg": { t:"Config / boot", m:"@Configuration", b:"<code>KafkaConfig</code> (factory ack manual), <code>RedisConfig</code>, <code>OohDataSourceConfig</code> (datasource <code>ooh</code>), <code>SchedulingConfig</code> (@EnableScheduling), <code>ServiceCalendar</code> (tipoDia/faixa BH-local)." }
+};
+window.E2L = { "e-st-redis":"l-st-redis","e-med-jdbc":"l-jdbc","e-pub-kafka":"l-kafka","e-line-core":"l-core" };
+window.FLOWS = {
+  onposition: { name:"onPosition — fold da posição + acumulação ao vivo (CONS-02/05)",
+    edges:["e-list-recon","e-recon-upd","e-upd-h3","e-h3-idx","e-upd-state","e-st-redis","e-redis-x","e-upd-acc","e-acc-reach","e-rch-redis"],
+    nodes:["a-listener","s-recon","s-updater","s-h3","p-hexres","s-acc","po-state","po-reach","o-state","o-reach","x-redis","m-state"],
+    steps:["<b>PositionListener</b> (ack manual) → <b>TripReconstructor.onPosition</b> → <b>VehicleStateUpdater</b>","Idempotência + H3 res-9 local (<b>H3Indexer</b>) + buffer downsample; <b>LiveAccumulator</b> soma impr e PFMERGE reach","Estado persistido no <b>RedisLiveStateStore</b> (<code>live:vehicle</code> HASH+hexes+line, TTL 5min)"] },
+  fechamento: { name:"Fechamento — snap → medido → ooh.trip.completed (CONS-03/04)",
+    edges:["e-recon-det","e-det-patt","e-recon-sink","e-sink-medsink","e-sink-metr","e-metr-pg","e-pg-x","e-sink-med","e-med-jdbc","e-jdbc-x","e-sink-pub","e-pub-kafka","e-kafka-x"],
+    nodes:["s-recon","s-detector","po-line","o-core","p-sinkif","s-sink","po-metr","o-metr","po-med","o-med","po-pub","o-pub","x-medido","x-core","x-kout","m-trip"],
+    steps:["<b>DefaultTripCloseDetector</b> dispara o close (5 condições); <b>TripReconstructor</b> monta o <code>CompletedTrip</code>","<b>MedidoTripClosedSink</b>: snap (<b>PostgisTripMetricsCalculator</b>, ST_* SRID 31983) → persiste <b>JdbcMedidoRepository</b> (<code>medido.*</code>, ON CONFLICT)","Publica <code>ooh.trip.completed</code> via <b>KafkaTripCompletedPublisher</b> (key=vehicleCode); reseta o reach da viagem"] },
+  timeout: { name:"Timeout — sweep periódico fecha veículo silencioso",
+    edges:["e-sweep-recon"],
+    nodes:["a-sweeper","s-recon","po-state","o-state","x-redis"],
+    steps:["<b>TripTimeoutSweeper</b> (@Scheduled ~60s) itera <code>activeVehicleCodes()</code>","Chama <b>TripReconstructor.closeByTimeout</b> em cada veículo silencioso > <code>TRIP_TIMEOUT_S</code>","Fecha a viagem (reason=TIMEOUT) sem nova posição e limpa o estado ao vivo"] },
+  linha: { name:"Linha do RT — resolve a rota, nunca da MCO (CONS-03)",
+    edges:["e-recon-line","e-line-core","e-core-x"],
+    nodes:["s-recon","po-line","o-core","x-core","m-state"],
+    steps:["No fechamento <b>TripReconstructor</b> chama <b>LineResolver.resolve</b> com o estado da viagem","<b>CoreLineResolver</b> mapeia <code>short_name → core.line.line_id</code> (do RT, nunca o route_id GTFS)","Sem cadastro ⇒ <code>padrao_desconhecido</code> (não é erro — F2-#8); só leitura no <code>core</code>"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

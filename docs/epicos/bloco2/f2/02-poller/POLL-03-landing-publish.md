@@ -1,7 +1,9 @@
-# POLL-03 — landing no `raw` + publish no Kafka
+# POLL-03 — landing no `raw` + publish no Kafka — ✅ ENTREGUE (2026-06-09)
 
 > F2 (Bloco 2) · lane **poller** · **Repo-alvo:** `uai-ooh-realtime-poller` · **Stack:** Python
-> **Depende de:** POLL-02 + INFRA-01 (tópico) + INFRA-02 (`raw` particionado).
+> **✅ Entregue:** commits `36a96e9`/`f69f54a` — `raw_writer.py` (COPY na partição do dia) + `publisher.py`
+> (Kafka `key=vehicle_id`, lote/ciclo), ordem **land-then-publish**, frota inteira; IT com Postgres+Kafka.
+> Run: [`F2-infra-poller-golive.md`](../../../runs/F2-infra-poller-golive.md).
 
 ## Objetivo
 Por ciclo, **landar a frota inteira** no `raw.rt__vehicle_position` (durável) **e publicar** o lote no Kafka `ooh.rt.position` (stream pro consolidador).

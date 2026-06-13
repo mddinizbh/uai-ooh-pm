@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uai-portal — diagrama de módulos</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>uai-portal · módulos</h1>
+    <div class="sub">React 18 + TS + Vite · SPA · módulo OOH (ports &amp; adapters) · MapLibre</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="auth">Auth</button>
+    <button class="chip" data-flow="leitura">Leitura OOH</button>
+    <button class="chip" data-flow="cesta">Cesta/Proposta</button>
+    <button class="chip" data-flow="mapa">Mapa</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="../../01-arquitetura-microservicos.html">← macro</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="legend" id="legend">
+  <h4>Tipo de módulo</h4>
+  <div class="row"><span class="sw ext"></span> Adapter IN — pages / componentes (UI driving)</div>
+  <div class="row"><span class="sw bus"></span> Port — interface (hexágono fora do React)</div>
+  <div class="row"><span class="sw svc"></span> Application — service / store / hook</div>
+  <div class="row"><span class="sw store"></span> Adapter OUT — fetch HTTP / localStorage / PDF</div>
+  <div class="row"><span class="sw" style="background:var(--violet-soft);border-color:var(--violet)"></span> Domain — tipos / records</div>
+  <div class="hint">clique num módulo = <b>detalhe</b> · chips = <b>fluxos de caso de uso</b> · seta tracejada = <b>implements</b></div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1400 1010" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagrama de módulos do uai-portal">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <!-- ── lanes ─────────────────────────────── -->
+  <g class="zone"><rect x="24" y="92" width="214" height="712" rx="14"/><text class="ztitle" x="40" y="120">pages / shell</text></g>
+  <g class="zone"><rect x="246" y="92" width="218" height="712" rx="14"/><text class="ztitle" x="262" y="120">modules/ooh</text></g>
+  <g class="zone"><rect x="472" y="92" width="208" height="712" rx="14"/><text class="ztitle" x="488" y="120">ooh · port / hooks</text></g>
+  <g class="zone"><rect x="688" y="92" width="216" height="712" rx="14"/><text class="ztitle" x="704" y="120">lib/auth</text></g>
+  <g class="zone"><rect x="912" y="92" width="206" height="712" rx="14"/><text class="ztitle" x="928" y="120">lib/api · adapters</text></g>
+  <g class="zone"><rect x="1126" y="92" width="250" height="712" rx="14"/><text class="ztitle" x="1142" y="120">Externo</text></g>
+  <g class="zone"><rect x="24" y="824" width="1352" height="172" rx="14"/><text class="ztitle" x="40" y="852">Domain · types (modules/ooh/api/types · session · ProposalPort.Cesta)</text></g>
+
+  <!-- ── edges ─────────────────────────────── -->
+  <!-- Auth -->
+  <path class="edge" id="e-login-ctx"  d="M226,170 C 250,150 250,138 290,138 C 500,138 600,138 670,138 C 690,138 690,158 700,170"/>
+  <path class="edge" id="e-ctx-prov"   d="M890,188 C 908,200 908,200 908,230 C 908,280 908,295 890,300"/>
+  <path class="edge impl" id="e-prov-real" d="M890,303 C 905,315 912,340 926,355"/>
+  <path class="edge" id="e-real-auth"  d="M1110,368 C 1124,330 1130,272 1140,255"/>
+  <path class="edge" id="e-ctx-tok"    d="M795,204 C 795,207 795,209 795,212"/>
+  <path class="edge" id="e-http-tok"   d="M926,485 C 900,420 905,290 890,250"/>
+  <path class="edge" id="e-http-auth"  d="M1110,480 C 1126,420 1132,302 1140,262"/>
+
+  <!-- Leitura OOH -->
+  <path class="edge" id="e-plan-client" d="M226,340 C 241,330 241,138 270,138 C 360,138 410,138 461,138 C 461,140 461,160 472,172"/>
+  <path class="edge" id="e-client-http" d="M680,190 C 690,200 690,200 690,260 C 690,470 690,498 760,498 C 850,498 880,498 926,498"/>
+  <path class="edge" id="e-http-intel"  d="M1110,510 C 1124,535 1130,556 1140,568"/>
+
+  <!-- Cesta / Proposta -->
+  <path class="edge" id="e-cesta-port"   d="M450,348 C 460,312 462,278 472,250"/>
+  <path class="edge impl" id="e-port-pdf" d="M680,248 C 690,260 690,260 690,320 C 690,620 690,648 760,648 C 850,648 880,648 926,648"/>
+  <path class="edge" id="e-cesta-client" d="M450,320 C 460,272 462,228 472,198"/>
+
+  <!-- Mapa -->
+  <path class="edge" id="e-oohmap-hook" d="M450,558 C 460,520 462,492 472,470"/>
+  <path class="edge" id="e-hook-layers" d="M576,492 C 576,494 576,497 576,500"/>
+  <path class="edge" id="e-hook-mlib"   d="M680,470 C 690,460 690,452 720,452 C 900,452 1080,452 1110,452 C 1126,452 1126,475 1140,480"/>
+
+  <text class="elbl" id="l-prov-real"  x="900" y="338">impl</text>
+  <text class="elbl" id="l-real-auth"  x="1112" y="304">POST /auth</text>
+  <text class="elbl" id="l-http-intel" x="1016" y="540">Bearer</text>
+  <text class="elbl" id="l-hook-mlib"  x="900" y="446">render</text>
+
+  <!-- ── pages / shell (Adapter IN) ─────────── -->
+  <g class="node ext" data-k="login"><rect x="36" y="148" width="190" height="50" rx="9"/><text class="t" x="52" y="172">LoginPage</text><text class="m" x="52" y="189">/login · useAuth().login</text></g>
+  <g class="node ext" data-k="protected"><rect x="36" y="206" width="190" height="50" rx="9"/><text class="t" x="52" y="230">ProtectedLayout</text><text class="m" x="52" y="247">guard + sidebar</text></g>
+  <g class="node ext" data-k="app"><rect x="36" y="264" width="190" height="48" rx="9"/><text class="t" x="52" y="288">App.tsx</text><text class="m" x="52" y="303">router · QueryClient</text></g>
+  <g class="node ext" data-k="planpage"><rect x="36" y="320" width="190" height="50" rx="9"/><text class="t" x="52" y="344">PlanejamentoPage</text><text class="m" x="52" y="361">/ooh · master-detail</text></g>
+  <g class="node ext" data-k="rtpage"><rect x="36" y="378" width="190" height="48" rx="9"/><text class="t" x="52" y="402">RealTimePage</text><text class="m" x="52" y="417">/realtime · frota</text></g>
+  <g class="node ext" data-k="sidebar"><rect x="36" y="434" width="190" height="46" rx="9"/><text class="t" x="52" y="457">PortalSidebar</text><text class="m" x="52" y="472">nav OOH/Marketing</text></g>
+  <g class="node ext" data-k="landing"><rect x="36" y="488" width="190" height="46" rx="9"/><text class="t" x="52" y="511">landing/*</text><text class="m" x="52" y="526">Index · Hero · CTA</text></g>
+  <g class="node ext" data-k="shadcn"><rect x="36" y="542" width="190" height="46" rx="9"/><text class="t" x="52" y="565">components/ui</text><text class="m" x="52" y="580">shadcn (50+)</text></g>
+
+  <!-- ── modules/ooh (Adapter IN) ───────────── -->
+  <g class="node ext" data-k="filters"><rect x="256" y="148" width="194" height="48" rx="9"/><text class="t" x="270" y="172">FiltersPanel</text><text class="m" x="270" y="188">público · região · pesos</text></g>
+  <g class="node ext" data-k="ranklist"><rect x="256" y="204" width="194" height="46" rx="9"/><text class="t" x="270" y="227">RankingList</text><text class="m" x="270" y="243">lista nº·linha·score</text></g>
+  <g class="node ext" data-k="ficha"><rect x="256" y="258" width="194" height="46" rx="9"/><text class="t" x="270" y="281">LineFicha</text><text class="m" x="270" y="297">ficha + slots</text></g>
+  <g class="node ext" data-k="cestactx"><rect x="256" y="312" width="194" height="56" rx="9"/><text class="t" x="270" y="336">CestaContext</text><text class="m" x="270" y="354">localStorage · aggregate</text></g>
+  <g class="node ext" data-k="cesta"><rect x="256" y="376" width="194" height="46" rx="9"/><text class="t" x="270" y="399">Cesta</text><text class="m" x="270" y="415">barra + drawer export</text></g>
+  <g class="node ext" data-k="charts"><rect x="256" y="430" width="194" height="46" rx="9"/><text class="t" x="270" y="453">LineCharts</text><text class="m" x="270" y="469">radar (scoreData)</text></g>
+  <g class="node ext" data-k="medbadge"><rect x="256" y="484" width="194" height="46" rx="9"/><text class="t" x="270" y="507">MedicaoBadge</text><text class="m" x="270" y="523">honestidade · selos</text></g>
+  <g class="node ext" data-k="oohmap"><rect x="256" y="538" width="194" height="46" rx="9"/><text class="t" x="270" y="561">OohMap</text><text class="m" x="270" y="577">MapLibre · live</text></g>
+  <g class="node ext" data-k="cestacorr"><rect x="256" y="592" width="194" height="50" rx="9"/><text class="t" x="270" y="615" style="font-size:12px">CestaMap · CorridorMap</text><text class="m" x="270" y="632">mapas do corredor</text></g>
+
+  <!-- ── ooh · port / hooks (Application + Port) ─ -->
+  <g class="node do" data-k="intelclient"><rect x="472" y="148" width="208" height="58" rx="9"/><text class="t" x="488" y="172">intelClient</text><text class="m" x="488" y="190">react-query: useRanking</text><text class="m" x="488" y="204">useLineDetail · usePositions</text></g>
+  <g class="node port" data-k="proposalport"><rect x="472" y="214" width="208" height="52" rx="9"/><text class="t" x="488" y="237">ProposalPort</text><text class="k" x="488" y="255">port · export(cesta)</text></g>
+  <g class="node do" data-k="useproposal"><rect x="472" y="274" width="208" height="50" rx="9"/><text class="t" x="488" y="297">useProposalPort</text><text class="m" x="488" y="313">porta ativa · setPort</text></g>
+  <g class="node do" data-k="rankctrl"><rect x="472" y="332" width="208" height="48" rx="9"/><text class="t" x="488" y="355">useRankingControls</text><text class="m" x="488" y="370">estado dos filtros</text></g>
+  <g class="node do" data-k="scoredata"><rect x="472" y="388" width="208" height="46" rx="9"/><text class="t" x="488" y="411">scoreData</text><text class="m" x="488" y="427">sub-scores → radar</text></g>
+  <g class="node do" data-k="useoohmap"><rect x="472" y="442" width="208" height="50" rx="9"/><text class="t" x="488" y="466">useOohMap</text><text class="m" x="488" y="482">casca init/cleanup map</text></g>
+  <g class="node do" data-k="layers"><rect x="472" y="500" width="208" height="60" rx="9"/><text class="t" x="488" y="523">map/*Layers</text><text class="m" x="488" y="541">corridor · cesta · heatmap</text><text class="m" x="488" y="555">realtimeMapLayers</text></g>
+  <g class="node do" data-k="proposaldoc"><rect x="472" y="568" width="208" height="50" rx="9"/><text class="t" x="488" y="591">proposalDocument</text><text class="m" x="488" y="608">buildProposalHtml</text></g>
+
+  <!-- ── lib/auth ────────────────────────────── -->
+  <g class="node do" data-k="authctx"><rect x="700" y="148" width="190" height="56" rx="9"/><text class="t" x="714" y="172">AuthContext</text><text class="m" x="714" y="190">useAuth · espelha store</text><text class="m" x="714" y="200" style="font-size:9.5px">login/logout/refresh-sync</text></g>
+  <g class="node do" data-k="tokenstore"><rect x="700" y="212" width="190" height="58" rx="9"/><text class="t" x="714" y="236">tokenStore</text><text class="m" x="714" y="253">uai_session · getToken</text><text class="m" x="714" y="266" style="font-size:9.5px">updateTokens · listeners</text></g>
+  <g class="node port" data-k="provider"><rect x="700" y="278" width="190" height="50" rx="9"/><text class="t" x="714" y="301">SessionProvider</text><text class="k" x="714" y="319">port · login/logout</text></g>
+  <g class="node do" data-k="config"><rect x="700" y="336" width="190" height="48" rx="9"/><text class="t" x="714" y="359">config</text><text class="m" x="714" y="375">AUTH_MODE · authUrl</text></g>
+  <g class="node do" data-k="stubprov"><rect x="700" y="392" width="190" height="46" rx="9"/><text class="t" x="714" y="415">stubProvider</text><text class="m" x="714" y="430">mint local (dev)</text></g>
+
+  <!-- ── lib/api · adapters (Adapter OUT) ────── -->
+  <g class="node store" data-k="realprov"><rect x="926" y="338" width="184" height="60" rx="9"/><text class="t" x="940" y="361">realProvider</text><text class="m" x="940" y="379">POST /login → /me</text><text class="m" x="940" y="393" style="font-size:9.5px">login real (modo sso)</text></g>
+  <g class="node store" data-k="http"><rect x="926" y="466" width="184" height="64" rx="9"/><text class="t" x="940" y="489">http · apiFetch</text><text class="m" x="940" y="507">Bearer + base URL</text><text class="m" x="940" y="521" style="font-size:9.5px">refresh-on-401 (fila)</text></g>
+  <g class="node store" data-k="localpdf"><rect x="926" y="618" width="184" height="58" rx="9"/><text class="t" x="940" y="641">LocalProposalAdapter</text><text class="m" x="940" y="659">PDF client-side</text><text class="m" x="940" y="672" style="font-size:9.5px">printProposal (iframe)</text></g>
+
+  <!-- ── Externo ─────────────────────────────── -->
+  <g class="node ext" data-k="x-auth"><rect x="1140" y="216" width="220" height="58" rx="9"/><text class="t" x="1156" y="241">uai-auth</text><text class="m" x="1156" y="259">/api/auth · introspection</text><text class="m" x="1156" y="270" style="font-size:9.5px">login · refresh · me</text></g>
+  <g class="node store" data-k="x-intel"><rect x="1140" y="540" width="220" height="60" rx="9"/><text class="t" x="1156" y="564">uai-ooh-intel</text><text class="m" x="1156" y="582">/api/ooh · read-only</text><text class="m" x="1156" y="594" style="font-size:9.5px">lines · ranking · realtime</text></g>
+  <g class="node ext" data-k="x-maplibre"><rect x="1140" y="460" width="220" height="56" rx="9"/><text class="t" x="1156" y="484">MapLibre GL</text><text class="m" x="1156" y="502">render do mapa</text><text class="m" x="1156" y="513" style="font-size:9.5px">GeoJSON · tiles</text></g>
+
+  <!-- ── Domain ──────────────────────────────── -->
+  <g class="node domain" data-k="d-types"><rect x="36" y="878" width="340" height="100" rx="9"/><text class="t" x="52" y="903">ooh/api/types</text><text class="m" x="52" y="922">Line · LineRanking · LineMetrics</text><text class="m" x="52" y="939">LineDetail · AggregateResult</text><text class="m" x="52" y="956">LivePosition · DailySummary · Region</text></g>
+  <g class="node domain" data-k="d-session"><rect x="396" y="878" width="300" height="100" rx="9"/><text class="t" x="412" y="903">lib/auth/session</text><text class="m" x="412" y="922">AuthSession · AuthUser</text><text class="m" x="412" y="939">Role (ADMIN · AGENCY ·</text><text class="m" x="412" y="956">CLIENT_VIEWER) · isSessionValid</text></g>
+  <g class="node domain" data-k="d-score"><rect x="716" y="878" width="300" height="100" rx="9"/><text class="t" x="732" y="903">score / público-alvo</text><text class="m" x="732" y="922">ScoreBreakdown · ScoreWeights</text><text class="m" x="732" y="939">PublicoAlvo (AB · DE)</text><text class="m" x="732" y="956">ScoreAxis (radar)</text></g>
+  <g class="node domain" data-k="d-cesta"><rect x="1036" y="878" width="324" height="100" rx="9"/><text class="t" x="1052" y="903">cesta / proposta</text><text class="m" x="1052" y="922">Cesta (linhas · publicoAlvo)</text><text class="m" x="1052" y="939">combinado · mapaSnapshot</text><text class="m" x="1052" y="956">honestidade · Vigencia (ledger)</text></g>
+</svg>
+
+  <div class="src">uai-portal · React 18 + TS + Vite · jun/2026</div>
+
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique num módulo</h3>
+    <div class="meta" id="d-meta">papel + responsabilidade</div>
+    <p id="d-body">SPA com o <b>módulo OOH</b> em ports &amp; adapters: <b>pages</b> → <b>modules/ooh</b> (componentes) → <b>port/hooks</b> → <b>lib/auth</b> + <b>lib/api</b> (adapters) → <b>Externo</b> (uai-auth, uai-ooh-intel, MapLibre). Domain (tipos) embaixo. Chips acendem os fluxos.</p>
+  </div>
+</div>
+
+<script>
+window.DETAIL = {
+  "login": { t:"LoginPage", m:"page · /login", b:"Formulário de credenciais. Chama <code>useAuth().login(email,password)</code>; no modo <code>sso</code> isso dispara o <b>realProvider</b> (POST /login → /me). Sucesso ⇒ <code>navigate('/ooh')</code>." },
+  "protected": { t:"ProtectedLayout", m:"shell · guard", b:"Lê <code>isAuthenticated</code> do <b>AuthContext</b>; sem sessão ⇒ <code>&lt;Navigate to='/login'&gt;</code>. Com sessão, renderiza <b>PortalSidebar</b> + o conteúdo da rota. O redirect pós-401 é reativo (o context assina o tokenStore)." },
+  "app": { t:"App.tsx", m:"shell · router", b:"Monta o <code>QueryClientProvider</code> (react-query), o <code>BrowserRouter</code> e o <b>AuthProvider</b>. Define as rotas; as protegidas (<code>/ooh</code>, <code>/realtime</code>, …) são embrulhadas no <b>ProtectedLayout</b>." },
+  "planpage": { t:"PlanejamentoPage", m:"page · /ooh", b:"Master-detail do OOH: esquerda = <b>FiltersPanel</b> + <b>RankingList</b>; direita = <b>LineFicha</b> (mapa + charts); rodapé = <b>Cesta</b>. Monta o <b>CestaProvider</b> e consome <b>useRanking</b>/<b>useRegions</b>." },
+  "rtpage": { t:"RealTimePage", m:"page · /realtime (F2)", b:"Segue uma frota fixa de sentinelas; <b>useVehiclePositions</b>/<b>useRealtimeSummary</b> em polling ~15s. Mapa <b>OohMap</b> com <code>live</code> ON; contadores de impressões/alcance com selo ESTIMATIVA." },
+  "sidebar": { t:"PortalSidebar", m:"shell · nav", b:"Navegação lateral (verticais OOH/Marketing). Itens viram <code>&lt;NavLink&gt;</code> para as rotas protegidas." },
+  "landing": { t:"landing/*", m:"page pública", b:"<code>Index</code> + seções de marketing (Hero, CTA, Channels, Stats…). Página pública, fora do fluxo autenticado." },
+  "shadcn": { t:"components/ui", m:"design system", b:"50+ primitivos shadcn/ui (button, dialog, card, table, tabs…). Base visual de toda a UI; sem lógica de domínio." },
+  "filters": { t:"FiltersPanel", m:"componente OOH", b:"Controles de público-alvo (AB|DE), cascata região→bairro e pesos do score. Dirige o <b>useRankingControls</b> (estado dos filtros) que alimenta <b>useRanking</b>." },
+  "ranklist": { t:"RankingList", m:"componente OOH", b:"Lista enxuta ordenável (<code>nº · linha · score</code>) com quick-add à cesta. Seleção dirige a <b>LineFicha</b>. Depende só da interface <code>CestaSelection</code>." },
+  "ficha": { t:"LineFicha", m:"componente OOH", b:"Container da direita: busca <b>useLineMetrics</b> + <b>useLineDetail</b>, renderiza a ficha rica (header + badges + slots de mapa/charts). <code>/geo</code> é lazy (vem do slot de mapa)." },
+  "cestactx": { t:"CestaContext", m:"componente OOH · estado", b:"A cesta do EP4-06: estado client-only persistido no <code>localStorage</code> (<code>uai_ooh_cesta</code>) + COMBINADO recalculado via <b>useAggregate</b> (<code>POST /api/lines/aggregate</code>) a cada ＋/remover. <code>useCesta()</code> consome." },
+  "cesta": { t:"Cesta", m:"componente OOH", b:"Barra persistente com o COMBINADO + drawer per-linha/export. O export chama a <b>ProposalPort</b> ativa (PDF local no F1)." },
+  "charts": { t:"LineCharts", m:"componente OOH", b:"Radar dos 5 sub-scores via <b>scoreData</b> (recharts). Parte da ficha (EP4-05)." },
+  "medbadge": { t:"MedicaoBadge", m:"componente OOH · honestidade", b:"Selos <b>SolidoBadge</b>/<b>EstimativaBadge</b> (EP4-08): separam o sólido (score 0–100) do estimado (impressões ±35%). Textos do módulo <code>honestidade</code> + <b>MetodologiaModal</b>." },
+  "oohmap": { t:"OohMap", m:"componente OOH · mapa", b:"Mapa MapLibre multi-linha com camada de ônibus ao vivo ligável (<code>live</code>). Casca = <b>useOohMap</b>; camadas = <b>realtimeMapLayers</b>; chips de toggle via <b>OohMapChips</b>." },
+  "cestacorr": { t:"CestaMap · CorridorMap", m:"componente OOH · mapa", b:"Mapas do corredor (ficha) e do alcance combinado da cesta. Mesma casca <b>useOohMap</b>; camadas próprias (<b>corridorLayers</b>/<b>cestaLayers</b>)." },
+  "intelclient": { t:"intelClient", m:"application · react-query", b:"Hooks @tanstack/react-query sobre o <b>uai-ooh-intel</b>: <b>useRanking</b>, <b>useRegions</b>, <b>useLineDetail</b>/<b>useLineMetrics</b>, <b>useLineGeo</b>, <b>useExposureCells</b>, <b>useAggregate</b>, <b>usePositions</b>/<b>useVehiclePositions</b>/<b>useRealtimeSummary</b>. Tudo passa pelo <b>apiFetch</b>." },
+  "proposalport": { t:"ProposalPort", m:"port · interface", b:"Porta de exportação da proposta — <code>export(cesta)</code>. As telas OOH dependem só desta interface. Impl F1 = <b>LocalProposalAdapter</b> (PDF client-side); no Bloco 3 troca-se por <code>cms → agent</code> (1 ponto, <code>setProposalPort</code>)." },
+  "useproposal": { t:"useProposalPort", m:"application", b:"Hook que entrega a <b>ProposalPort</b> ativa às telas. <code>setProposalPort</code> é o ponto de troca (Bloco 3 / testes)." },
+  "rankctrl": { t:"useRankingControls", m:"application · hook", b:"Estado dos filtros do ranking (público-alvo, região/bairro, pesos, direção de ordenação) — monta a <code>RankingQuery</code> consumida por <b>useRanking</b>." },
+  "scoredata": { t:"scoreData", m:"application · puro", b:"<code>buildScoreData(ScoreBreakdown)</code>: escala os 5 sub-scores (0–1) para 0–100 do eixo radial. Função pura, testada isolada." },
+  "useoohmap": { t:"useOohMap", m:"application · hook", b:"Casca compartilhada de init/cleanup do MapLibre (cria o <code>maplibregl.Map</code> centrado em BH, <code>NavigationControl</code>, expõe <code>mapLoaded</code>, faz <code>map.remove()</code>). Não conhece camada nenhuma." },
+  "layers": { t:"map/*Layers", m:"application · puro", b:"<b>corridorLayers</b>, <b>cestaLayers</b>, <b>heatmapLayers</b>, <b>realtimeMapLayers</b>: addSource/addLayer namespeados + toggle de visibilidade. Sem <code>ST_*</code> — consomem GeoJSON pronto do intel." },
+  "proposaldoc": { t:"proposalDocument", m:"application · puro", b:"<code>buildProposalHtml(cesta)</code> — monta o HTML do 'modo proposta' (capa + linhas + COMBINADO + mapa + disclaimer de honestidade). <code>printProposal</code> = iframe + <code>window.print()</code>." },
+  "authctx": { t:"AuthContext", m:"application · provider React", b:"Espelha a sessão do <b>tokenStore</b> em estado React (reatividade da UI). <code>useAuth()</code> expõe <code>login/logout/loginWithSso</code>; assina o tokenStore (refresh-on-401 e outras abas redirecionam reativamente)." },
+  "tokenstore": { t:"tokenStore", m:"application · store (fora do React)", b:"Fonte ÚNICA da sessão no <code>localStorage</code> (<code>uai_session</code>). <code>getToken</code>/<code>getRefreshToken</code> (lidos pelo interceptor), <code>updateTokens</code> (rotação), <code>clearSession</code> e <code>subscribe</code> (listeners → AuthContext)." },
+  "provider": { t:"SessionProvider", m:"port · interface", b:"Contrato <code>login/loginWithSso/logout</code>. <code>resolveProvider(mode)</code> escolhe o impl pelo <code>AUTH_MODE</code>: <b>stubProvider</b> (dev) ou <b>realProvider</b> (sso). Troca stub↔real = 1 linha de env." },
+  "config": { t:"config", m:"application · env", b:"<code>AUTH_MODE</code> (stub|sso), <code>AUTH_BASE_URL</code> (<code>/api/auth</code>), <code>VITE_INTEL_BASE_URL</code>, janela do refresh e <code>authUrl(path)</code>. Resolvido por env do Vite, fora do React." },
+  "stubprov": { t:"stubProvider", m:"adapter · dev", b:"Minta uma sessão local (sem backend) — modo <code>stub</code>. O formato da sessão já é o 'real'; só a emissão do token é mockada." },
+  "realprov": { t:"realProvider", m:"adapter out · HTTP", b:"Login real contra o <b>uai-auth</b> (modo <code>sso</code>): <code>POST /api/auth/login</code> → <code>GET /api/auth/me</code>. Implementa o <b>SessionProvider</b>. Não confia no JWT — o <code>/me</code> é a fonte do perfil." },
+  "http": { t:"http · apiFetch", m:"adapter out · interceptor", b:"<code>fetch</code> com interceptor: injeta <code>Authorization: Bearer</code> (lido do <b>tokenStore</b>), prefixa a base URL e, em 401, dispara UM refresh contra o uai-auth (fila única para N requests) e refaz a request. Falhou ⇒ <code>clearSession</code>." },
+  "localpdf": { t:"createLocalProposalAdapter", m:"adapter out · PDF", b:"Adapter local do F1: valida a cesta (não-vazia), monta o HTML via <b>proposalDocument</b> e dispara o salvar-como-PDF do navegador (<code>printProposal</code>). Implementa a <b>ProposalPort</b>. Sem backend nem persistência." },
+  "x-auth": { t:"uai-auth", m:"externo · identidade", b:"<code>/api/auth</code> — login, refresh, me, logout (e introspection consumida pelo intel). Em prod o nginx faz strip <code>/api/auth → /api/v1/auth</code>." },
+  "x-intel": { t:"uai-ooh-intel", m:"externo · serving read-only", b:"<code>/api/ooh</code> (lines, ranking, regions, geo, exposure, realtime). O front lê DIRETO com Bearer (dado de referência, read-only, tenant-agnóstico — não passa pelo BFF do cms)." },
+  "x-maplibre": { t:"MapLibre GL", m:"externo · render", b:"Engine de mapa client-side. Recebe as camadas montadas pelos <b>map/*Layers</b> via o <b>useOohMap</b>. Consome GeoJSON do intel + posições do realtime." },
+  "d-types": { t:"Domain · ooh/api/types", m:"tipos do produto", b:"<code>Line</code>, <code>LineRanking</code>, <code>LineMetrics</code>, <code>LineDetail</code>, <code>AggregateResult</code>, <code>LivePosition</code>, <code>DailySummary</code>, <code>Region</code> — espelham os DTOs do intel." },
+  "d-session": { t:"Domain · session", m:"tipos de auth", b:"<code>AuthSession</code>, <code>AuthUser</code>, <code>Role</code> (ADMIN | AGENCY_MANAGER | CLIENT_VIEWER) e <code>isSessionValid</code>. Contrato estável — só o provider muda entre stub e sso." },
+  "d-score": { t:"Domain · score/público-alvo", m:"tipos", b:"<code>ScoreBreakdown</code> (5 sub-scores 0–1), <code>ScoreWeights</code> (pesos custom), <code>PublicoAlvo</code> (AB|DE) e <code>ScoreAxis</code> (ponto do radar)." },
+  "d-cesta": { t:"Domain · cesta/proposta", m:"tipos + honestidade", b:"<code>Cesta</code> (linhas · publicoAlvo · combinado · mapaSnapshot) da <b>ProposalPort</b>, e as constantes de <code>honestidade</code> (<code>Vigencia</code>, descrições sólido/estimado — o ledger)." }
+};
+window.E2L = {
+  "e-prov-real":"l-prov-real",
+  "e-real-auth":"l-real-auth",
+  "e-client-http":"l-http-intel",
+  "e-http-intel":"l-http-intel",
+  "e-hook-mlib":"l-hook-mlib"
+};
+window.FLOWS = {
+  auth: { name:"Auth — login + Bearer + refresh-on-401",
+    edges:["e-login-ctx","e-ctx-prov","e-prov-real","e-real-auth","e-ctx-tok","e-http-tok","e-http-auth"],
+    nodes:["login","authctx","provider","realprov","tokenstore","http","x-auth","config","d-session"],
+    steps:["<b>LoginPage</b> → <code>useAuth().login</code> → <b>SessionProvider</b> resolve o <b>realProvider</b> (modo sso)","<b>realProvider</b>: <code>POST /api/auth/login</code> → <code>GET /me</code>; a sessão (2 tokens) vai pro <b>tokenStore</b> (<code>uai_session</code>)","O <b>apiFetch</b> lê o Bearer do tokenStore; em 401 dispara UM refresh (fila), <b>AuthContext</b> redireciona reativamente"] },
+  leitura: { name:"Leitura OOH — ranking/ficha via react-query → intel",
+    edges:["e-plan-client","e-client-http","e-http-intel","e-http-tok"],
+    nodes:["planpage","intelclient","http","tokenstore","x-intel","d-types"],
+    steps:["<b>PlanejamentoPage</b> consome <b>intelClient</b> (<b>useRanking</b>/<b>useLineDetail</b> via react-query)","Cada hook chama <b>apiFetch</b> — Bearer do <b>tokenStore</b> + base URL do intel","<b>uai-ooh-intel</b> responde read-only (<code>/api/ooh</code>); os tipos vêm de <b>ooh/api/types</b>"] },
+  cesta: { name:"Cesta/Proposta — COMBINADO + export PDF",
+    edges:["e-cesta-port","e-port-pdf","e-cesta-client","e-client-http"],
+    nodes:["cestactx","intelclient","proposalport","localpdf","proposaldoc","cesta","d-cesta"],
+    steps:["<b>CestaContext</b> persiste as linhas (localStorage) e recalcula o COMBINADO via <b>useAggregate</b> (<code>POST /aggregate</code>)","O export chama a <b>ProposalPort</b> ativa = <b>LocalProposalAdapter</b> (PDF client-side)","<b>proposalDocument</b> monta o HTML 'modo proposta' (com disclaimer de honestidade) → <code>window.print()</code>"] },
+  mapa: { name:"Mapa — OohMap → useOohMap → MapLibre",
+    edges:["e-oohmap-hook","e-hook-layers","e-hook-mlib"],
+    nodes:["oohmap","useoohmap","layers","x-maplibre","cestacorr"],
+    steps:["<b>OohMap</b> (e CestaMap/CorridorMap) usam a casca <b>useOohMap</b> p/ init/cleanup do mapa","<b>useOohMap</b> cria o <code>maplibregl.Map</code>; as camadas vêm dos <b>map/*Layers</b> (corridor/cesta/heatmap/realtime)","<b>MapLibre GL</b> renderiza o GeoJSON do intel + as posições ao vivo do realtime"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>
