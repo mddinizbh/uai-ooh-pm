@@ -1,6 +1,6 @@
 {
-  "updatedBy": "module",
-  "updatedAt": "2026-06-06T14:38:07Z",
+  "updatedBy": "contract",
+  "updatedAt": "2026-06-06T14:53:03Z",
   "gates": {
     "T8b": {
       "gate": "T8b",
@@ -227,7 +227,54 @@
       "note": "9/9 done (run docs confirmam DONE). Reconciliado — handoff deu lag na consolidacao. Fix dos pontos cinzas (CorridorMap) aplicado dev-local."
     }
   },
-  "contract": {},
+  "contract": {
+    "openapi_source": "derived-from-controllers",
+    "verdict": "aligned",
+    "matched": [
+      {
+        "hook": "useLines",
+        "operation": "GET /api/lines (query regiao,bairro opcionais; resp Line[] {lineId,shortName,longName,scoreTotal})"
+      },
+      {
+        "hook": "useRegions",
+        "operation": "GET /api/regions (resp Region[] {regiao,bairros[]})"
+      },
+      {
+        "hook": "useLineDetail (= 'useLine' do handoff)",
+        "operation": "GET /api/lines/{id} (path id; resp LineDetailResponse {line,routeType,circular,suplementar,shapes[],stops[]})"
+      },
+      {
+        "hook": "useLineMetrics",
+        "operation": "GET /api/lines/{id}/metrics (resp LineMetrics; ScoreBreakdown 5 sub-scores sAlcance/sDensidade/sPerfil/sArterial/sPoi + scoreTotal; Impressions util/sab/dom/mes + faixaIndicativaPct = estimativa)"
+      },
+      {
+        "hook": "useRanking",
+        "operation": "GET /api/lines/ranking (query weights CSV 'componente:peso', publicoAlvo AB|DE, regiao, bairro; resp LineRanking[] {line,score,posicao})"
+      },
+      {
+        "hook": "useAggregate",
+        "operation": "POST /api/lines/aggregate (body AggregateRequest {lineIds[] obrigatorio, publicoAlvo?}; resp AggregateResult {combined,perLine[]})"
+      },
+      {
+        "hook": "useLineGeo",
+        "operation": "GET /api/lines/{id}/geo (query categorias CSV opcional; resp LineGeoResponse FeatureCollection {type,features[]})"
+      },
+      {
+        "hook": "useLinesGeo",
+        "operation": "GET /api/lines/{id}/geo (batch via useQueries, reusa o mesmo endpoint/cache do useLineGeo, sem categorias)"
+      }
+    ],
+    "mismatches": [
+      {
+        "kind": "missing-endpoint",
+        "severity": "major",
+        "hook": "todos (useLines/useRegions/useLineDetail/useLineMetrics/useRanking/useAggregate/useLineGeo)",
+        "endpoint": "GET /api/lines, /api/lines/{id}, /api/lines/{id}/metrics, /api/lines/ranking, POST /api/lines/aggregate, GET /api/regions, GET /api/lines/{id}/geo",
+        "expected": "intel deveria registrar os 7 endpoints F1 (presentes em LinesController/RegionsController no source)",
+        "actual": "O binario rodando em localhost:8085 e build stale do template: /api/docs (springdoc) expoe SO 'GET /api/ping' e GET /api/lines retorna 404. springdoc varre @RestController no startup, entao a ausencia confirma jar antigo, anterior aos controllers F1. Staleness de deploy, NAO divergencia de contrato: rebuild/redeploy resolve sem tocar no contrato. Por isso 'major', nao 'critical'."
+      }
+    ]
+  },
   "decisions": [],
   "runDocs": [
     "/Users/marleydiniz/IdeaProjects/personal/uai/uai-ooh-pm/docs/epicos/runs/T8b-regionalizacao.md",

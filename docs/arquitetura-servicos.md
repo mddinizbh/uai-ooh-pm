@@ -1,5 +1,8 @@
 # uAI OOH — Arquitetura de serviços (F1→F3)
 
+> **Visão platform-wide (toda a plataforma uAI):** [`arquitetura-plataforma-uai.md`](arquitetura-plataforma-uai.md).
+> Este doc é o **deep-dive do vertical OOH**.
+>
 > Doc de referência da decomposição em microsserviços do vertical OOH (inteligência + metrificação
 > de mídia em ônibus de BH). Complementa `plano-normalizacao-core.md` (o `core`) e os `epicos/*`.
 > Vertical `uai-ooh-*` — **distinto** do `uai-midia-core` (agente de *criação* de arte).

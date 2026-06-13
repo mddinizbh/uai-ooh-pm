@@ -1,0 +1,76 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>Footfall back bus — constante vs telefonia VIVO</title>
+<style>
+ body{font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:#0f1420;color:#e6edf3;padding:28px}
+ .wrap{max-width:860px;margin:0 auto}
+ h1{font-size:21px;margin:0 0 4px} .sub{color:#9fb0c3;margin:0 0 22px;font-size:13px}
+ .card{background:#161d2c;border:1px solid #243049;border-radius:12px;padding:20px 22px;margin-bottom:18px}
+ table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:6px}
+ th,td{padding:7px 10px;text-align:right;border-bottom:1px solid #243049} th:first-child,td:first-child{text-align:left}
+ th{color:#9fb0c3;font-weight:600} .hi{color:#7ec8ff;font-weight:700}
+ .step{background:#11192a;border-left:3px solid #2b8cbe;padding:10px 14px;border-radius:6px;margin:10px 0}
+ .k{color:#ffd479} code{background:#0c1322;padding:1px 6px;border-radius:4px;color:#9fe0a0}
+ .leg span{display:inline-block;margin-right:18px;font-size:13px}
+ .sw{display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+</style></head><body><div class="wrap">
+<h1>Footfall do back bus em BH — modelo constante vs curva real</h1>
+<p class="sub">Telefonia VIVO (Agência RMBH) · 165 zonas O-D de BH · chegadas por hora · nov/2019 · base de exposição = 82</p>
+
+<div class="card">
+<div class="leg"><span><i class="sw" style="background:#2b8cbe"></i>Footfall recalibrado = 82 × perfil telefonia</span>
+<span><i class="sw" style="background:#e34a33"></i>Modelo atual = 82 constante (24h)</span></div>
+<svg viewBox="0 0 760 410" width="100%" font-family="sans-serif">
+ <!-- grid -->
+ <g stroke="#243049" stroke-width="1">
+  <line x1="70" y1="360" x2="720" y2="360"/>
+  <line x1="70" y1="139.3" x2="720" y2="139.3" stroke-dasharray="2 4"/>
+  <line x1="70" y1="249.7" x2="720" y2="249.7" stroke-dasharray="2 4"/>
+ </g>
+ <g fill="#6b7c93" font-size="11" text-anchor="end">
+  <text x="62" y="364">0</text><text x="62" y="253">50</text><text x="62" y="143">100</text>
+ </g>
+ <!-- barras recalibradas -->
+ <g fill="#2b8cbe">
+  <rect x="100" y="333.5" width="70" height="26.5"/>
+  <rect x="230" y="79.7"  width="70" height="280.3"/>
+  <rect x="360" y="179.0" width="70" height="181.0"/>
+  <rect x="490" y="75.3"  width="70" height="284.7"/>
+  <rect x="620" y="227.6" width="70" height="132.4"/>
+ </g>
+ <!-- valores -->
+ <g fill="#cfe6ff" font-size="13" font-weight="700" text-anchor="middle">
+  <text x="135" y="327">12</text><text x="265" y="73">127</text><text x="395" y="172">82</text>
+  <text x="525" y="69">129</text><text x="655" y="221">60</text>
+ </g>
+ <!-- linha constante 82 -->
+ <line x1="70" y1="179" x2="720" y2="179" stroke="#e34a33" stroke-width="2.4" stroke-dasharray="8 5"/>
+ <text x="716" y="172" fill="#e34a33" font-size="11.5" text-anchor="end" font-weight="700">82 (hoje)</text>
+ <!-- labels faixas -->
+ <g fill="#9fb0c3" font-size="12.5" text-anchor="middle">
+  <text x="135" y="382">23–6</text><text x="265" y="382">6–10</text><text x="395" y="382">10–15</text>
+  <text x="525" y="382">15–19</text><text x="655" y="382">19–23</text>
+ </g>
+ <text x="395" y="403" fill="#6b7c93" font-size="11" text-anchor="middle">faixa horária</text>
+</svg>
+<p style="color:#9fb0c3;font-size:13px;margin:6px 0 0">O modelo de hoje crava <b>82</b> na madrugada (onde o real é <span class="hi">12</span>) e <b>82</b> no pico da tarde (onde o real é <span class="hi">129</span>). Razão pico/vale por hora: <b class="hi">11,2×</b>.</p>
+</div>
+
+<div class="card">
+<b>Os números (chegadas em zonas de BH, nov/2019)</b>
+<table>
+<tr><th>Faixa</th><th>Viagens</th><th>Dur.</th><th>Viagens/hora</th><th>Índice (méd=100)</th><th>Footfall recalib.</th></tr>
+<tr><td>23:00–05:59</td><td>2.437.700</td><td>7h</td><td>348.243</td><td>14</td><td class="hi">12</td></tr>
+<tr><td>06:00–09:59</td><td>15.341.365</td><td>4h</td><td>3.835.341</td><td>155</td><td class="hi">127</td></tr>
+<tr><td>10:00–14:59</td><td>12.442.016</td><td>5h</td><td>2.488.403</td><td>101</td><td class="hi">82</td></tr>
+<tr><td>15:00–18:59</td><td>15.599.258</td><td>4h</td><td>3.899.814</td><td>158</td><td class="hi">129</td></tr>
+<tr><td>19:00–22:59</td><td>7.218.291</td><td>4h</td><td>1.804.573</td><td>73</td><td class="hi">60</td></tr>
+</table>
+</div>
+
+<div class="card">
+<b>Como normalizar os dois (a parte que você perguntou)</b>
+<div class="step"><span class="k">Passo 1 — normalizar por DURAÇÃO da faixa.</span> As faixas têm tamanhos diferentes (a madrugada tem 7h, o resto 4–5h). Dividir <code>volume ÷ horas</code> → <b>viagens/hora</b>. Sem isso, a madrugada parece grande (2,4 mi) quando por hora é a menor de todas. É o que revela o pico/vale real de <b>11,2×</b>.</div>
+<div class="step"><span class="k">Passo 2 — virar PERFIL adimensional.</span> Dividir cada faixa pela média → <b>índice (média = 100)</b>, ou pela soma → fração. Vira um <b>multiplicador</b> sem unidade — agora compatível com qualquer escala.</div>
+<div class="step"><span class="k">Aplicar = NÍVEL × FORMA.</span> <code>footfall(célula, h) = nível_espacial(célula) × perfil_h(zona)</code>. O <b>nível</b> (quem/onde) vem fino do Censo + POI já no banco; a <b>forma</b> (quando) vem da telefonia por zona. O <code>82</code> deixa de ser o valor final e passa a ser o <b>nível diário</b>, redistribuído pela curva. Cada fonte entra com o que tem de melhor — e ambas ficam na mesma escala.</div>
+</div>
+</div></body></html>
