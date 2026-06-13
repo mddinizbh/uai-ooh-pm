@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kafka — tópicos &amp; contratos</title>
+<script>(function(){const s=localStorage.getItem('theme');const d=s?s==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);})();</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+<div class="bar">
+  <div>
+    <h1>Kafka (KRaft) — tópicos &amp; contratos</h1>
+    <div class="sub">event bus · single-node · OOH no ar · genéricos sem produtor · key + payload por tópico</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="posicao">Posição RT</button>
+    <button class="chip" data-flow="status">Status do veículo</button>
+    <button class="chip" data-flow="viagem">Viagem fechada</button>
+    <button class="chip" data-flow="genericos">Marketing (off)</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="../../01-arquitetura-microservicos.html">← macro</a>
+  <button id="themeToggle">Tema</button>
+</div>
+<div class="legend" id="legend">
+  <h4>Como ler</h4>
+  <div class="row"><span class="sw bus"></span> tópico — clique abre o <b>contrato</b> (payload)</div>
+  <div class="row"><span class="sw svc"></span> produtor / consumidor</div>
+  <div class="row"><span style="width:22px;border-top:1.6px solid var(--muted);display:inline-block"></span> produz → / → consome</div>
+  <div class="hint">key define a partição. <code>ooh.*</code> de tempo real (F2) estão <b>no ar</b>; os de marketing existem mas <b>sem produtor</b>.</div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1480 920" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Tópicos e contratos do Kafka">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <g class="zone"><rect x="24" y="92" width="252" height="800" rx="14"/><text class="ztitle" x="40" y="120">Produtores</text></g>
+  <g class="zone"><rect x="300" y="92" width="540" height="800" rx="14"/><text class="ztitle" x="316" y="120">Tópicos · contrato (payload)</text></g>
+  <g class="zone"><rect x="884" y="92" width="252" height="800" rx="14"/><text class="ztitle" x="900" y="120">Consumidores</text></g>
+  <g class="zone"><rect x="1160" y="92" width="296" height="800" rx="14"/><text class="ztitle" x="1176" y="120">Boot / genéricos</text></g>
+
+  <!-- edges -->
+  <path class="edge" id="e-poll-pos"    d="M258,182 C 285,180 305,182 320,184"/>
+  <path class="edge" id="e-poll-status" d="M258,206 C 290,260 305,322 320,330"/>
+  <path class="edge dash" id="e-cms-status" d="M258,300 C 290,318 305,344 320,350"/>
+  <path class="edge" id="e-pos-cons"    d="M820,200 C 850,192 868,190 884,189"/>
+  <path class="edge" id="e-status-cons" d="M820,332 C 852,300 868,232 884,210"/>
+  <path class="edge" id="e-cons-trip"   d="M884,214 C 856,300 838,440 820,456"/>
+  <path class="edge dash" id="e-trip-cmsc" d="M820,476 C 852,430 868,360 884,332"/>
+  <path class="edge dash" id="e-status-poll" d="M320,350 C 300,330 288,300 288,250 C 288,235 230,222 160,222"/>
+  <path class="edge" id="e-init-gen"    d="M1308,222 L 1308,250"/>
+
+  <text class="elbl" id="le-poll-pos" x="266" y="172">produz</text>
+  <text class="elbl" id="le-pos-cons" x="828" y="184">key=vehicle_id</text>
+  <text class="elbl" id="le-cons-trip" x="838" y="360">produz</text>
+  <text class="elbl" id="le-trip-cmsc" x="828" y="500">B3 consome</text>
+  <text class="elbl" id="le-status-poll" x="70" y="246">active set</text>
+
+  <!-- produtores -->
+  <g class="node do" data-k="poller"><rect x="40" y="150" width="218" height="70" rx="10"/><text class="t" x="58" y="178">uai-ooh-realtime-poller</text><text class="m" x="58" y="198">produz posição + status</text><text class="m" x="58" y="213">consome status (active set)</text></g>
+  <g class="node wip" data-k="cms-p"><rect x="40" y="262" width="218" height="70" rx="10"/><text class="t" x="58" y="290">uai-cms · módulo OOH</text><text class="m" x="58" y="310">produz ativação (B3)</text><text class="m" x="58" y="325">→ ooh.vehicle.status</text></g>
+
+  <!-- tópicos -->
+  <g class="node bus" data-k="t-pos"><rect x="320" y="150" width="500" height="118" rx="10"/><text class="th" x="338" y="176">ooh.rt.position</text><text class="n" x="338" y="195">key=vehicle_id · retention 6h · ~57 msg/s · LIVE</text><text class="m" x="338" y="214">vehicle_id · trip_id · route_id (=short_name)</text><text class="m" x="338" y="230">lat · lon · bearing · current_stop_sequence</text><text class="m" x="338" y="246">current_status · feed_timestamp</text><text class="n" x="338" y="262">9 campos · poller → consolidator</text></g>
+  <g class="node bus" data-k="t-status"><rect x="320" y="290" width="500" height="96" rx="10"/><text class="th" x="338" y="316">ooh.vehicle.status</text><text class="n" x="338" y="335">compactado · LIVE</text><text class="m" x="338" y="354">vehicle_code · active · ts</text><text class="m" x="338" y="370">ativação/desativação do carro (F2-#5)</text></g>
+  <g class="node bus" data-k="t-trip"><rect x="320" y="406" width="500" height="120" rx="10"/><text class="th" x="338" y="432">ooh.trip.completed</text><text class="n" x="338" y="451">key=vehicle_code · contrato enriquecido</text><text class="m" x="338" y="470">viagemId · vehicleCode · lineId · serviceDate</text><text class="m" x="338" y="486">startedAt · endedAt · km · completude</text><text class="m" x="338" y="502">hexesCobertos · faixasHorarias (sem track/campaign)</text><text class="n" x="338" y="518">consolidator → CMS (B3)</text></g>
+
+  <!-- consumidores -->
+  <g class="node do" data-k="consolidator"><rect x="884" y="150" width="218" height="84" rx="10"/><text class="t" x="902" y="178" style="font-size:13px">uai-ooh-trip-consolidator</text><text class="m" x="902" y="198">consome posição + status</text><text class="m" x="902" y="214">produz viagem fechada</text><text class="m" x="902" y="229">único escritor do medido</text></g>
+  <g class="node wip" data-k="cms-c"><rect x="884" y="280" width="218" height="70" rx="10"/><text class="t" x="902" y="308">uai-cms (B3)</text><text class="m" x="902" y="328">consome viagem fechada</text><text class="m" x="902" y="343">atribui placement/campanha</text></g>
+
+  <!-- boot / genéricos -->
+  <g class="node ext" data-k="kafka-init"><rect x="1174" y="152" width="268" height="70" rx="10"/><text class="t" x="1192" y="180">kafka-init</text><text class="m" x="1192" y="200">cria os tópicos no boot</text><text class="m" x="1192" y="215">(roda-e-sai · Exited 0)</text></g>
+  <g class="node bus off" data-k="t-gen"><rect x="1174" y="250" width="268" height="170" rx="10"/><text class="th" x="1192" y="276">genéricos (marketing)</text><text class="n" x="1192" y="295">criados · SEM produtor</text><text class="m" x="1192" y="314">discovery.completed</text><text class="m" x="1192" y="330">campaign.routine.scheduled</text><text class="m" x="1192" y="346">campaign.routine.completed/failed</text><text class="m" x="1192" y="362">content.approval.requested</text><text class="m" x="1192" y="378">content.approved / published</text><text class="n" x="1192" y="398">infra pronta p/ a agência</text></g>
+</svg>
+
+  <div class="src">uai-infra (kafka-init) · poller · trip-consolidator · arquitetura §9 · jun/2026</div>
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique num tópico</h3>
+    <div class="meta" id="d-meta">contrato (payload) + produtor/consumidor</div>
+    <p id="d-body">Os tópicos do Kafka com <b>key</b> e <b>contrato de payload</b>. Os <code>ooh.*</code> de tempo real (F2) estão no ar; os de marketing existem mas sem produtor. Clique num tópico para ver todos os campos.</p>
+  </div>
+</div>
+
+<script>
+window.DETAIL = {
+  poller: { t:"uai-ooh-realtime-poller", m:"produtor · F2 · live", b:"Polla o GTFS-RT (~15s) e <b>publica</b> em <code>ooh.rt.position</code> (lote por ciclo, key=vehicle_id) e em <code>ooh.vehicle.status</code>; também <b>consome</b> <code>ooh.vehicle.status</code> (mantém o conjunto de carros ativos via KafkaActiveRegistry). Ver Nível 3." },
+  "cms-p": { t:"uai-cms · módulo OOH (B3)", m:"produtor · roadmap", b:"No Bloco 3, ao ativar/desativar um carro numa campanha, o cms publica <code>ooh.vehicle.status</code> (vehicle_code, active). É o gatilho comercial do tracking." },
+  "t-pos": { t:"ooh.rt.position", m:"tópico · key=vehicle_id · 6h · LIVE", note:"Lote de posições cru por ciclo do poller. ~57 msg/s. Produtor: poller · Consumidor: trip-consolidator.", fields:[
+    {n:"vehicle_id",ty:"text",pk:true,d:"id do veículo no feed (key da partição)"},
+    {n:"trip_id",ty:"text",nn:true,d:"id da viagem GTFS-RT"},
+    {n:"route_id",ty:"text",nn:true,d:"⚠️ é o route_SHORT_name (não o GTFS route_id) — armadilha do feed PBH"},
+    {n:"lat",ty:"num",d:"latitude (4326)"},
+    {n:"lon",ty:"num",d:"longitude (4326)"},
+    {n:"bearing",ty:"num",nn:true,d:"rumo (graus)"},
+    {n:"current_stop_sequence",ty:"int",nn:true,d:"sequência da parada atual"},
+    {n:"current_status",ty:"text",nn:true,d:"IN_TRANSIT_TO | STOPPED_AT…"},
+    {n:"feed_timestamp",ty:"int8",d:"timestamp do feed (idempotência/ordem)"} ]},
+  "t-status": { t:"ooh.vehicle.status", m:"tópico · compactado · LIVE", note:"Inventário de carros ativos (log compactado). Produtores: poller / cms(B3) · Consumidores: poller (active set), consolidator.", fields:[
+    {n:"vehicle_code",ty:"text",pk:true,d:"código do veículo (key)"},
+    {n:"active",ty:"bool",d:"true=ativo na campanha · false/tombstone=removido"},
+    {n:"ts",ty:"int8",nn:true,d:"momento da mudança"} ]},
+  "t-trip": { t:"ooh.trip.completed", m:"tópico · key=vehicle_code · contrato enriquecido", note:"Evento por viagem fechada. ENRIQUECIDO para o consumidor (B3) não precisar acessar medido/core. Produtor: consolidator · Consumidor: cms (B3). Fato puro — sem track, sem campaign_id (F2-#5).", fields:[
+    {n:"viagemId",ty:"uuid",pk:true,d:"id da viagem"},
+    {n:"vehicleCode",ty:"text",d:"veículo (key)"},
+    {n:"lineId",ty:"text",d:"linha resolvida do RT"},
+    {n:"serviceDate",ty:"date",d:"data de serviço"},
+    {n:"startedAt",ty:"timestamptz",d:"início"},
+    {n:"endedAt",ty:"timestamptz",d:"fim"},
+    {n:"km",ty:"num",d:"km medidos (snap)"},
+    {n:"completude",ty:"num",d:"% do padrão coberto (0–1)"},
+    {n:"hexesCobertos",ty:"int",d:"nº de hexes H3 cobertos"},
+    {n:"faixasHorarias",ty:"int[]",d:"faixas horárias tocadas"} ]},
+  consolidator: { t:"uai-ooh-trip-consolidator", m:"consumidor + produtor · F2", b:"Consome <code>ooh.rt.position</code> (reconstrói viagens) e <code>ooh.vehicle.status</code> (carros ativos); ao fechar a viagem, <b>produz</b> <code>ooh.trip.completed</code>. Ver o diagrama de classes (← do macro)." },
+  "cms-c": { t:"uai-cms (B3)", m:"consumidor · roadmap", b:"No Bloco 3, consome <code>ooh.trip.completed</code> e atribui a viagem a um placement/campanha por vehicle_code × vigência, persistindo no banco do cms (tenant)." },
+  "kafka-init": { t:"kafka-init", m:"job de boot", b:"Container roda-e-sai do uai-infra que cria os tópicos no boot (genéricos da plataforma) e sai (Exited 0)." },
+  "t-gen": { t:"genéricos (marketing)", m:"tópicos · sem produtor", note:"Criados no boot, infraestrutura pronta para a plataforma de marketing — mas nenhum serviço produz/consome ainda (uai-core off).", fields:[
+    {n:"discovery.completed",ty:"event",nn:true,d:"discovery de cliente concluído"},
+    {n:"campaign.routine.scheduled",ty:"event",nn:true,d:"rotina de campanha agendada"},
+    {n:"campaign.routine.completed",ty:"event",nn:true,d:"rotina concluída"},
+    {n:"campaign.routine.failed",ty:"event",nn:true,d:"rotina falhou"},
+    {n:"content.approval.requested",ty:"event",nn:true,d:"aprovação de conteúdo pedida"},
+    {n:"content.approved",ty:"event",nn:true,d:"conteúdo aprovado"},
+    {n:"content.published",ty:"event",nn:true,d:"conteúdo publicado"} ]}
+};
+window.E2L = { "e-poll-pos":"le-poll-pos","e-pos-cons":"le-pos-cons","e-cons-trip":"le-cons-trip","e-trip-cmsc":"le-trip-cmsc","e-status-poll":"le-status-poll" };
+window.FLOWS = {
+  posicao: { name:"Posição RT — poller → consolidator", edges:["e-poll-pos","e-pos-cons"], nodes:["poller","t-pos","consolidator"],
+    steps:["O poller publica o lote de posições em <code>ooh.rt.position</code> (key=vehicle_id, 6h)","O consolidator consome e reconstrói as viagens","⚠️ <code>route_id</code> do feed é o route_short_name (não o GTFS route_id)"] },
+  status: { name:"Status do veículo — inventário de ativos", edges:["e-poll-status","e-cms-status","e-status-cons","e-status-poll"], nodes:["poller","cms-p","t-status","consolidator"],
+    steps:["Carro ativado/desativado → <code>ooh.vehicle.status</code> (log compactado)","O poller e o consolidator mantêm o conjunto de carros ativos","No F2 o produtor é o poller; no B3, o cms (ativação comercial)"] },
+  viagem: { name:"Viagem fechada — contrato enriquecido", edges:["e-cons-trip","e-trip-cmsc"], nodes:["consolidator","t-trip","cms-c"],
+    steps:["Ao fechar a viagem, o consolidator publica <code>ooh.trip.completed</code> (key=vehicle_code)","Contrato enriquecido: o consumidor (B3) não acessa medido/core","Fato puro — sem track, sem campaign_id (F2-#5)"] },
+  genericos: { name:"Marketing — infra pronta, sem produtor", edges:["e-init-gen"], nodes:["kafka-init","t-gen"],
+    steps:["O kafka-init cria os tópicos genéricos no boot","discovery.* · campaign.routine.* · content.*","Ninguém produz/consome ainda — uai-core está off"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

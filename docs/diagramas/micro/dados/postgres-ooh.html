@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>postgres-ooh — schemas do banco ooh</title>
+<script>(function(){const s=localStorage.getItem('theme');const d=s?s==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);})();</script>
+<style>
+  :root{--bg:#FAF9F5;--surface:#FFFFFF;--surface2:#F0EEE6;--ink:#141413;--body:#3D3D3A;--muted:#87867F;--line:#D1CFC5;--line-soft:#E6E3DA;--clay:#D97757;--blue:#5B7E96;--serif:ui-serif,Georgia,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+  html.dark{--bg:#141413;--surface:#1F1F1D;--surface2:#2A2A28;--ink:#FAF9F5;--body:#D1CFC5;--muted:#87867F;--line:#3D3D3A;--line-soft:#2A2A28;--clay:#E48A6E;--blue:#7FA3BC;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--body);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;padding:44px 24px 64px;display:flex;flex-direction:column;align-items:center}
+  .wrap{max-width:1000px;width:100%}
+  .head{display:flex;align-items:flex-start;gap:16px;margin-bottom:8px}
+  .head h1{font-family:var(--serif);font-weight:500;font-size:28px;color:var(--ink);letter-spacing:-0.02em}
+  .head .sub{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;margin-top:8px;line-height:1.7}
+  .spacer{flex:1}
+  .navlink,#themeToggle{font-family:var(--mono);font-size:10.5px;letter-spacing:0.06em;padding:6px 11px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;text-decoration:none;flex:none}
+  .navlink{color:var(--clay)} .navlink:hover,#themeToggle:hover{border-color:var(--clay)}
+  .flow{font-family:var(--mono);font-size:11px;color:var(--muted);margin:18px 0 22px} .flow b{color:var(--clay)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+  .card{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;border-left:3px solid var(--blue);transition:border-color .15s,transform .15s}
+  .card:hover{border-color:var(--clay);transform:translateY(-3px)}
+  .card .nm{font-family:var(--mono);font-size:15px;font-weight:650;color:var(--ink)}
+  .card .ds{font-size:12.5px;line-height:1.5;color:var(--body);margin-top:6px}
+  .card .tg{margin-top:11px;display:flex;flex-wrap:wrap;gap:5px}
+  .card .tg span{font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 7px}
+  .foot{margin-top:22px;font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1>postgres-ooh · banco <code style="font-family:var(--mono);color:var(--clay)">ooh</code></h1>
+      <div class="sub">PostGIS 16-3.4 · 127.0.0.1:5433 · dono = uai-ooh-pipeline · versionado por dataset_version (swap atômico)</div>
+    </div>
+    <div class="spacer"></div>
+    <a class="navlink" href="../../index.html">⌂ Home</a>
+    <a class="navlink" href="../../01-arquitetura-microservicos.html">← macro</a>
+    <button id="themeToggle">Tema</button>
+  </div>
+  <div class="flow">banco → <b>schema</b> → tabela → campos &nbsp;·&nbsp; clique num schema para o diagrama ER (cada tabela abre todos os campos com descrição)</div>
+  <div class="grid">
+    <a class="card" href="ooh-raw.html"><div class="nm">raw</div><div class="ds">landing zone — fiel à fonte, tudo TEXT, sem PK/FK. 35 tabelas.</div><div class="tg"><span>gtfs__*</span><span>censo__*</span><span>pbh__*</span><span>rt__*</span></div></a>
+    <a class="card" href="ooh-core.html"><div class="nm">core</div><div class="ds">normalizado · EPSG:31983 · identidades + contexto + métricas + reach. 35 tabelas.</div><div class="tg"><span>line</span><span>line_metrics</span><span>exposure_cell</span></div></a>
+    <a class="card" href="ooh-serving.html"><div class="nm">serving</div><div class="ds">espelho plano (GeoJSON 4326) · lido pelo intel (role ooh_intel_ro, só ACTIVE). 14 tabelas.</div><div class="tg"><span>flat</span><span>ADR-003</span><span>swap</span></div></a>
+    <a class="card" href="ooh-medido.html"><div class="nm">medido</div><div class="ds">fatos do mundo real (F2) · dono = trip-consolidator (Flyway). 4 tabelas.</div><div class="tg"><span>viagem</span><span>viagem_hex</span><span>v_real</span></div></a>
+  </div>
+  <div class="foot">Pipeline: raw <span style="color:var(--clay)">→</span> core <span style="color:var(--clay)">→</span> serving · o consolidator escreve medido · o intel só lê serving ACTIVE. Ver <a class="navlink" style="padding:2px 6px" href="../../02-fluxo-dados-pipeline.html">fluxo de dados</a>.</div>
+</div>
+<script>document.getElementById('themeToggle').addEventListener('click',()=>{const d=!document.documentElement.classList.contains('dark');document.documentElement.classList.toggle('dark',d);localStorage.setItem('theme',d?'dark':'light');});</script>
+</body>
+</html>

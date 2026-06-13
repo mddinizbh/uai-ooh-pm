@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uai-cms — diagrama de classes</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>uai-cms · classes</h1>
+    <div class="sub">Java 21 · scaffold + módulo OOH (B3) · ai.uai.cms · schema Flyway 15 tabelas</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="ativacao">Ativação OOH (B3)</button>
+    <button class="chip" data-flow="schema">Schema (Flyway)</button>
+    <button class="chip" data-flow="roadmap">Alvo BFF (roadmap)</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="../../01-arquitetura-microservicos.html">← macro</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="legend" id="legend">
+  <h4>Tipo de classe</h4>
+  <div class="row"><span class="sw ext"></span> Adapter IN — controllers, filtros (driving)</div>
+  <div class="row"><span class="sw bus"></span> Port — interface (in/out, hexágono)</div>
+  <div class="row"><span class="sw svc"></span> Application — service / publisher</div>
+  <div class="row"><span class="sw store"></span> Adapter OUT — JPA/Kafka (driven)</div>
+  <div class="row"><span class="sw" style="background:var(--violet-soft);border-color:var(--violet)"></span> Domain — entity / records</div>
+  <div class="row"><span class="sw" style="opacity:.55;border-style:dashed"></span> OFF — só schema / alvo (não implementado)</div>
+  <div class="hint">clique numa classe = <b>detalhe</b> · chips = <b>caminhos de caso de uso</b> · tracejado = <b>OFF / implements</b></div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1400 1020" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagrama de classes do uai-cms">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <!-- ── lanes ─────────────────────────────── -->
+  <g class="zone"><rect x="24" y="92" width="220" height="690" rx="14"/><text class="ztitle" x="40" y="120">Adapter IN</text></g>
+  <g class="zone"><rect x="252" y="92" width="190" height="690" rx="14"/><text class="ztitle" x="268" y="120">Port IN</text></g>
+  <g class="zone"><rect x="450" y="92" width="244" height="690" rx="14"/><text class="ztitle" x="466" y="120">Application</text></g>
+  <g class="zone"><rect x="702" y="92" width="200" height="690" rx="14"/><text class="ztitle" x="718" y="120">Port OUT</text></g>
+  <g class="zone"><rect x="910" y="92" width="262" height="690" rx="14"/><text class="ztitle" x="926" y="120">Adapter OUT</text></g>
+  <g class="zone"><rect x="1180" y="92" width="196" height="690" rx="14"/><text class="ztitle" x="1196" y="120">Externo</text></g>
+  <g class="zone"><rect x="24" y="802" width="1352" height="194" rx="14"/><text class="ztitle" x="40" y="830">Domain · model + schema Flyway (entity real + tabelas OFF)</text></g>
+
+  <!-- ── edges ─────────────────────────────── -->
+  <!-- Ativação OOH (B3) -->
+  <path class="edge" id="e-ctl-svc"  d="M230,176 C 320,176 360,200 462,212"/>
+  <path class="edge" id="e-svc-repo" d="M676,210 C 690,210 696,238 712,244"/>
+  <path class="edge impl" id="e-repo-jpa" d="M886,246 C 896,246 906,247 920,247"/>
+  <path class="edge" id="e-jpa-pg"   d="M1158,196 C 1170,190 1180,184 1192,181"/>
+  <path class="edge" id="e-svc-pub"  d="M676,236 C 690,300 696,360 712,372"/>
+  <path class="edge impl" id="e-pub-kpub" d="M886,374 C 896,374 906,375 920,376"/>
+  <path class="edge" id="e-kpub-topic" d="M1158,378 C 1168,388 1180,402 1192,410"/>
+  <!-- target / roadmap -->
+  <path class="edge dash" id="e-cors-roadmap" d="M230,468 C 330,460 400,438 470,436 C 640,432 780,436 880,440 C 905,442 912,470 920,508"/>
+  <path class="edge dash" id="e-intkey-svc" d="M230,540 C 330,540 360,300 462,232"/>
+
+  <text class="elbl" id="l-repo-jpa" x="892" y="240">impl</text>
+  <text class="elbl" id="l-jpa-pg"   x="1166" y="178">JDBC</text>
+  <text class="elbl" id="l-pub-kpub" x="892" y="370">impl</text>
+  <text class="elbl" id="l-kpub-topic" x="1190" y="402">Kafka</text>
+
+  <!-- ── Adapter IN ─────────────────────────── -->
+  <g class="node ext" data-k="c-ooh"><rect x="36" y="148" width="194" height="58" rx="9"/><text class="t" x="52" y="174">OohVehicleController</text><text class="m" x="52" y="192">/internal/ooh/vehicles</text></g>
+  <g class="node ext" data-k="c-health"><rect x="36" y="216" width="194" height="48" rx="9"/><text class="t" x="52" y="240">HealthController</text><text class="m" x="52" y="256">/api/health · /hello</text></g>
+  <g class="node ext off" data-k="f-intkey"><rect x="36" y="274" width="194" height="56" rx="9"/><text class="t" x="52" y="298" style="font-size:11.5px">InternalApiKeyFilter</text><text class="m" x="52" y="316">/internal/** · X-UAI-Key</text></g>
+  <g class="node ext off" data-k="cfg-int"><rect x="36" y="340" width="194" height="46" rx="9"/><text class="t" x="52" y="361">InternalApiConfig</text><text class="m" x="52" y="377">registra o filtro</text></g>
+  <g class="node ext off" data-k="cfg-cors"><rect x="36" y="396" width="194" height="58" rx="9"/><text class="t" x="52" y="420">CorsConfig</text><text class="m" x="52" y="438">permitAll · TODO JWT</text></g>
+  <g class="node ext off" data-k="f-jwt"><rect x="36" y="514" width="194" height="54" rx="9"/><text class="t" x="52" y="538">JwtAuthFilter</text><text class="m" x="52" y="556">alvo · BFF externo</text></g>
+  <g class="node ext off" data-k="cfg-listen"><rect x="36" y="578" width="194" height="54" rx="9"/><text class="t" x="52" y="602">KafkaListeners</text><text class="m" x="52" y="620">alvo · trip.completed</text></g>
+
+  <!-- ── Port IN ─────────────────────────────── -->
+  <g class="node port off" data-k="pi-camp"><rect x="252" y="148" width="174" height="56" rx="9"/><text class="t" x="266" y="172" style="font-size:11px">CampaignUseCase</text><text class="k" x="266" y="190">port in · alvo</text></g>
+  <g class="node port off" data-k="pi-appr"><rect x="252" y="214" width="174" height="50" rx="9"/><text class="t" x="266" y="236" style="font-size:11px">ApprovalUseCase</text><text class="k" x="266" y="253">port in · alvo</text></g>
+
+  <!-- ── Application ─────────────────────────── -->
+  <g class="node do" data-k="s-ooh"><rect x="462" y="148" width="214" height="64" rx="9"/><text class="t" x="478" y="173">OohVehicleService</text><text class="m" x="478" y="191">ativa/desativa veículo</text><text class="m" x="478" y="206">@Transactional · publica evt</text></g>
+  <g class="node do" data-k="s-pub"><rect x="462" y="356" width="214" height="60" rx="9"/><text class="t" x="478" y="380">VehicleStatusPublisher</text><text class="m" x="478" y="398">@TxEventListener AFTER_COMMIT</text></g>
+  <g class="node off" data-k="s-camp"><rect x="462" y="468" width="214" height="50" rx="9"/><text class="t" x="478" y="490">CampaignService</text><text class="m" x="478" y="506">alvo · briefing→campanha</text></g>
+  <g class="node off" data-k="s-appr"><rect x="462" y="528" width="214" height="48" rx="9"/><text class="t" x="478" y="550">ApprovalService</text><text class="m" x="478" y="566">alvo · aprovação</text></g>
+
+  <!-- ── Port OUT ────────────────────────────── -->
+  <g class="node port" data-k="po-repo"><rect x="712" y="148" width="190" height="118" rx="9"/><text class="t" x="726" y="172" style="font-size:11px">OohActiveVehicleRepo</text><text class="k" x="726" y="190">port out · JpaRepository</text><text class="m" x="726" y="212">findByVehicleCode</text><text class="m" x="726" y="229">save · findAll(Sort)</text></g>
+  <g class="node port" data-k="po-evt"><rect x="712" y="346" width="190" height="56" rx="9"/><text class="t" x="726" y="368" style="font-size:11px">AppEventPublisher</text><text class="k" x="726" y="386">port out · Spring</text></g>
+  <g class="node port off" data-k="po-http"><rect x="712" y="468" width="190" height="92" rx="9"/><text class="t" x="726" y="490" style="font-size:11px">Core/TokenmetricsClient</text><text class="k" x="726" y="508">port out · alvo</text><text class="m" x="726" y="530">HTTP a core/auth</text><text class="m" x="726" y="547">/tokenmetrics</text></g>
+
+  <!-- ── Adapter OUT ─────────────────────────── -->
+  <g class="node store" data-k="o-jpa"><rect x="920" y="148" width="238" height="118" rx="9"/><text class="t" x="936" y="172">Spring Data JPA</text><text class="m" x="936" y="192">proxy do repository</text><text class="m" x="936" y="209">Hibernate → uai_cms</text><text class="m" x="936" y="226">@ooh_active_vehicle</text></g>
+  <g class="node store" data-k="o-kpub"><rect x="920" y="346" width="238" height="62" rx="9"/><text class="t" x="936" y="370">KafkaTemplate send</text><text class="m" x="936" y="388">key=vehicleCode · JSON</text><text class="m" x="936" y="403">whenComplete loga drift</text></g>
+  <g class="node store off" data-k="o-httpcli"><rect x="920" y="468" width="238" height="62" rx="9"/><text class="t" x="936" y="492">RestClient (alvo)</text><text class="m" x="936" y="510">clients HTTP internos</text><text class="m" x="936" y="525">X-UAI-Internal-Key</text></g>
+
+  <!-- ── Externo ─────────────────────────────── -->
+  <g class="node store" data-k="x-pg"><rect x="1192" y="148" width="172" height="66" rx="9"/><text class="t" x="1206" y="174">postgres uai_cms</text><text class="m" x="1206" y="192">16 tabelas (Flyway)</text><text class="m" x="1206" y="207">multi-tenant · sem RLS</text></g>
+  <g class="node ext" data-k="x-kafka"><rect x="1192" y="346" width="172" height="84" rx="9"/><text class="t" x="1206" y="370">Kafka</text><text class="m" x="1206" y="388">ooh.vehicle.status</text><text class="m" x="1206" y="404">(compactado · key)</text><text class="m" x="1206" y="420">ooh.trip.completed</text></g>
+  <g class="node ext off" data-k="x-core"><rect x="1192" y="468" width="172" height="78" rx="9"/><text class="t" x="1206" y="492">core · auth</text><text class="m" x="1206" y="510">tokenmetrics</text><text class="m" x="1206" y="526">alvo · clients HTTP</text><text class="m" x="1206" y="542">do BFF</text></g>
+
+  <!-- ── Domain · model + schema ─────────────── -->
+  <g class="node domain" data-k="m-vehicle"><rect x="36" y="852" width="300" height="124" rx="9"/><text class="t" x="52" y="877">OohActiveVehicle (entity)</text><text class="m" x="52" y="897">@Table ooh_active_vehicle</text><text class="m" x="52" y="913">id · vehicleCode (unique)</text><text class="m" x="52" y="929">active · campaignId</text><text class="m" x="52" y="945">activatedAt · deactivatedAt</text><text class="m" x="52" y="961">updatedAt</text></g>
+  <g class="node domain" data-k="m-dto"><rect x="356" y="852" width="300" height="124" rx="9"/><text class="t" x="372" y="877">DTOs · evento (records)</text><text class="m" x="372" y="897">VehicleActivationRequest</text><text class="m" x="372" y="913">VehicleResponse</text><text class="m" x="372" y="929">VehicleStatusChangedEvent</text><text class="m" x="372" y="945">VehicleStatusMessage</text><text class="m" x="372" y="961">(snake_case no Kafka)</text></g>
+  <g class="node domain off" data-k="m-schema-a"><rect x="676" y="852" width="332" height="124" rx="9"/><text class="t" x="692" y="877">schema Flyway · OFF</text><text class="m" x="692" y="897">tenant · user_account · client</text><text class="m" x="692" y="913">briefing · campaign · content</text><text class="m" x="692" y="929">content_approval · media_asset</text><text class="m" x="692" y="945">campaign_channel · routine</text><text class="m" x="692" y="961">execution · generation_prompt</text></g>
+  <g class="node domain off" data-k="m-schema-b"><rect x="1028" y="852" width="332" height="124" rx="9"/><text class="t" x="1044" y="877">tipos + funções · OFF</text><text class="m" x="1044" y="897">ENUM content_status · type</text><text class="m" x="1044" y="913">briefing_status · campaign_status</text><text class="m" x="1044" y="929">user_role · approval_action</text><text class="m" x="1044" y="945">set_updated_at (trigger)</text><text class="m" x="1044" y="961">índices · R__seed_dev</text></g>
+</svg>
+
+  <div class="src">uai-cms · ai.uai.cms · módulo OOH (B3) + scaffold · jun/2026</div>
+
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique numa classe</h3>
+    <div class="meta" id="d-meta">papel + métodos</div>
+    <p id="d-body">Scaffold uAI-CMS: o único fluxo de aplicação <b>implementado</b> é o módulo OOH (B3) — ativação de veículo + publicação no Kafka. Tudo que está <b>tracejado/esmaecido</b> é só schema Flyway maduro ou alvo de roadmap (campanha, aprovação, JWT/BFF, clients HTTP). Chips acendem os caminhos.</p>
+  </div>
+</div>
+
+<script>
+window.DETAIL = {
+  "c-ooh": { t:"OohVehicleController", m:"adapter in · @RestController", b:"<code>@RequestMapping(/internal/ooh/vehicles)</code>. Rotas: <code>PUT /{vehicleCode}/activation</code> (ativa/desativa, body <b>VehicleActivationRequest</b>), <code>GET /</code> (lista), <code>POST /republish</code> (resync do tópico compactado). Delega ao <b>OohVehicleService</b>; mapeia entity→<b>VehicleResponse</b>." },
+  "c-health": { t:"HealthController", m:"adapter in · scaffold", b:"<code>GET /api/health</code> e <code>/api/hello</code> — status fixo do serviço (porta 8081). Não toca banco." },
+  "f-intkey": { t:"InternalApiKeyFilter", m:"adapter in · config (esqueleto)", b:"<code>OncePerRequestFilter</code> sobre <code>/internal/**</code>. Compara <code>X-UAI-Internal-Key</code> com <code>uai.internal.api-key</code> via <code>MessageDigest.isEqual</code> (fail-safe: chave ausente → 401). Registrado por <b>InternalApiConfig</b>." },
+  "cfg-int": { t:"InternalApiConfig", m:"config (esqueleto)", b:"<code>FilterRegistrationBean</code> que pluga o <b>InternalApiKeyFilter</b> em <code>/internal/*</code> com <code>HIGHEST_PRECEDENCE</code>." },
+  "cfg-cors": { t:"CorsConfig", m:"config (esqueleto)", b:"<code>@EnableWebSecurity</code>: CORS + <code>csrf.disable()</code> + <code>anyRequest().permitAll()</code>. Tem <code>// TODO</code> para trocar por <code>.authenticated()</code> quando o JWT externo entrar." },
+  "f-jwt": { t:"JwtAuthFilter", m:"adapter in · ALVO (não implementado)", b:"Validação de JWT externo (emitido pelo BFF/uai-auth). Hoje inexistente — o CMS roda <code>permitAll</code>. Roadmap." },
+  "cfg-listen": { t:"KafkaListeners", m:"adapter in · ALVO (não implementado)", b:"Consumidores Kafka (ex.: <code>ooh.trip.completed</code> que o B3 consome). Ainda não existem no CMS — apenas alvo." },
+  "pi-camp": { t:"CampaignUseCase", m:"port in · ALVO", b:"Contrato de gestão de campanha (briefing→campanha→agendamento). Não implementado — placeholder do hexágono futuro." },
+  "pi-appr": { t:"ApprovalUseCase", m:"port in · ALVO", b:"Contrato de aprovação de conteúdo (content_approval / approval_rule). Não implementado." },
+  "s-ooh": { t:"OohVehicleService", m:"application · @Service", b:"<code>updateActivation(code, active, campaignId)</code> é <b>@Transactional</b>: faz upsert por <code>vehicleCode</code> (cria se não existe), ajusta <code>activated/deactivatedAt</code>, salva via <b>OohActiveVehicleRepo</b> e publica <b>VehicleStatusChangedEvent</b> via <b>ApplicationEventPublisher</b>. <code>listAll()</code> e <code>republishAll()</code> são read-only." },
+  "s-pub": { t:"VehicleStatusPublisher", m:"application · @Component", b:"<code>@TransactionalEventListener(AFTER_COMMIT)</code>: só publica depois do commit do banco. Serializa <b>VehicleStatusMessage</b> (snake_case) e envia via <b>KafkaTemplate</b> com key=<code>vehicleCode</code>. Falha pós-commit é só logada (drift recuperável via <code>POST /republish</code>)." },
+  "s-camp": { t:"CampaignService", m:"application · ALVO", b:"Lógica de campanha (briefing, agendamento, conteúdo). Schema existe; serviço não. Roadmap." },
+  "s-appr": { t:"ApprovalService", m:"application · ALVO", b:"Lógica de aprovação de conteúdo. Schema existe; serviço não. Roadmap." },
+  "po-repo": { t:"OohActiveVehicleRepository", m:"port out · JpaRepository", b:"<code>extends JpaRepository&lt;OohActiveVehicle, UUID&gt;</code> com <code>findByVehicleCode(String)</code>. Spring Data gera a impl (adapter out). Usado pelo <b>OohVehicleService</b> para upsert e listagem ordenada." },
+  "po-evt": { t:"ApplicationEventPublisher", m:"port out · Spring", b:"Porta de saída de eventos do Spring. O service publica <b>VehicleStatusChangedEvent</b>; o <b>VehicleStatusPublisher</b> escuta pós-commit." },
+  "po-http": { t:"Clients HTTP (alvo)", m:"port out · ALVO", b:"Portas de saída HTTP para <code>core</code> / <code>tokenmetrics</code> / <code>auth</code> (consumidas pelo BFF). Não implementadas — roadmap." },
+  "o-jpa": { t:"Spring Data JPA · Hibernate", m:"adapter out · ORM", b:"Proxy gerado do <b>OohActiveVehicleRepository</b>. Mapeia a entity <b>OohActiveVehicle</b> (<code>@ooh_active_vehicle</code>, V5) sobre o postgres <code>uai_cms</code>." },
+  "o-kpub": { t:"KafkaTemplate.send", m:"adapter out · Kafka", b:"Envia ao tópico <code>ooh.vehicle.status</code> (key=<code>vehicleCode</code>, payload JSON). <code>whenComplete</code> loga divergência banco × tópico (recuperável com <code>POST /republish</code>)." },
+  "o-httpcli": { t:"RestClient (alvo)", m:"adapter out · ALVO", b:"Clients HTTP internos (X-UAI-Internal-Key) para os demais MS. Não implementados." },
+  "x-pg": { t:"postgres uai_cms", m:"externo · banco", b:"Schema Flyway maduro: 15 tabelas (V3) + <code>ooh_active_vehicle</code> (V5) = 16. Multi-tenant por <code>tenant_id</code>, FK+cascata, <b>sem RLS</b>. Só <code>ooh_active_vehicle</code> tem fluxo de app." },
+  "x-kafka": { t:"Kafka", m:"externo · mensageria", b:"<code>ooh.vehicle.status</code> — tópico <b>compactado</b> (key=vehicleCode) produzido pelo CMS e consumido pelo B3. <code>ooh.trip.completed</code> — alvo de consumo (listener futuro)." },
+  "x-core": { t:"core · auth · tokenmetrics", m:"externo · ALVO", b:"MS internos que o CMS chamaria como BFF (clients HTTP). Sem integração hoje." },
+  "m-vehicle": { t:"OohActiveVehicle (entity)", m:"domain · @Entity", b:"Única entity JPA com fluxo de app. <code>@Table(ooh_active_vehicle)</code>: <code>id</code> (UUID), <code>vehicleCode</code> (unique), <code>active</code>, <code>campaignId</code>, <code>activatedAt</code>, <code>deactivatedAt</code>, <code>updatedAt</code>. Lombok @Getter/@Setter." },
+  "m-dto": { t:"DTOs / evento (records)", m:"domain · records", b:"<code>VehicleActivationRequest</code> (@NotNull active, campaignId), <code>VehicleResponse</code> (projeção da entity), <code>VehicleStatusChangedEvent</code> (intra-app) e <code>VehicleStatusMessage</code> (payload Kafka, campos <code>snake_case</code> via @JsonProperty)." },
+  "m-schema-a": { t:"schema Flyway · tabelas (OFF)", m:"só schema · sem app", b:"V3 cria 15 tabelas: <code>tenant</code>, <code>user_account</code>, <code>client</code>, <code>briefing</code>, <code>campaign</code>, <code>campaign_channel</code>, <code>routine</code>, <code>execution</code>, <code>content</code>, <code>content_approval</code>, <code>media_asset</code>, <code>generation_prompt</code>, <code>campaign_channel_metrics</code>, <code>approval_rule</code>, <code>notification_log</code>. Maduras, mas sem código de serviço." },
+  "m-schema-b": { t:"tipos + funções Flyway · OFF", m:"só schema", b:"V1 ENUMs (<code>content_status</code>, <code>content_type</code>, <code>channel_type</code>, <code>briefing_status</code>, <code>campaign_status</code>, <code>user_role</code>, <code>approval_action</code>); V2 <code>set_updated_at()</code> + triggers; V4 índices; <code>R__seed_dev</code>." }
+};
+window.E2L = { "e-repo-jpa":"l-repo-jpa","e-jpa-pg":"l-jpa-pg","e-pub-kpub":"l-pub-kpub","e-kpub-topic":"l-kpub-topic" };
+window.FLOWS = {
+  ativacao: { name:"Ativação OOH (B3) — PUT activation → Kafka",
+    edges:["e-ctl-svc","e-svc-repo","e-repo-jpa","e-jpa-pg","e-svc-pub","e-pub-kpub","e-kpub-topic"],
+    nodes:["c-ooh","s-ooh","po-repo","o-jpa","x-pg","s-pub","po-evt","o-kpub","x-kafka","m-vehicle","m-dto"],
+    steps:["<code>PUT /internal/ooh/vehicles/{code}/activation</code> → <b>OohVehicleController</b> → <b>OohVehicleService</b>","<b>@Transactional</b>: upsert por <code>vehicleCode</code> via <b>OohActiveVehicleRepo</b> → Hibernate → <code>uai_cms</code>; publica <b>VehicleStatusChangedEvent</b>","Pós-commit, <b>VehicleStatusPublisher</b> (AFTER_COMMIT) → <b>KafkaTemplate</b> → <code>ooh.vehicle.status</code> (key=vehicleCode). <code>POST /republish</code> ressincroniza"] },
+  schema: { name:"Schema (Flyway) — 15 tabelas + tipos (OFF)",
+    edges:["e-jpa-pg"],
+    nodes:["x-pg","m-vehicle","m-schema-a","m-schema-b"],
+    steps:["V1 cria os ENUMs; V2 funções/triggers (<code>set_updated_at</code>); V3 as 15 tabelas multi-tenant; V4 índices; V5 <code>ooh_active_vehicle</code>; R__seed_dev","Multi-tenant por <code>tenant_id</code>, FK+cascata, <b>sem RLS</b>","Só <code>ooh_active_vehicle</code> tem fluxo de app — o resto do schema é maduro mas sem serviço (OFF)"] },
+  roadmap: { name:"Alvo BFF (roadmap) — JWT, clients, campanha",
+    edges:["e-cors-roadmap","e-intkey-svc"],
+    nodes:["cfg-cors","f-jwt","cfg-listen","pi-camp","pi-appr","s-camp","s-appr","po-http","o-httpcli","x-core","f-intkey"],
+    steps:["<b>CorsConfig</b> hoje é <code>permitAll</code> com <code>// TODO JWT</code> — alvo é <b>JwtAuthFilter</b> + <code>.authenticated()</code>","Portas de saída HTTP (core/tokenmetrics/auth) e <b>KafkaListeners</b> (<code>trip.completed</code>) ainda não existem","Schema de campanha/aprovação está pronto; <b>CampaignService</b>/<b>ApprovalService</b> são alvo"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

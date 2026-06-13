@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uAI — Arquitetura de microsserviços</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<style>
+  :root {
+    --bg: #FAF9F5; --surface: #FFFFFF; --surface2: #F0EEE6;
+    --ink: #141413; --body: #3D3D3A; --muted: #87867F;
+    --line: #D1CFC5; --line-soft: #E6E3DA;
+    --clay: #D97757; --clay-soft: rgba(217,119,87,0.10);
+    --olive: #788C5D; --olive-soft: rgba(120,140,93,0.12);
+    --gold: #C9A45C; --gold-soft: rgba(201,164,92,0.13);
+    --blue: #5B7E96; --blue-soft: rgba(91,126,150,0.12);
+    --zone: rgba(20,20,19,0.025); --zone-line: #D1CFC5;
+    --serif: ui-serif, Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  html.dark {
+    --bg: #141413; --surface: #1F1F1D; --surface2: #2A2A28;
+    --ink: #FAF9F5; --body: #D1CFC5; --muted: #87867F;
+    --line: #3D3D3A; --line-soft: #2A2A28;
+    --clay: #E48A6E; --clay-soft: rgba(228,138,110,0.14);
+    --olive: #9DB07C; --olive-soft: rgba(157,176,124,0.16);
+    --gold: #D4B36F; --gold-soft: rgba(212,179,111,0.16);
+    --blue: #7FA3BC; --blue-soft: rgba(127,163,188,0.16);
+    --zone: rgba(250,249,245,0.03); --zone-line: #3D3D3A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--body); font-family: var(--sans);
+    -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  /* ── top bar ─────────────────────────────── */
+  .bar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 11px 20px; border-bottom: 1px solid var(--line-soft); flex: none;
+  }
+  .bar h1 { font-family: var(--serif); font-weight: 500; font-size: 19px; color: var(--ink); letter-spacing: -0.01em; }
+  .bar .sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
+  .spacer { flex: 1; }
+  .legend { display: flex; gap: 12px; align-items: center; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .legend i.ok { background: var(--olive); } .legend i.wip { background: var(--gold); } .legend i.off { background: var(--muted); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em;
+    padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px;
+    background: transparent; color: var(--muted); cursor: pointer; transition: all .15s ease;
+  }
+  .chip:hover { color: var(--ink); border-color: var(--muted); }
+  .chip.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  #themeToggle {
+    font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--muted); }
+  .navlink { font-family: var(--mono); font-size: 10.5px; color: var(--clay); text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }
+  .navlink:hover { border-color: var(--clay); }
+
+  /* ── stage ───────────────────────────────── */
+  .stage { flex: 1; position: relative; min-height: 0; }
+  .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* zones */
+  .zone rect { fill: var(--zone); stroke: var(--zone-line); stroke-width: 1; stroke-dasharray: 5 5; }
+  .zone .ztitle { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; fill: var(--muted); }
+  .zone .zsub { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); opacity: 0.75; }
+
+  /* nodes */
+  .node { cursor: pointer; }
+  .node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; transition: stroke .15s ease, filter .15s ease; }
+  .node:hover rect { stroke: var(--muted); }
+  .node.sel rect { stroke: var(--clay) !important; stroke-width: 2.4; }
+  .node .t  { font-family: var(--sans); font-size: 15px; font-weight: 650; fill: var(--ink); pointer-events: none; }
+  .node .m  { font-family: var(--mono); font-size: 11px; fill: var(--muted); pointer-events: none; }
+  .node .k  { font-family: var(--mono); font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase; fill: var(--clay); pointer-events: none; }
+  .node.gate rect { fill: var(--clay-soft); stroke: var(--clay); }
+  .node.store rect { fill: var(--surface2); }
+  .node.do rect { fill: var(--olive-soft); stroke: var(--olive); }
+  .node.live rect { fill: var(--olive-soft); stroke: var(--olive); }
+  .node.bus rect { fill: var(--blue-soft); stroke: var(--blue); }
+  .node.wip rect { fill: var(--gold-soft); stroke: var(--gold); }
+  .node.ext rect { stroke-dasharray: 6 3; }
+  .node.off { opacity: 0.5; }
+  .node.off rect { stroke-dasharray: 5 4; }
+  .dot.ok { fill: var(--olive); } .dot.wip { fill: var(--gold); } .dot.off { fill: var(--muted); }
+
+  /* edges */
+  .edge { stroke: var(--muted); stroke-width: 1.6; fill: none; marker-end: url(#a-mut); transition: opacity .2s ease, stroke .2s ease; }
+  .edge.dash { stroke-dasharray: 5 4; opacity: 0.65; }
+  .edge.rt { stroke: var(--blue); }
+  .elbl { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); transition: opacity .2s ease; }
+
+  /* flow highlighting */
+  .stage.flowing .edge { opacity: 0.10; }
+  .stage.flowing .elbl { opacity: 0.10; }
+  .stage.flowing .node { opacity: 0.26; }
+  .stage.flowing .zone { opacity: 0.45; }
+  .stage.flowing .edge.lit {
+    opacity: 1; stroke: var(--clay); marker-end: url(#a-clay);
+    stroke-dasharray: 7 5; animation: march 0.9s linear infinite;
+  }
+  .stage.flowing .elbl.lit { opacity: 1; fill: var(--clay); }
+  .stage.flowing .node.lit { opacity: 1; }
+  .stage.flowing .node.lit rect { stroke: var(--clay); }
+  @keyframes march { to { stroke-dashoffset: -12; } }
+  @media (prefers-reduced-motion: reduce) { .stage.flowing .edge.lit { animation: none; } }
+
+  /* ── floating cards ──────────────────────── */
+  .card {
+    position: absolute; max-width: 380px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.10);
+  }
+  #detail { right: 16px; bottom: 16px; width: 360px; }
+  #detail h3 { font-family: var(--serif); font-weight: 500; font-size: 17px; color: var(--ink); margin-bottom: 2px; }
+  #detail .meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-bottom: 8px; }
+  #detail p { font-size: 12.5px; line-height: 1.55; }
+  #detail p code, #flowcap code { font-family: var(--mono); font-size: 11px; color: var(--clay); }
+  #flowcap { left: 16px; bottom: 16px; max-width: 470px; display: none; }
+  #flowcap.show { display: block; }
+  #flowcap .fname { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--clay); margin-bottom: 6px; }
+  #flowcap ol { margin-left: 18px; }
+  #flowcap li { font-size: 12.5px; line-height: 1.55; }
+  .src { position: absolute; top: 10px; right: 16px; font-family: var(--mono); font-size: 10px; color: var(--muted); opacity: 0.8; }
+  @media (max-width: 900px) {
+    body { overflow: auto; }
+    .stage { min-height: 82vh; }
+    #detail { position: static; width: auto; margin: 10px 16px; }
+    #flowcap { position: static; margin: 0 16px 16px; }
+  }
+  .legpanel { position:absolute; top:62px; left:16px; z-index:6; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:13px 15px; box-shadow:0 6px 24px rgba(0,0,0,.1); max-width:340px; display:none; }
+  .legpanel.show { display:block; }
+  .legpanel h4 { font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:0 0 7px; }
+  .legpanel h4:not(:first-child){ margin-top:12px; }
+  .legpanel .lr { display:flex; align-items:center; gap:8px; font-size:12px; line-height:1.5; color:var(--body); margin-bottom:3px; }
+  .legpanel .sw { width:20px; height:14px; border-radius:4px; border:1.5px solid var(--line); flex:none; }
+  .legpanel .sw.gate{background:var(--clay-soft);border-color:var(--clay)} .legpanel .sw.svc{background:var(--olive-soft);border-color:var(--olive)} .legpanel .sw.store{background:var(--surface2)} .legpanel .sw.bus{background:var(--blue-soft);border-color:var(--blue)} .legpanel .sw.proc{background:var(--olive-soft);border-color:var(--olive);border-style:dashed} .legpanel .sw.ext{background:transparent;border-style:dashed}
+  .legpanel .dt{width:11px;height:11px;border-radius:50%;flex:none} .legpanel .dt.ok{background:var(--olive)} .legpanel .dt.wip{background:var(--gold)} .legpanel .dt.off{background:var(--muted)}
+  .legpanel .hint{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:11px;line-height:1.6} .legpanel .hint b{color:var(--clay)}
+  .drill{cursor:pointer} .drill circle{fill:var(--clay-soft);stroke:var(--clay);stroke-width:1.3} .drill:hover circle{fill:var(--clay)} .drill text{font-family:var(--sans);font-size:13px;font-weight:700;fill:var(--clay);text-anchor:middle;pointer-events:none} .drill:hover text{fill:var(--bg)}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>uAI — Arquitetura de microsserviços</h1>
+    <div class="sub">VPS único · Docker Compose · um Nginx exposto · F1 + F2 (tempo real) no ar</div>
+  </div>
+  <div class="spacer"></div>
+  <button id="legendBtn">Legenda</button>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="login">Login</button>
+    <button class="chip" data-flow="oohread">Leitura OOH</button>
+    <button class="chip" data-flow="introspect">Introspection</button>
+    <button class="chip" data-flow="pipeline">Pipeline</button>
+    <button class="chip" data-flow="realtime">Tempo real (F2)</button>
+    <button class="chip" data-flow="comercial">Comercial (F3)</button>
+    <button class="chip" data-flow="deploy">Deploy</button>
+  </div>
+  <a class="navlink" href="index.html">⌂ Home</a>
+  <a class="navlink" href="02-fluxo-dados-pipeline.html">Nível 2 · Dados →</a>
+  <a class="navlink" href="03-tempo-real-f2.html">Nível 3 · F2 →</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="stage" id="stage">
+<div class="legpanel" id="legpanel">
+  <h4>Tipo</h4>
+  <div class="lr"><span class="sw gate"></span> gateway (nginx)</div>
+  <div class="lr"><span class="sw svc"></span> serviço (no ar)</div>
+  <div class="lr"><span class="sw store"></span> data store</div>
+  <div class="lr"><span class="sw bus"></span> event bus (Kafka)</div>
+  <div class="lr"><span class="sw proc"></span> processo / job</div>
+  <div class="lr"><span class="sw ext"></span> externo</div>
+  <h4>Status</h4>
+  <div class="lr"><span class="dt ok"></span> live</div>
+  <div class="lr"><span class="dt wip"></span> scaffold</div>
+  <div class="lr"><span class="dt off"></span> off / roadmap</div>
+  <div class="hint">clique = <b>detalhe</b> · <b>↳</b> = abre o micro (classes) · chips = <b>fluxos</b></div>
+</div>
+<svg viewBox="0 0 1610 1045" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Arquitetura de microsserviços uAI">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/>
+    </marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/>
+    </marker>
+  </defs>
+
+  <!-- ── zones ─────────────────────────────── -->
+  <g class="zone">
+    <rect x="40" y="140" width="220" height="300" rx="16"/>
+    <text class="ztitle" x="60" y="168">Clientes</text>
+  </g>
+  <g class="zone">
+    <rect x="300" y="140" width="200" height="752" rx="16"/>
+    <text class="ztitle" x="320" y="168">Borda</text>
+    <text class="zsub" x="320" y="186">único ponto público</text>
+  </g>
+  <g class="zone">
+    <rect x="540" y="140" width="460" height="100" rx="16"/>
+    <text class="ztitle" x="560" y="162">Frontend</text>
+  </g>
+  <g class="zone">
+    <rect x="540" y="252" width="460" height="222" rx="16"/>
+    <text class="ztitle" x="560" y="274">Platform · transversais</text>
+  </g>
+  <g class="zone">
+    <rect x="540" y="486" width="460" height="300" rx="16"/>
+    <text class="ztitle" x="560" y="508">Dados — OOH · referência</text>
+    <text class="zsub" x="560" y="526">F1 (serving) + F2 (tempo real) no ar · sem tenant (ADR-004)</text>
+  </g>
+  <g class="zone">
+    <rect x="540" y="798" width="460" height="94" rx="16"/>
+    <text class="ztitle" x="560" y="820">Comercial · tenant (F3)</text>
+  </g>
+  <g class="zone">
+    <rect x="1175" y="140" width="390" height="752" rx="16"/>
+    <text class="ztitle" x="1195" y="168">Data stores</text>
+    <text class="zsub" x="1195" y="186">127.0.0.1 / rede interna</text>
+  </g>
+  <g class="zone">
+    <rect x="40" y="912" width="1525" height="116" rx="16"/>
+    <text class="ztitle" x="60" y="938">Deploy · push-to-deploy centralizado</text>
+    <text class="zsub" x="700" y="986">repos uai-* → build → GHCR → uai-infra (SSH) → docker compose up · repos nunca tocam a VPS</text>
+  </g>
+
+  <!-- ── edges: requisição ─────────────────── -->
+  <path class="edge" id="e-brn"  d="M235,295 C 290,330 300,430 330,450"/>
+  <path class="edge" id="e-npo"  d="M470,418 C 515,300 520,222 560,209"/>
+  <path class="edge" id="e-nau"  d="M470,432 C 515,372 520,330 560,327"/>
+  <path class="edge dash" id="e-nco" d="M470,446 C 515,420 520,390 560,387"/>
+  <path class="edge dash" id="e-ntm" d="M470,458 C 515,470 520,447 560,445"/>
+  <path class="edge" id="e-nin"  d="M470,470 C 515,512 520,542 560,545"/>
+  <path class="edge dash" id="e-ncm" d="M470,484 C 515,700 520,842 560,856"/>
+
+  <!-- ── edges: dados/stores ───────────────── -->
+  <path class="edge" id="e-aupg" d="M980,320 C 1085,277 1130,250 1195,241"/>
+  <path class="edge" id="e-aur"  d="M980,332 C 1090,372 1120,432 1195,463"/>
+  <path class="edge" id="e-ipg"  d="M980,545 C 1080,452 1130,382 1195,356"/>
+  <path class="edge" id="e-iau"  d="M560,545 C 505,520 505,360 560,327"/>
+  <path class="edge" id="e-ppg"  d="M980,608 C 1080,520 1130,420 1195,378"/>
+  <path class="edge" id="e-pmin" d="M980,616 C 1080,640 1130,646 1195,646"/>
+  <path class="edge rt" id="e-pollkafka" d="M980,660 C 1080,636 1140,560 1195,548"/>
+  <path class="edge rt" id="e-pollraw"   d="M980,668 C 1090,612 1140,470 1195,392"/>
+  <path class="edge rt" id="e-conskafka" d="M980,712 C 1080,662 1140,584 1195,562"/>
+  <path class="edge rt" id="e-consredis" d="M980,718 C 1080,642 1140,500 1195,470"/>
+  <path class="edge rt" id="e-conspg"    d="M980,724 C 1090,648 1140,440 1195,398"/>
+  <path class="edge dash" id="e-cmpg" d="M980,852 C 1110,700 1150,360 1195,260"/>
+  <path class="edge dash" id="e-cmk"  d="M980,862 C 1090,782 1140,622 1195,560"/>
+
+  <!-- ── edges: deploy ─────────────────────── -->
+  <path class="edge" id="e-ghin"  d="M330,980 L 380,980"/>
+  <path class="edge dash" id="e-indep" d="M640,966 C 720,920 742,862 722,842"/>
+
+  <!-- edge labels -->
+  <text class="elbl" id="l-brn"  x="262" y="362">HTTPS :443</text>
+  <text class="elbl" id="l-npo"  x="514" y="252">/ → SPA</text>
+  <text class="elbl" id="l-nau"  x="516" y="356">/api/auth</text>
+  <text class="elbl" id="l-nco"  x="516" y="408">/api/core</text>
+  <text class="elbl" id="l-ntm"  x="516" y="486">/api/metrics</text>
+  <text class="elbl" id="l-nin"  x="514" y="538">/api/ooh → /</text>
+  <text class="elbl" id="l-ncm"  x="514" y="700">/api/cms</text>
+  <text class="elbl" id="l-aupg" x="1088" y="252">uai_auth · Flyway</text>
+  <text class="elbl" id="l-aur"  x="1082" y="424">blacklist jti</text>
+  <text class="elbl" id="l-ipg"  x="1052" y="452">serving ACTIVE (RO)</text>
+  <text class="elbl" id="l-iau"  x="500" y="452" text-anchor="middle">introspect</text>
+  <text class="elbl" id="l-ppg"  x="1040" y="506">raw→core→serving</text>
+  <text class="elbl" id="l-pmin" x="1086" y="634">lê fontes</text>
+  <text class="elbl" id="l-pollkafka" x="1044" y="618">ooh.rt.position</text>
+  <text class="elbl" id="l-consredis" x="1030" y="476">live:{} · HLL</text>
+  <text class="elbl" id="l-cmpg" x="1110" y="404">uai_cms</text>
+  <text class="elbl" id="l-indep" x="688" y="918">SSH · compose up</text>
+  <text class="elbl" id="l-ghin" x="345" y="972">pull</text>
+
+  <!-- ── nodes: clientes ───────────────────── -->
+  <g class="node" data-k="browser">
+    <rect x="65" y="236" width="170" height="118" rx="10"/>
+    <text class="t" x="86" y="268">Navegador</text>
+    <text class="m" x="86" y="290">carrega a SPA</text>
+    <text class="m" x="86" y="308">sessão uai_session</text>
+    <text class="m" x="86" y="326">Bearer + refresh</text>
+  </g>
+
+  <!-- ── nodes: borda ──────────────────────── -->
+  <g class="node gate" data-k="nginx">
+    <rect x="330" y="360" width="140" height="190" rx="10"/>
+    <text class="t" x="352" y="396">nginx</text>
+    <text class="k" x="352" y="414">único exposto</text>
+    <text class="m" x="352" y="438">:443 TLS</text>
+    <text class="m" x="352" y="456">Let's Encrypt</text>
+    <text class="m" x="352" y="474">resolver runtime</text>
+    <text class="m" x="352" y="492">502 isolado</text>
+  </g>
+
+  <!-- ── nodes: frontend ───────────────────── -->
+  <g class="node live" data-k="portal">
+    <circle class="dot ok" cx="958" cy="184" r="5"/>
+    <rect x="560" y="180" width="420" height="58" rx="10"/>
+    <text class="t" x="582" y="208">uai-portal</text>
+    <text class="m" x="582" y="228">SPA React + Vite + MapLibre · :3000</text>
+  </g>
+
+  <!-- ── nodes: platform ───────────────────── -->
+  <g class="node live" data-k="auth">
+    <circle class="dot ok" cx="958" cy="302" r="5"/>
+    <rect x="560" y="298" width="420" height="58" rx="10"/>
+    <text class="t" x="582" y="326">uai-auth</text>
+    <text class="m" x="582" y="346">JWT RS256 15min · refresh 7d · introspection · :8084</text>
+  </g>
+  <g class="node off" data-k="core">
+    <circle class="dot off" cx="958" cy="366" r="5"/>
+    <rect x="560" y="362" width="420" height="50" rx="10"/>
+    <text class="t" x="582" y="386">uai-core</text>
+    <text class="m" x="582" y="403">motor de IA · 11 agentes (LangChain4j) · :8082</text>
+  </g>
+  <g class="node off" data-k="tm">
+    <circle class="dot off" cx="958" cy="424" r="5"/>
+    <rect x="560" y="420" width="420" height="50" rx="10"/>
+    <text class="t" x="582" y="444">uai-tokenmetrics</text>
+    <text class="m" x="582" y="461">metering de tokens LLM · :8083</text>
+  </g>
+
+  <!-- ── nodes: dados OOH ──────────────────── -->
+  <g class="node live" data-k="intel">
+    <circle class="dot ok" cx="958" cy="518" r="5"/>
+    <rect x="560" y="514" width="420" height="62" rx="10"/>
+    <text class="t" x="582" y="540">uai-ooh-intel</text>
+    <text class="m" x="582" y="558">API read-only do serving · JdbcTemplate · :8085</text>
+    <text class="m" x="582" y="572">catálogo · score · ficha · ranking · cesta</text>
+  </g>
+  <g class="node do" data-k="pipeline">
+    <circle class="dot ok" cx="958" cy="588" r="5"/>
+    <rect x="560" y="584" width="420" height="48" rx="10"/>
+    <text class="t" x="582" y="608">uai-ooh-pipeline</text>
+    <text class="m" x="582" y="625">ingestor + normalizer · Python+PostGIS · jobs (F1)</text>
+  </g>
+  <g class="node do" data-k="poller">
+    <circle class="dot ok" cx="958" cy="644" r="5"/>
+    <rect x="560" y="640" width="420" height="48" rx="10"/>
+    <text class="t" x="582" y="664">uai-ooh-realtime-poller</text>
+    <text class="m" x="582" y="681">GTFS-RT ~15s → Kafka ooh.rt.position + landing raw.rt (F2)</text>
+  </g>
+  <g class="node do" data-k="consolidator">
+    <circle class="dot ok" cx="958" cy="700" r="5"/>
+    <rect x="560" y="696" width="420" height="48" rx="10"/>
+    <text class="t" x="582" y="720">uai-ooh-trip-consolidator</text>
+    <text class="m" x="582" y="737">Kafka → Redis live + schema medido (snap PostGIS) (F2)</text>
+  </g>
+  <g class="node ext" data-k="template">
+    <rect x="560" y="752" width="420" height="32" rx="10"/>
+    <text class="t" x="582" y="768" style="font-size:13px">uai-ooh-service-template</text>
+    <text class="m" x="582" y="781">molde hexagonal dos serviços Java OOH</text>
+  </g>
+
+  <!-- ── nodes: comercial ──────────────────── -->
+  <g class="node wip" data-k="cms">
+    <circle class="dot wip" cx="958" cy="832" r="5"/>
+    <rect x="560" y="828" width="420" height="56" rx="10"/>
+    <text class="t" x="582" y="852">uai-cms</text>
+    <text class="m" x="582" y="871">gestor multi-vertical + BFF · módulo OOH (B3) · :8081</text>
+  </g>
+
+  <!-- ── nodes: data stores ────────────────── -->
+  <g class="node store" data-k="pg">
+    <rect x="1195" y="192" width="350" height="94" rx="10"/>
+    <text class="t" x="1217" y="222">postgres</text>
+    <text class="m" x="1217" y="242">:5432 · postgres:16-alpine</text>
+    <text class="m" x="1217" y="260">uai_auth · uai_cms · uai_tokenmetrics</text>
+    <text class="m" x="1217" y="278">uai_buslines (legado)</text>
+  </g>
+  <g class="node store" data-k="pgooh">
+    <rect x="1195" y="300" width="350" height="108" rx="10"/>
+    <text class="t" x="1217" y="330">postgres-ooh</text>
+    <text class="m" x="1217" y="350">:5433 · PostGIS 16-3.4</text>
+    <text class="m" x="1217" y="368">DB ooh · raw / core / serving / medido</text>
+    <text class="m" x="1217" y="386">EPSG:31983 · dataset_version (swap)</text>
+  </g>
+  <g class="node store" data-k="redis">
+    <rect x="1195" y="422" width="350" height="78" rx="10"/>
+    <text class="t" x="1217" y="452">Redis</text>
+    <text class="m" x="1217" y="472">cache · sessões · blacklist jti</text>
+    <text class="m" x="1217" y="490">live:{vehicle} · HLL de alcance (F2)</text>
+  </g>
+  <g class="node bus" data-k="kafka">
+    <rect x="1195" y="514" width="350" height="78" rx="10"/>
+    <text class="t" x="1217" y="544">Kafka (KRaft)</text>
+    <text class="m" x="1217" y="564">OOH no ar: ooh.rt.position · vehicle.status</text>
+    <text class="m" x="1217" y="582">genéricos (marketing) sem produtor</text>
+  </g>
+  <g class="node store" data-k="minio">
+    <rect x="1195" y="606" width="350" height="78" rx="10"/>
+    <text class="t" x="1217" y="636">MinIO</text>
+    <text class="m" x="1217" y="656">buckets uai-media (público) · uai-ooh (privado)</text>
+    <text class="m" x="1217" y="674">fontes brutas + frio do raw.rt (INFRA-03)</text>
+  </g>
+
+  <!-- ── nodes: deploy ─────────────────────── -->
+  <g class="node ext" data-k="ghcr">
+    <rect x="70" y="948" width="260" height="64" rx="10"/>
+    <text class="t" x="92" y="976">GHCR</text>
+    <text class="m" x="92" y="996">ghcr.io/mddinizbh/* · :latest / :sha</text>
+  </g>
+  <g class="node do" data-k="infra">
+    <rect x="380" y="948" width="260" height="64" rx="10"/>
+    <text class="t" x="402" y="976">uai-infra</text>
+    <text class="m" x="402" y="996">deploy centralizado (SSH + compose)</text>
+  </g>
+
+  <!-- drill-down ↳ → micro (classes) -->
+  <g class="drills">
+    <a class="drill" href="micro/servicos/portal.html"><circle cx="966" cy="209" r="11"/><text x="966" y="214">↳</text></a>
+    <a class="drill" href="micro/servicos/auth.html"><circle cx="966" cy="327" r="11"/><text x="966" y="332">↳</text></a>
+    <a class="drill" href="micro/servicos/intel.html"><circle cx="966" cy="545" r="11"/><text x="966" y="550">↳</text></a>
+    <a class="drill" href="micro/servicos/pipeline.html"><circle cx="966" cy="608" r="11"/><text x="966" y="613">↳</text></a>
+    <a class="drill" href="micro/servicos/poller.html"><circle cx="966" cy="664" r="11"/><text x="966" y="669">↳</text></a>
+    <a class="drill" href="micro/servicos/consolidator.html"><circle cx="966" cy="720" r="11"/><text x="966" y="725">↳</text></a>
+    <a class="drill" href="micro/servicos/cms.html"><circle cx="966" cy="856" r="11"/><text x="966" y="861">↳</text></a>
+    <a class="drill" href="micro/dados/postgres.html"><circle cx="1525" cy="210" r="11"/><text x="1525" y="215">↳</text></a>
+    <a class="drill" href="micro/dados/postgres-ooh.html"><circle cx="1525" cy="318" r="11"/><text x="1525" y="323">↳</text></a>
+    <a class="drill" href="micro/infra/redis.html"><circle cx="1525" cy="440" r="11"/><text x="1525" y="445">↳</text></a>
+    <a class="drill" href="micro/infra/kafka.html"><circle cx="1525" cy="532" r="11"/><text x="1525" y="537">↳</text></a>
+    <a class="drill" href="micro/infra/uai-infra.html"><circle cx="626" cy="980" r="11"/><text x="626" y="985">↳</text></a>
+  </g>
+</svg>
+
+  <div class="src">status verificado nos containers da VPS (srv1446714) · banco ooh · jun/2026</div>
+
+  <div class="card" id="flowcap">
+    <div class="fname" id="f-name"></div>
+    <ol id="f-steps"></ol>
+  </div>
+
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique em qualquer caixa</h3>
+    <div class="meta" id="d-meta">detalhe do componente</div>
+    <p id="d-body">Cada serviço e store é clicável. Os chips no topo acendem os caminhos — Login, Leitura OOH, Introspection, Pipeline, <b>Tempo real (F2)</b>, Comercial e Deploy.</p>
+  </div>
+</div>
+
+<script>
+const DETAIL = {
+  browser:  { t:"Navegador", m:"cliente · sessão uai_session", b:"O usuário carrega a <b>SPA do uai-portal</b> pelo Nginx e, dali em diante, fala <b>direto com o uai-ooh-intel</b> (Bearer) para dado OOH read-only e com o <b>uai-auth</b> para login/refresh. A sessão vive no <code>tokenStore</code> fora do React; <code>refresh-on-401</code> é transparente (ADR-036 revisado: o portal <b>não</b> usa o cms hoje)." },
+  nginx:    { t:"nginx", m:"borda · único exposto :443", b:"O <b>único container público</b>. Roteia por host + path para os serviços internos, fazendo rewrite de prefixo (<code>/api/ooh → /</code>, <code>/api/auth → /api/v1/auth</code>). Resolve upstreams <b>em runtime</b> (<code>resolver 127.0.0.11</code>) — sobe mesmo com serviço fora e devolve 502 só naquele path. TLS Let's Encrypt." },
+  portal:   { t:"uai-portal 🟢", m:"frontend · React+Vite · :3000", b:"SPA (React 18 + TS + Vite + shadcn + MapLibre). Entrega landing, login e o módulo <b>OOH</b> (planejamento, ranking, ficha, cesta, proposta PDF client-side). Estilo ports & adapters em <code>src/modules/ooh</code>. Serve a raiz <code>uaiagencia.com.br</code> (cutover spark→portal no F1). O mapa ao vivo do F2 estende este front." },
+  auth:     { t:"uai-auth 🟢", m:"platform · identidade · :8084", b:"Emite e valida tokens. Access <b>JWT RS256 (15min)</b> + refresh opaco (7d, rotacionado, SHA-256 no banco). Logout/revoke jogam o <code>jti</code> numa <b>blacklist Redis</b> ⇒ revogação imediata. Endpoints internos <code>/introspect</code> e <code>/revoke</code> protegidos por <code>X-UAI-Internal-Key</code>. <code>AdminSeeder</code> re-aplica hashes de admin a cada boot." },
+  core:     { t:"uai-core ⚪", m:"platform · motor de IA · :8082", b:"Alvo: hospedar <b>11 agentes de marketing</b> via pipelines declarativos (LangChain4j só para ChatMemory). <b>Estado real: scaffold</b> — só HealthController/CorsConfig; Kafka, <code>@TrackTokens</code> e <code>/internal/**</code> ainda não implementados. <b>Desativado</b> no deploy atual (economia de RAM)." },
+  tm:       { t:"uai-tokenmetrics ⚪", m:"platform · metering · :8083", b:"Registra cada chamada LLM (tokens in/out, agente, campanha), calcula custo USD→BRL e agrega por tenant/campanha/mês via trigger. Tenant por header <code>X-Tenant-Id</code>. <b>Implementado mas desativado</b> no deploy atual — alvo é ser o sink do <code>@TrackTokens</code> do uai-core." },
+  intel:    { t:"uai-ooh-intel 🟢", m:"dados · API read-only · :8085", b:"API <b>read-only</b> sobre o schema flat <code>serving</code> do banco <code>ooh</code>. Não possui o schema (quem materializa é o normalizer) — só lê, via role <code>ooh_intel_ro</code>, escopado ao <code>dataset_version</code> <b>ACTIVE</b>. F1: <code>/lines</code>, <code>/lines/ranking</code>, <code>/lines/{id}</code>, <code>/regions</code>. Sem PostGIS (ADR-003), single-tenant (ADR-004), auth por introspection. O <b>realtime read do F2</b> (<code>/realtime/positions</code> ← Redis, <code>/lines/{id}/verified</code> ← serving+medido) estende este serviço. Ver Nível 3." },
+  pipeline: { t:"uai-ooh-pipeline 🟢", m:"dados · jobs · Python+PostGIS", b:"CLI <b>roda-e-sai</b> (<code>python -m ooh_pipeline &lt;stage&gt; &lt;job&gt;</code>). Dois estágios: <b>ingestor</b> (fontes → <code>raw</code>) + <b>normalizer</b> (<code>raw → core → serving</code>, dono do <code>core</code>). No F2 também roda o <b>recompute</b> (lane 06, batch D-1) que re-deriva a camada medida. Disparo no uai-infra (cron + workflow_dispatch). <b>Ver Níveis 2 e 3.</b>" },
+  poller:   { t:"uai-ooh-realtime-poller 🟢", m:"dados · F2 · worker no ar", b:"Polla o <b>GTFS-RT</b> (PBH/mobilibus) a cada ~15-20s e faz duas coisas: <b>publica</b> em Kafka <code>ooh.rt.position</code> (key=<code>vehicle_id</code>) e <b>landa</b> o feed inteiro em <code>raw.rt__vehicle_position</code> (particionado/dia — replay e auditoria). <b>Frota inteira</b> (F2-#11). Em prod: ~143 ciclos/h, ~451 veíc/ciclo, ~105.940 linhas/h. Repo <code>uai-ooh-realtime-poller</code>. <b>Detalhe no Nível 3.</b>" },
+  consolidator: { t:"uai-ooh-trip-consolidator 🟢", m:"dados · F2 · stream Java no ar", b:"O coração do tempo real. Consome <code>ooh.rt.position</code>; <b>por posição</b> calcula <code>h3(lat,lon)</code> local e acumula estado ao vivo no <b>Redis</b> <code>live:{vehicle}</code> (impressões/alcance HLL); <b>no fechamento</b> da viagem faz <b>snap PostGIS</b> e grava o schema <b>medido</b> (<code>viagem</code>/<code>viagem_hex</code>/<code>viagem_track</code>/<code>parada_velocidade</code>) + publica <code>ooh.trip.completed</code>. Único escritor do Redis e dono do <code>medido</code>; write-path ≠ read-path (não se funde ao intel). Repo novo, do template. <b>Detalhe no Nível 3.</b>" },
+  template: { t:"uai-ooh-service-template 🟢", m:"molde hexagonal Java OOH", b:"Template GitHub domain-free (<code>com.uai.ooh.template</code>): camadas domain/application/adapter, <code>InternalApiKeyFilter</code>, OpenAPI, JaCoCo 80%, Testcontainers. Base de todos os serviços Java do vertical — o uai-ooh-intel e o trip-consolidator nasceram dele." },
+  cms:      { t:"uai-cms 🟡", m:"comercial · BFF · :8081", b:"Alvo: gestor multi-vertical (tenants, clientes, campanhas <code>type=marketing|ooh</code>, aprovação de conteúdo) e <b>única porta com JWT externo</b> (BFF). <b>Estado real: container no ar na VPS (Up ~8d), mas lógica scaffold</b> — o ativo maduro é o schema Flyway (15 tabelas multi-tenant, sem RLS); controllers/JWT/Kafka ainda não escritos. O comercial OOH entra como <b>módulo OOH no CMS</b> no <b>Bloco 3</b> (F2-#9): consome <code>ooh.trip.completed</code> e atribui a campanha/placement." },
+  pg:       { t:"postgres :5432", m:"store · postgres:16-alpine", b:"Servidor relacional principal: bancos <code>uai_auth</code>, <code>uai_cms</code>, <code>uai_tokenmetrics</code> e <code>uai_buslines</code> (legado). Princípio <b>um DB por serviço, sem cross-DB join</b> (ADR-052). Migrations por Flyway no startup (ADR-047)." },
+  pgooh:    { t:"postgres-ooh :5433", m:"store · PostGIS 16-3.4", b:"Servidor <b>PostGIS</b> do vertical OOH. Banco <code>ooh</code> com os schemas <code>raw</code> (landing), <code>core</code> (normalizado, EPSG:31983), <code>serving</code> (flat, GeoJSON) e — com o F2 — <b><code>medido</code></b> (fatos de tempo real: viagens, cobertura H3, velocidades; dono = consolidador). Versionado por <code>dataset_version</code> com swap atômico. <b>Ver Níveis 2 e 3.</b>" },
+  redis:    { t:"Redis", m:"store · cache + estado ao vivo", b:"Cache, sessões e a <b>blacklist de jti</b> do uai-auth (revogação imediata). Com o F2 guarda o <b>estado ao vivo</b> escrito pelo consolidador: <code>live:vehicle:{code}</code> (HASH pos + acumulado), <code>live:line</code> (SET), <code>live:reach</code>/<code>hll:hex</code> (HLL de alcance, dedup ~±0,8%). TTL 5min. O intel-RT só <b>lê</b>." },
+  kafka:    { t:"Kafka (KRaft) 🟢 OOH", m:"store · event bus", b:"Broker KRaft. Os <b>tópicos OOH de tempo real estão no ar</b>: <code>ooh.rt.position</code> (poller → consolidador, key=<code>vehicle_id</code>, retention 6h) e <code>ooh.vehicle.status</code>; <b>~57 msg/s</b>. <code>ooh.trip.completed</code> é o contrato de saída (consumidor = Bloco 3). Os tópicos genéricos de marketing (<code>campaign.*</code>, <code>content.*</code>) existem mas <b>seguem sem produtor</b>." },
+  minio:    { t:"MinIO", m:"store · object storage", b:"Buckets <code>uai-media</code> (público) e <code>uai-ooh</code> (privado). O <code>uai-ooh</code> guarda as <b>fontes brutas</b> da pipeline (censo, PBH, GTFS) e, com o F2, o <b>frio do <code>raw.rt</code></b> (parquet/zstd, tiering INFRA-03: quente no Postgres, frio no MinIO)." },
+  ghcr:     { t:"GHCR", m:"registry de imagens", b:"GitHub Container Registry. Cada repo publica a imagem <code>ghcr.io/mddinizbh/&lt;app&gt;:latest</code> / <code>:sha</code> via GitHub Actions. <b>Repos nunca tocam a VPS</b> — só publicam imagem." },
+  infra:    { t:"uai-infra", m:"deploy centralizado", b:"<b>Único repo que toca a VPS.</b> Faz SSH em <code>/opt/uai</code>, gera o <code>.env</code> dos GitHub Secrets, <code>docker login ghcr.io</code> e <code>docker compose up -d</code> por serviço (poller e consolidador inclusos). Também dispara a pipeline OOH e os crons do F2 (archive/retention/recompute)." }
+};
+
+const FLOWS = {
+  login: {
+    name: "Login — hosted no uai-auth, revogável",
+    edges: ["e-brn","e-nau","e-aupg","e-aur"],
+    nodes: ["browser","nginx","auth","pg","redis"],
+    steps: ["<code>POST /api/auth/login</code> chega ao Nginx e vira <code>/api/v1/auth/login</code>","O uai-auth valida contra <code>uai_auth</code> (BCrypt) e emite <b>JWT RS256 (15min)</b> + refresh opaco (7d)","Logout joga o <code>jti</code> na <b>blacklist Redis</b> ⇒ revogação imediata"]
+  },
+  oohread: {
+    name: "Leitura OOH — o caminho quente do produto",
+    edges: ["e-brn","e-nin","e-iau","e-ipg"],
+    nodes: ["browser","nginx","intel","auth","pgooh"],
+    steps: ["O portal chama <code>GET /api/ooh/api/lines</code> (Bearer) — Nginx reescreve <code>/api/ooh → /</code>","O uai-ooh-intel <b>valida o token por introspection</b> no uai-auth (<code>X-UAI-Internal-Key</code>)","Lê o schema <code>serving</code> ACTIVE com <code>JdbcTemplate</code> read-only (role <code>ooh_intel_ro</code>) — <b>sem PostGIS</b> (ADR-003)"]
+  },
+  introspect: {
+    name: "Introspection — ninguém valida JWT localmente",
+    edges: ["e-iau","e-aur"],
+    nodes: ["intel","auth","redis"],
+    steps: ["Todo serviço de recurso pergunta ao uai-auth: <code>POST /introspect {token}</code>","O auth checa se o <code>jti</code> está na blacklist Redis","Resposta <code>{active, user_id, tenant_id, role}</code> — política de revogação centralizada (cache PT60S no intel)"]
+  },
+  pipeline: {
+    name: "Pipeline — raw → core → serving (roda-e-sai)",
+    edges: ["e-indep","e-pmin","e-ppg","e-ipg"],
+    nodes: ["infra","pipeline","minio","pgooh","intel"],
+    steps: ["O uai-infra dispara <code>docker compose run uai-ooh-pipeline</code> (cron seg 06:00 UTC)","O ingestor lê as fontes do bucket <code>uai-ooh</code> (MinIO) e materializa <code>raw → core → serving</code> no postgres-ooh","O swap atômico <code>dataset_version</code> promove a nova versão a <b>ACTIVE</b> — o intel passa a servi-la"]
+  },
+  realtime: {
+    name: "Tempo real (F2) — motor medido no ar",
+    edges: ["e-pollkafka","e-pollraw","e-conskafka","e-consredis","e-conspg"],
+    nodes: ["poller","kafka","consolidator","redis","pgooh"],
+    steps: ["O <b>realtime-poller</b> polla o GTFS-RT (~15s): publica em Kafka <code>ooh.rt.position</code> e landa em <code>raw.rt</code>","O <b>trip-consolidator</b> consome o stream, acumula estado ao vivo no <b>Redis</b> <code>live:{}</code> e grava o schema <b>medido</b> (snap PostGIS)","Frota inteira (F2-#11) · sem comercial (F2-#1). <b>Detalhe completo no Nível 3.</b>"]
+  },
+  comercial: {
+    name: "Comercial — roadmap F3 (módulo OOH no cms)",
+    edges: ["e-brn","e-ncm","e-cmpg","e-cmk"],
+    nodes: ["browser","nginx","cms","pg","kafka"],
+    steps: ["No F3 o portal passa a falar com o <b>uai-cms</b> (<code>/api/cms</code>) para o plano comercial","O módulo OOH do cms consome <code>ooh.trip.completed</code> e atribui a viagem a campanha/placement (<code>tenant_id</code>)","Hoje é <b>scaffold</b>: schema pronto, lógica ainda não escrita"]
+  },
+  deploy: {
+    name: "Deploy — push-to-deploy centralizado",
+    edges: ["e-ghin","e-indep"],
+    nodes: ["ghcr","infra","portal","auth","intel","pipeline","poller","consolidator","cms"],
+    steps: ["Cada repo publica a imagem no <b>GHCR</b> via GitHub Actions (build no push da main)","O <b>uai-infra</b> faz <code>pull</code> e SSH na VPS: gera o <code>.env</code> dos Secrets e <code>docker compose up -d</code>","Repos de app <b>nunca tocam a VPS</b> — o infra é o único com acesso"]
+  }
+};
+
+const stage = document.getElementById('stage');
+const nodes = document.querySelectorAll('.node');
+const edges = document.querySelectorAll('.edge');
+const elbls = document.querySelectorAll('.elbl');
+const chips = document.querySelectorAll('.chip');
+const fcap = document.getElementById('flowcap');
+const E2L = { "e-brn":"l-brn","e-npo":"l-npo","e-nau":"l-nau","e-nco":"l-nco","e-ntm":"l-ntm","e-nin":"l-nin","e-ncm":"l-ncm","e-aupg":"l-aupg","e-aur":"l-aur","e-ipg":"l-ipg","e-iau":"l-iau","e-ppg":"l-ppg","e-pmin":"l-pmin","e-pollkafka":"l-pollkafka","e-consredis":"l-consredis","e-cmpg":"l-cmpg","e-ghin":"l-ghin","e-indep":"l-indep" };
+
+function setFlow(key) {
+  chips.forEach(c => c.classList.toggle('on', c.dataset.flow === key));
+  edges.forEach(e => e.classList.remove('lit'));
+  elbls.forEach(l => l.classList.remove('lit'));
+  nodes.forEach(n => n.classList.remove('lit'));
+  if (key === 'all') { stage.classList.remove('flowing'); fcap.classList.remove('show'); return; }
+  const f = FLOWS[key];
+  stage.classList.add('flowing');
+  f.edges.forEach(id => { document.getElementById(id)?.classList.add('lit'); document.getElementById(E2L[id])?.classList.add('lit'); });
+  f.nodes.forEach(k => document.querySelector(`.node[data-k="${k}"]`)?.classList.add('lit'));
+  document.getElementById('f-name').textContent = f.name;
+  document.getElementById('f-steps').innerHTML = f.steps.map(s => `<li>${s}</li>`).join('');
+  fcap.classList.add('show');
+}
+chips.forEach(c => c.addEventListener('click', () => setFlow(c.dataset.flow)));
+
+nodes.forEach(n => n.addEventListener('click', () => {
+  nodes.forEach(x => x.classList.remove('sel'));
+  n.classList.add('sel');
+  const d = DETAIL[n.dataset.k];
+  if (!d) return;
+  document.getElementById('d-title').textContent = d.t;
+  document.getElementById('d-meta').textContent = d.m;
+  document.getElementById('d-body').innerHTML = d.b;
+}));
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const dark = !document.documentElement.classList.contains('dark');
+  document.documentElement.classList.toggle('dark', dark);
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+});
+(function(){ const b=document.getElementById('legendBtn'), p=document.getElementById('legpanel');
+  if(b&&p){ b.addEventListener('click',()=>p.classList.toggle('show')); document.addEventListener('keydown',e=>{if(e.key==='Escape')p.classList.remove('show');}); } })();
+</script>
+</body>
+</html>

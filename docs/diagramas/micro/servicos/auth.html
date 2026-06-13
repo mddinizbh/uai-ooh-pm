@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uai-auth — diagrama de classes</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>uai-auth · classes</h1>
+    <div class="sub">Java 21 · hexagonal · com.uai.auth · JWT RS256 + introspection</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="login">Login</button>
+    <button class="chip" data-flow="refresh">Refresh</button>
+    <button class="chip" data-flow="introspect">Introspection</button>
+    <button class="chip" data-flow="revoke">Logout/Revoke</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="../../01-arquitetura-microservicos.html">← macro</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="legend" id="legend">
+  <h4>Tipo de classe</h4>
+  <div class="row"><span class="sw ext"></span> Adapter IN — controllers, filtros (driving)</div>
+  <div class="row"><span class="sw bus"></span> Port — interface (in/out, hexágono)</div>
+  <div class="row"><span class="sw svc"></span> Application — service / helper</div>
+  <div class="row"><span class="sw store"></span> Adapter OUT — JWT/JPA/Redis (driven)</div>
+  <div class="row"><span class="sw" style="background:var(--violet-soft);border-color:var(--violet)"></span> Domain — records / sealed</div>
+  <div class="hint">clique numa classe = <b>detalhe</b> · chips = <b>caminhos de caso de uso</b> · seta tracejada = <b>implements</b></div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1320 1050" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagrama de classes do uai-auth">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <!-- ── lanes ─────────────────────────────── -->
+  <g class="zone"><rect x="24" y="92" width="226" height="708" rx="14"/><text class="ztitle" x="40" y="120">Adapter IN</text></g>
+  <g class="zone"><rect x="258" y="92" width="188" height="708" rx="14"/><text class="ztitle" x="274" y="120">Port IN</text></g>
+  <g class="zone"><rect x="454" y="92" width="208" height="708" rx="14"/><text class="ztitle" x="470" y="120">Application</text></g>
+  <g class="zone"><rect x="670" y="92" width="196" height="708" rx="14"/><text class="ztitle" x="686" y="120">Port OUT</text></g>
+  <g class="zone"><rect x="874" y="92" width="244" height="708" rx="14"/><text class="ztitle" x="890" y="120">Adapter OUT</text></g>
+  <g class="zone"><rect x="1126" y="92" width="170" height="708" rx="14"/><text class="ztitle" x="1142" y="120">Externo</text></g>
+  <g class="zone"><rect x="24" y="820" width="1272" height="206" rx="14"/><text class="ztitle" x="40" y="848">Domain · model (records + Role enum) · Config/bootstrap</text></g>
+
+  <!-- ── edges ─────────────────────────────── -->
+  <!-- login: AuthController → LoginUseCase → LoginService → ports -->
+  <path class="edge" id="e-ac-pi"    d="M242,178 C 248,178 252,174 258,173"/>
+  <path class="edge impl" id="e-pi-svc" d="M444,172 C 450,172 456,174 462,175"/>
+  <path class="edge" id="e-svc-poiss" d="M660,176 C 666,172 672,168 678,167"/>
+  <path class="edge" id="e-svc-pouser" d="M660,182 C 666,260 672,360 678,372"/>
+  <path class="edge" id="e-svc-poref"  d="M660,186 C 666,300 672,420 678,448"/>
+  <path class="edge impl" id="e-poiss-o" d="M864,167 C 870,167 880,170 882,172"/>
+  <path class="edge impl" id="e-pouser-o" d="M864,376 C 872,376 878,378 882,380"/>
+  <path class="edge impl" id="e-poref-o"  d="M864,450 C 872,450 878,452 882,454"/>
+  <path class="edge" id="e-iss-key"   d="M996,200 C 990,236 990,254 996,268"/>
+  <path class="edge" id="e-o-pg"      d="M1116,380 C 1124,380 1132,372 1140,366"/>
+  <path class="edge" id="e-iss-pg"    d="M1116,178 C 1142,178 1150,330 1150,348"/>
+
+  <!-- refresh: → RefreshService → RefreshTokenRepository -->
+  <path class="edge" id="e-ac-pi2"   d="M242,234 C 248,234 252,236 258,237"/>
+  <path class="edge impl" id="e-pi-svc2" d="M444,238 C 450,238 456,240 462,241"/>
+  <path class="edge" id="e-svc2-poref" d="M660,242 C 666,340 672,440 678,452"/>
+
+  <!-- introspect: IntrospectionController → IntrospectService → verifier/blacklist -->
+  <path class="edge" id="e-ic-pi"    d="M242,402 C 248,402 252,392 258,388"/>
+  <path class="edge impl" id="e-pi-svc4" d="M444,386 C 450,386 456,388 462,390"/>
+  <path class="edge" id="e-svc4-pover" d="M660,392 C 666,300 672,240 678,234"/>
+  <path class="edge" id="e-svc4-pobl"  d="M660,396 C 666,420 672,508 678,520"/>
+  <path class="edge impl" id="e-pover-o" d="M864,236 C 872,236 878,240 882,244"/>
+  <path class="edge impl" id="e-pobl-o" d="M864,522 C 872,522 878,524 882,526"/>
+  <path class="edge" id="e-bl-redis"  d="M1116,528 C 1124,528 1132,540 1140,548"/>
+
+  <!-- logout/revoke: AuthController/RevokeController → Logout/RevokeService → blacklist -->
+  <path class="edge" id="e-ac-pi3"   d="M242,460 C 248,470 252,500 258,506"/>
+  <path class="edge" id="e-rc-pi5"   d="M242,290 C 250,290 252,560 258,566"/>
+  <path class="edge impl" id="e-pi-svc3" d="M444,508 C 450,508 456,510 462,511"/>
+  <path class="edge impl" id="e-pi-svc5" d="M444,568 C 450,568 456,566 462,564"/>
+  <path class="edge" id="e-svc3-pobl" d="M660,512 C 666,514 672,518 678,520"/>
+  <path class="edge" id="e-svc5-pobl" d="M660,564 C 666,548 672,532 678,524"/>
+
+  <!-- filters → ports out -->
+  <path class="edge dash" id="e-jf-pover" d="M242,460 C 250,418 250,348 262,312 C 380,300 560,300 648,300 C 666,296 672,262 678,238"/>
+  <path class="edge dash" id="e-kf-sec"   d="M242,524 C 260,538 260,564 242,576"/>
+
+  <text class="elbl" id="l-pi-svc"  x="448" y="166">impl</text>
+  <text class="elbl" id="l-iss-pg"  x="1120" y="172">RS256 jwks</text>
+  <text class="elbl" id="l-o-pg"    x="1006" y="406">JPA</text>
+  <text class="elbl" id="l-bl-redis" x="1004" y="552">Redis</text>
+
+  <!-- ── Adapter IN ─────────────────────────── -->
+  <g class="node ext" data-k="c-auth"><rect x="36" y="148" width="206" height="58" rx="9"/><text class="t" x="52" y="174">AuthController</text><text class="m" x="52" y="192">login·refresh·logout·me</text></g>
+  <g class="node ext" data-k="c-jwks"><rect x="36" y="216" width="206" height="46" rx="9"/><text class="t" x="52" y="240">JwksController</text><text class="m" x="52" y="256">/.well-known/jwks</text></g>
+  <g class="node ext" data-k="c-introspect"><rect x="36" y="272" width="206" height="46" rx="9"/><text class="t" x="52" y="296">IntrospectionController</text><text class="m" x="52" y="311">POST /introspect</text></g>
+  <g class="node ext" data-k="c-revoke"><rect x="36" y="328" width="206" height="44" rx="9"/><text class="t" x="52" y="350">RevokeController</text><text class="m" x="52" y="365">POST /revoke</text></g>
+  <g class="node ext" data-k="c-exh"><rect x="36" y="382" width="206" height="42" rx="9"/><text class="t" x="52" y="404">ApiExceptionHandler</text><text class="m" x="52" y="418">@ControllerAdvice</text></g>
+  <g class="node ext" data-k="f-jwt"><rect x="36" y="434" width="206" height="52" rx="9"/><text class="t" x="52" y="458">JwtAuthenticationFilter</text><text class="m" x="52" y="476">valida Bearer · /me</text></g>
+  <g class="node ext" data-k="f-apikey"><rect x="36" y="496" width="206" height="50" rx="9"/><text class="t" x="52" y="520">ApiKeyAuthFilter</text><text class="m" x="52" y="536">X-UAI-Internal-Key</text></g>
+  <g class="node ext" data-k="cfg-sec"><rect x="36" y="556" width="206" height="44" rx="9"/><text class="t" x="52" y="578">SecurityConfig</text><text class="m" x="52" y="593">cadeia de filtros</text></g>
+  <g class="node ext" data-k="d-dtos"><rect x="36" y="610" width="206" height="58" rx="9"/><text class="t" x="52" y="634">DTOs (web)</text><text class="m" x="52" y="652">LoginRequest·TokenResponse</text><text class="m" x="52" y="666">Me·Introspect·Refresh·Revoke</text></g>
+
+  <!-- ── Port IN ─────────────────────────────── -->
+  <g class="node port" data-k="pi-login"><rect x="266" y="150" width="172" height="46" rx="9"/><text class="t" x="280" y="172">LoginUseCase</text><text class="k" x="280" y="188">port in</text></g>
+  <g class="node port" data-k="pi-refresh"><rect x="266" y="208" width="172" height="46" rx="9"/><text class="t" x="280" y="230">RefreshUseCase</text><text class="k" x="280" y="246">port in</text></g>
+  <g class="node port" data-k="pi-introspect"><rect x="266" y="364" width="172" height="46" rx="9"/><text class="t" x="280" y="386">IntrospectUseCase</text><text class="k" x="280" y="402">port in</text></g>
+  <g class="node port" data-k="pi-logout"><rect x="266" y="484" width="172" height="46" rx="9"/><text class="t" x="280" y="506">LogoutUseCase</text><text class="k" x="280" y="522">port in</text></g>
+  <g class="node port" data-k="pi-revoke"><rect x="266" y="542" width="172" height="46" rx="9"/><text class="t" x="280" y="564">RevokeUseCase</text><text class="k" x="280" y="580">port in</text></g>
+
+  <!-- ── Application ─────────────────────────── -->
+  <g class="node do" data-k="s-login"><rect x="462" y="148" width="198" height="56" rx="9"/><text class="t" x="478" y="172">LoginService</text><text class="m" x="478" y="190">bcrypt · emite o par</text></g>
+  <g class="node do" data-k="s-refresh"><rect x="462" y="214" width="198" height="50" rx="9"/><text class="t" x="478" y="237">RefreshService</text><text class="m" x="478" y="253">valida SHA-256 · rotaciona</text></g>
+  <g class="node do" data-k="s-introspect"><rect x="462" y="364" width="198" height="50" rx="9"/><text class="t" x="478" y="387">IntrospectService</text><text class="m" x="478" y="403">verify + blacklist + user</text></g>
+  <g class="node do" data-k="s-logout"><rect x="462" y="484" width="198" height="48" rx="9"/><text class="t" x="478" y="507">LogoutService</text><text class="m" x="478" y="523">jti → blacklist</text></g>
+  <g class="node do" data-k="s-revoke"><rect x="462" y="542" width="198" height="48" rx="9"/><text class="t" x="478" y="565">RevokeService</text><text class="m" x="478" y="581">jti → blacklist (interno)</text></g>
+
+  <!-- ── Port OUT ────────────────────────────── -->
+  <g class="node port" data-k="po-issuer"><rect x="678" y="148" width="186" height="44" rx="9"/><text class="t" x="692" y="170">TokenIssuer</text><text class="k" x="692" y="186">port out · emite</text></g>
+  <g class="node port" data-k="po-verifier"><rect x="678" y="202" width="186" height="44" rx="9"/><text class="t" x="692" y="224">TokenVerifier</text><text class="k" x="692" y="240">port out · valida</text></g>
+  <g class="node port" data-k="po-blacklist"><rect x="678" y="498" width="186" height="46" rx="9"/><text class="t" x="692" y="520">TokenBlacklist</text><text class="k" x="692" y="536">port out · jti</text></g>
+  <g class="node port" data-k="po-user"><rect x="678" y="350" width="186" height="42" rx="9"/><text class="t" x="692" y="372">UserRepository</text><text class="k" x="692" y="386">port out</text></g>
+  <g class="node port" data-k="po-tenant"><rect x="678" y="398" width="186" height="42" rx="9"/><text class="t" x="692" y="420">TenantRepository</text><text class="k" x="692" y="434">port out</text></g>
+  <g class="node port" data-k="po-refresh"><rect x="678" y="446" width="186" height="46" rx="9"/><text class="t" x="692" y="468" style="font-size:11.5px">RefreshTokenRepository</text><text class="k" x="692" y="484">port out</text></g>
+
+  <!-- ── Adapter OUT ─────────────────────────── -->
+  <g class="node store" data-k="o-issuer"><rect x="882" y="148" width="234" height="50" rx="9"/><text class="t" x="898" y="170">JwtTokenIssuer</text><text class="m" x="898" y="186">RS256 · jti · kid · access+refresh</text></g>
+  <g class="node store" data-k="o-verifier"><rect x="882" y="204" width="234" height="46" rx="9"/><text class="t" x="898" y="226">JwtTokenVerifier</text><text class="m" x="898" y="242">valida assinatura · claims</text></g>
+  <g class="node store" data-k="o-rsakey"><rect x="882" y="256" width="234" height="46" rx="9"/><text class="t" x="898" y="278">RsaKeyProvider</text><text class="m" x="898" y="294">par RSA · kid · jwks</text></g>
+  <g class="node store" data-k="o-user"><rect x="882" y="354" width="234" height="46" rx="9"/><text class="t" x="898" y="376">UserRepositoryAdapter</text><text class="m" x="898" y="392">UserAccount JPA</text></g>
+  <g class="node store" data-k="o-tenant"><rect x="882" y="404" width="234" height="40" rx="9"/><text class="t" x="898" y="425">TenantRepositoryAdapter</text><text class="m" x="898" y="438">Tenant JPA</text></g>
+  <g class="node store" data-k="o-refresh"><rect x="882" y="450" width="234" height="48" rx="9"/><text class="t" x="898" y="472" style="font-size:11px">RefreshTokenRepositoryAdapter</text><text class="m" x="898" y="490">token_hash SHA-256 · JPA</text></g>
+  <g class="node store" data-k="o-redis"><rect x="882" y="506" width="234" height="48" rx="9"/><text class="t" x="898" y="528">RedisTokenBlacklist</text><text class="m" x="898" y="546">blacklist:jti · TTL=exp</text></g>
+
+  <!-- ── Externo ─────────────────────────────── -->
+  <g class="node store" data-k="x-pg"><rect x="1140" y="148" width="156" height="240" rx="9"/><text class="t" x="1154" y="174">postgres</text><text class="m" x="1154" y="192">uai_auth</text><text class="m" x="1154" y="208">Flyway V1–V3</text><text class="m" x="1154" y="224">user_account</text><text class="m" x="1154" y="240">tenant</text><text class="m" x="1154" y="256">refresh_token</text></g>
+  <g class="node store" data-k="x-redis"><rect x="1140" y="506" width="156" height="58" rx="9"/><text class="t" x="1154" y="532">Redis</text><text class="m" x="1154" y="550">blacklist:jti</text></g>
+
+  <!-- ── Domain / Config band ────────────────── -->
+  <g class="node domain" data-k="m-token"><rect x="36" y="874" width="318" height="132" rx="9"/><text class="t" x="52" y="899">tokens / claims</text><text class="m" x="52" y="918">TokenPair · AccessClaims</text><text class="m" x="52" y="935">IssuedAccessToken · RefreshToken</text><text class="m" x="52" y="952">IssuedRefreshToken</text><text class="m" x="52" y="969">IntrospectionResult</text></g>
+  <g class="node domain" data-k="m-ident"><rect x="368" y="874" width="300" height="132" rx="9"/><text class="t" x="384" y="899">identidade</text><text class="m" x="384" y="918">User · Tenant</text><text class="m" x="384" y="935">Role (enum: ADMIN ·</text><text class="m" x="384" y="952">CLIENT_VIEWER)</text><text class="m" x="384" y="969">AuthPrincipal (record)</text></g>
+  <g class="node domain" data-k="m-exc"><rect x="682" y="874" width="300" height="132" rx="9"/><text class="t" x="698" y="899">exceções</text><text class="m" x="698" y="918">InvalidCredentials</text><text class="m" x="698" y="935">InvalidRefreshToken</text><text class="m" x="698" y="952">TokenInvalid</text><text class="m" x="698" y="969">→ ApiExceptionHandler</text></g>
+  <g class="node do" data-k="cfg-boot"><rect x="996" y="874" width="288" height="132" rx="9"/><text class="t" x="1012" y="899">config / bootstrap</text><text class="m" x="1012" y="918">AdminSeeder (ApplicationRunner)</text><text class="m" x="1012" y="935">re-aplica hashes do env</text><text class="m" x="1012" y="952">AppConfig · JwtProperties</text><text class="m" x="1012" y="969">SeedProperties</text></g>
+</svg>
+
+  <div class="src">uai-auth · com.uai.auth · jun/2026</div>
+
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique numa classe</h3>
+    <div class="meta" id="d-meta">papel + métodos</div>
+    <p id="d-body">Diagrama de classes hexagonal: <b>Adapter IN</b> (controllers/filtros) → <b>Port IN</b> → <b>Application</b> → <b>Port OUT</b> → <b>Adapter OUT</b> → <b>Externo</b> (postgres uai_auth + Redis). Domain (records/enum) e config/bootstrap embaixo. Chips acendem os caminhos de caso de uso.</p>
+  </div>
+</div>
+
+<script>
+window.DETAIL = {
+  "c-auth": { t:"AuthController", m:"adapter in · @RestController", b:"<code>@RequestMapping(\"/api/v1/auth\")</code>. Expõe <code>POST /login</code> (→ <b>LoginUseCase</b>), <code>POST /refresh</code> (→ <b>RefreshUseCase</b>), <code>POST /logout</code> (→ <b>LogoutUseCase</b>) e <code>GET /me</code> (claims do principal autenticado). Retorna <code>TokenResponse</code>/<code>MeResponse</code>." },
+  "c-jwks": { t:"JwksController", m:"adapter in", b:"<code>GET /.well-known/jwks</code> — publica a chave pública RS256 (JWKS) pra quem valida token localmente. Servido pelo <b>RsaKeyProvider</b> (kid)." },
+  "c-introspect": { t:"IntrospectionController", m:"adapter in · interno", b:"<code>POST /api/v1/auth/introspect</code> (RFC 7662) — usado por outros serviços (ex.: uai-ooh-intel) protegido por <code>X-UAI-Internal-Key</code>. Delega ao <b>IntrospectUseCase</b>." },
+  "c-revoke": { t:"RevokeController", m:"adapter in · interno", b:"<code>POST /api/v1/auth/revoke</code> — revoga um access token por <code>jti</code> (blacklist). Delega ao <b>RevokeUseCase</b>." },
+  "c-exh": { t:"ApiExceptionHandler", m:"adapter in · @ControllerAdvice", b:"Mapeia exceções de domínio para HTTP: <b>InvalidCredentials</b>→401, <b>InvalidRefreshToken</b>→401, <b>TokenInvalid</b>→401, validação→400." },
+  "f-jwt": { t:"JwtAuthenticationFilter", m:"adapter in · segurança", b:"Extrai o Bearer das rotas autenticadas (<code>/me</code>), valida via <b>TokenVerifier</b> localmente (RS256) e popula o <code>SecurityContext</code> com o <b>AuthPrincipal</b>." },
+  "f-apikey": { t:"ApiKeyAuthFilter", m:"adapter in · segurança", b:"Protege as rotas internas (<code>/introspect</code>, <code>/revoke</code>) com <code>X-UAI-Internal-Key</code> (fail-closed: 401 se ausente/divergente)." },
+  "cfg-sec": { t:"SecurityConfig", m:"config", b:"Monta a cadeia do Spring Security: filtro JWT nas rotas autenticadas, filtro de API key nas internas, público em login/jwks." },
+  "d-dtos": { t:"DTOs (web)", m:"adapter in · contratos", b:"<code>LoginRequest</code>, <code>RefreshRequest</code>, <code>TokenResponse</code>, <code>MeResponse</code>, <code>IntrospectRequest</code>/<code>Response</code>, <code>RevokeRequest</code> — records de fronteira HTTP (não vazam pro domínio)." },
+  "pi-login": { t:"LoginUseCase", m:"port in · interface", b:"<code>login(email, password)</code> → <code>TokenPair</code>. Implementado por <b>LoginService</b>." },
+  "pi-refresh": { t:"RefreshUseCase", m:"port in · interface", b:"<code>refresh(rawRefreshToken)</code> → novo <code>TokenPair</code> (rotação). Implementado por <b>RefreshService</b>." },
+  "pi-introspect": { t:"IntrospectUseCase", m:"port in · interface", b:"<code>introspect(token)</code> → <code>IntrospectionResult</code> (active + claims). Implementado por <b>IntrospectService</b>." },
+  "pi-logout": { t:"LogoutUseCase", m:"port in · interface", b:"<code>logout(jti, exp)</code> — coloca o jti na blacklist. Implementado por <b>LogoutService</b>." },
+  "pi-revoke": { t:"RevokeUseCase", m:"port in · interface", b:"<code>revoke(jti)</code> — revogação interna por jti. Implementado por <b>RevokeService</b>." },
+  "s-login": { t:"LoginService", m:"application · impl", b:"Implementa <b>LoginUseCase</b>. Busca o user (<b>UserRepository</b>), confere a senha com bcrypt (<b>PasswordEncoder</b>), emite o par via <b>TokenIssuer</b>, persiste o refresh (<b>RefreshTokenRepository</b>, hash SHA-256) e marca <code>lastLogin</code>." },
+  "s-refresh": { t:"RefreshService", m:"application · impl", b:"Implementa <b>RefreshUseCase</b>. Valida o refresh por <b>SHA-256</b> em <b>RefreshTokenRepository</b>, rotaciona (revoga o antigo, persiste o novo) e re-emite o access via <b>TokenIssuer</b>." },
+  "s-introspect": { t:"IntrospectService", m:"application · impl", b:"Implementa <b>IntrospectUseCase</b>. Valida assinatura/expiração via <b>TokenVerifier</b>, checa <b>TokenBlacklist</b> (jti), enriquece com <b>UserRepository</b>/<b>TenantRepository</b> e devolve <code>IntrospectionResult</code>." },
+  "s-logout": { t:"LogoutService", m:"application · impl", b:"Implementa <b>LogoutUseCase</b>. Coloca o <code>jti</code> na <b>TokenBlacklist</b> com TTL = expiração restante do token." },
+  "s-revoke": { t:"RevokeService", m:"application · impl", b:"Implementa <b>RevokeUseCase</b>. Revogação interna: <code>jti</code> → <b>TokenBlacklist</b> (mesmo mecanismo do logout, exposto a serviços internos)." },
+  "po-issuer": { t:"TokenIssuer", m:"port out · interface", b:"Emite access (RS256, jti, exp) e refresh. Implementado por <b>JwtTokenIssuer</b>." },
+  "po-verifier": { t:"TokenVerifier", m:"port out · interface", b:"Valida assinatura/expiração e extrai claims. Implementado por <b>JwtTokenVerifier</b>." },
+  "po-blacklist": { t:"TokenBlacklist", m:"port out · interface", b:"<code>blacklist(jti, ttl)</code> / <code>isBlacklisted(jti)</code>. Implementado por <b>RedisTokenBlacklist</b>." },
+  "po-user": { t:"UserRepository", m:"port out · interface", b:"<code>findByEmail</code>, <code>findById</code>, <code>markLastLogin</code>. Implementado por <b>UserRepositoryAdapter</b>." },
+  "po-tenant": { t:"TenantRepository", m:"port out · interface", b:"<code>findById</code> do tenant (multi-tenant). Implementado por <b>TenantRepositoryAdapter</b>." },
+  "po-refresh": { t:"RefreshTokenRepository", m:"port out · interface", b:"Persistência do refresh token (hash SHA-256), rotação e revogação. Implementado por <b>RefreshTokenRepositoryAdapter</b>." },
+  "o-issuer": { t:"JwtTokenIssuer", m:"adapter out · JJWT", b:"Implementa <b>TokenIssuer</b>. Assina RS256 com a chave do <b>RsaKeyProvider</b> (header <code>kid</code>), gera <code>jti</code> (UUID) e <code>exp</code>; devolve <code>IssuedAccessToken</code> + refresh." },
+  "o-verifier": { t:"JwtTokenVerifier", m:"adapter out · JJWT", b:"Implementa <b>TokenVerifier</b>. Valida a assinatura RS256 (chave pública do <b>RsaKeyProvider</b>), expiração e extrai <code>AccessClaims</code>." },
+  "o-rsakey": { t:"RsaKeyProvider", m:"adapter out · chaves", b:"Carrega/guarda o par RSA (kid) da config. Fonte do JWKS público (<b>JwksController</b>) e da assinatura/validação." },
+  "o-user": { t:"UserRepositoryAdapter", m:"adapter out · JPA", b:"Implementa <b>UserRepository</b> sobre <code>UserAccountEntity</code>/<code>UserAccountJpaRepository</code> (tabela <code>user_account</code>)." },
+  "o-tenant": { t:"TenantRepositoryAdapter", m:"adapter out · JPA", b:"Implementa <b>TenantRepository</b> sobre <code>TenantEntity</code>/<code>TenantJpaRepository</code> (tabela <code>tenant</code>)." },
+  "o-refresh": { t:"RefreshTokenRepositoryAdapter", m:"adapter out · JPA", b:"Implementa <b>RefreshTokenRepository</b> sobre <code>RefreshTokenEntity</code> (coluna <code>token_hash</code> = SHA-256 do raw) / <code>RefreshTokenJpaRepository</code>." },
+  "o-redis": { t:"RedisTokenBlacklist", m:"adapter out · Redis", b:"Implementa <b>TokenBlacklist</b>. Grava <code>blacklist:{jti}</code> com TTL = expiração restante; checa presença na introspection." },
+  "x-pg": { t:"postgres uai_auth", m:"externo · banco", b:"Banco <code>uai_auth</code> (Flyway V1–V3): tabelas <code>user_account</code>, <code>tenant</code>, <code>refresh_token</code>. V3 re-aplica os hashes de admin." },
+  "x-redis": { t:"Redis", m:"externo · blacklist", b:"<code>blacklist:{jti}</code> com TTL — revogação de access tokens (logout/revoke), consultada na introspection." },
+  "m-token": { t:"Domain · tokens/claims", m:"records", b:"<code>TokenPair</code>, <code>AccessClaims</code>, <code>IssuedAccessToken</code>, <code>RefreshToken</code>, <code>IssuedRefreshToken</code>, <code>IntrospectionResult</code> — value objects puros." },
+  "m-ident": { t:"Domain · identidade", m:"records + enum", b:"<code>User</code>, <code>Tenant</code> (records); <code>Role</code> (enum: <code>ADMIN</code>, <code>CLIENT_VIEWER</code>); <code>AuthPrincipal</code> (record do principal Spring)." },
+  "m-exc": { t:"Domain · exceções", m:"exceptions", b:"<code>InvalidCredentialsException</code>, <code>InvalidRefreshTokenException</code>, <code>TokenInvalidException</code> — mapeadas pelo <b>ApiExceptionHandler</b> para 401." },
+  "cfg-boot": { t:"Config / bootstrap", m:"config", b:"<b>AdminSeeder</b> (<code>ApplicationRunner</code>): re-aplica os hashes bcrypt vindos do env a cada boot (seed mutável, idempotente). <b>AppConfig</b> (<code>BCryptPasswordEncoder</code>, beans), <b>JwtProperties</b> (kid/keys/TTL), <b>SeedProperties</b>." }
+};
+window.E2L = { "e-pi-svc":"l-pi-svc", "e-iss-pg":"l-iss-pg", "e-o-pg":"l-o-pg", "e-bl-redis":"l-bl-redis" };
+window.FLOWS = {
+  login: { name:"Login — bcrypt + emissão do par + persistência do refresh",
+    edges:["e-ac-pi","e-pi-svc","e-svc-poiss","e-svc-pouser","e-svc-poref","e-poiss-o","e-pouser-o","e-poref-o","e-iss-key","e-o-pg","e-iss-pg"],
+    nodes:["c-auth","pi-login","s-login","po-issuer","po-user","po-refresh","o-issuer","o-rsakey","o-user","o-refresh","x-pg","m-token","m-ident"],
+    steps:["<code>POST /api/v1/auth/login</code> → <b>LoginUseCase</b> → <b>LoginService</b>","Confere a senha com bcrypt (<b>UserRepository</b>) e emite o par via <b>TokenIssuer</b> (<b>JwtTokenIssuer</b>, RS256/jti/kid)","Persiste o refresh com hash SHA-256 (<b>RefreshTokenRepository</b>) e marca <code>lastLogin</code> no postgres"] },
+  refresh: { name:"Refresh — valida SHA-256 e rotaciona",
+    edges:["e-ac-pi2","e-pi-svc2","e-svc2-poref","e-poref-o","e-svc-poiss","e-poiss-o","e-iss-key","e-o-pg"],
+    nodes:["c-auth","pi-refresh","s-refresh","po-refresh","po-issuer","o-refresh","o-issuer","o-rsakey","x-pg","m-token"],
+    steps:["<code>POST /api/v1/auth/refresh</code> → <b>RefreshUseCase</b> → <b>RefreshService</b>","Valida o refresh por <b>SHA-256</b> (<b>RefreshTokenRepository</b>) e rotaciona (revoga o antigo, persiste o novo)","Re-emite o access via <b>TokenIssuer</b>"] },
+  introspect: { name:"Introspection — verify + blacklist (RFC 7662, interno)",
+    edges:["e-ic-pi","e-pi-svc4","e-svc4-pover","e-svc4-pobl","e-pover-o","e-pobl-o","e-iss-key","e-bl-redis"],
+    nodes:["c-introspect","pi-introspect","s-introspect","po-verifier","po-blacklist","po-user","po-tenant","o-verifier","o-rsakey","o-redis","x-redis"],
+    steps:["<code>POST /introspect</code> (interno, <code>X-UAI-Internal-Key</code>) → <b>IntrospectUseCase</b> → <b>IntrospectService</b>","Valida a assinatura/exp via <b>TokenVerifier</b> (<b>JwtTokenVerifier</b>, chave do <b>RsaKeyProvider</b>)","Checa a <b>TokenBlacklist</b> (<b>RedisTokenBlacklist</b>, <code>blacklist:jti</code>) e devolve <code>IntrospectionResult</code>"] },
+  revoke: { name:"Logout / Revoke — jti para a blacklist",
+    edges:["e-ac-pi3","e-rc-pi5","e-pi-svc3","e-pi-svc5","e-svc3-pobl","e-svc5-pobl","e-pobl-o","e-bl-redis"],
+    nodes:["c-auth","c-revoke","pi-logout","pi-revoke","s-logout","s-revoke","po-blacklist","o-redis","x-redis"],
+    steps:["<code>POST /logout</code> (→ <b>LogoutService</b>) ou <code>POST /revoke</code> interno (→ <b>RevokeService</b>)","O <code>jti</code> vai pra <b>TokenBlacklist</b> com TTL = expiração restante","<b>RedisTokenBlacklist</b> grava <code>blacklist:{jti}</code>; a introspection passa a recusar"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

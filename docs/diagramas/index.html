@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uAI OOH — Diagramas da plataforma</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<style>
+  :root {
+    --bg: #FAF9F5; --surface: #FFFFFF; --surface2: #F0EEE6;
+    --ink: #141413; --body: #3D3D3A; --muted: #87867F;
+    --line: #D1CFC5; --line-soft: #E6E3DA;
+    --clay: #D97757; --olive: #788C5D; --gold: #C9A45C; --blue: #5B7E96; --violet: #8A6FA8;
+    --serif: ui-serif, Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  html.dark {
+    --bg: #141413; --surface: #1F1F1D; --surface2: #2A2A28;
+    --ink: #FAF9F5; --body: #D1CFC5; --muted: #87867F;
+    --line: #3D3D3A; --line-soft: #2A2A28;
+    --clay: #E48A6E; --olive: #9DB07C; --gold: #D4B36F; --blue: #7FA3BC; --violet: #B49BD0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--body); font-family: var(--sans);
+    -webkit-font-smoothing: antialiased; min-height: 100vh; padding: 44px 24px 64px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .wrap { max-width: 1180px; width: 100%; }
+  .head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 32px; }
+  .head h1 { font-family: var(--serif); font-weight: 500; font-size: 30px; color: var(--ink); letter-spacing: -0.02em; }
+  .head .sub { font-family: var(--mono); font-size: 11.5px; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-top: 8px; line-height: 1.7; }
+  .spacer { flex: 1; }
+  #themeToggle {
+    font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px;
+    background: transparent; color: var(--muted); cursor: pointer; flex: none;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--muted); }
+  .section { margin-bottom: 34px; }
+  .section > h2 { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--line-soft); }
+  .section > h2 b { color: var(--clay); font-weight: 700; }
+  .grid { display: grid; gap: 16px; }
+  .grid.macro { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .grid.micro { grid-template-columns: repeat(auto-fit, minmax(248px, 1fr)); }
+  .subnav { font-family: var(--mono); font-size: 11px; color: var(--muted); margin: -4px 0 13px; }
+  .subnav a { color: var(--clay); text-decoration: none; } .subnav a:hover { text-decoration: underline; }
+
+  .cardlink { display: block; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease; }
+  .cardlink:hover { border-color: var(--clay); transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.09); }
+  .lvl { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--clay); }
+  .cardlink h3 { font-family: var(--serif); font-weight: 500; font-size: 20px; color: var(--ink); margin: 7px 0 9px; letter-spacing: -0.01em; }
+  .cardlink p { font-size: 13px; line-height: 1.55; color: var(--body); }
+  .tags { margin-top: 13px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-family: var(--mono); font-size: 10.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; }
+  .mini { margin: 14px 0 2px; height: 76px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--line-soft); overflow: hidden; }
+  .mini svg { width: 100%; height: 100%; display: block; }
+  .mn rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.4; }
+  .mn.do rect { fill: var(--olive); opacity: .9; stroke: none; } .mn.st rect { fill: var(--surface2); stroke: var(--line); } .mn.cl rect { fill: var(--clay); opacity: .9; stroke: none; }
+  .me { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+
+  /* micro cards (mais leves) */
+  .mc { display: block; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 15px 16px; transition: border-color .15s ease, transform .15s ease; border-left: 3px solid var(--bar, var(--line)); }
+  .mc:hover { border-color: var(--clay); transform: translateY(-2px); }
+  .mc.svc { --bar: var(--olive); } .mc.dat { --bar: var(--blue); } .mc.dat.ext { --bar: var(--violet); }
+  .mc .nm { font-family: var(--mono); font-size: 13.5px; font-weight: 650; color: var(--ink); }
+  .mc .ds { font-size: 12px; line-height: 1.45; color: var(--body); margin-top: 5px; }
+  .mc .tg { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 5px; }
+  .mc .tg span { font-family: var(--mono); font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 7px; }
+  .foot { margin-top: 18px; font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.7; }
+  .foot a { color: var(--clay); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1>uAI OOH — Diagramas da plataforma</h1>
+      <div class="sub">macro → micro · arquitetura · classes · ER · SVG interativo · dark mode · jun/2026</div>
+    </div>
+    <div class="spacer"></div>
+    <button id="themeToggle">Tema</button>
+  </div>
+
+  <!-- ── MACRO ─────────────────────────────── -->
+  <div class="section">
+    <h2><b>Macro</b> · arquitetura da plataforma</h2>
+    <div class="grid macro">
+      <a class="cardlink" href="01-arquitetura-microservicos.html">
+        <div class="lvl">Nível 1</div>
+        <h3>Arquitetura de microsserviços</h3>
+        <div class="mini"><svg viewBox="0 0 300 80" preserveAspectRatio="xMidYMid meet">
+          <path class="me" d="M58,40 L92,40"/><path class="me" d="M150,28 L186,18"/><path class="me" d="M150,40 L186,40"/><path class="me" d="M150,52 L186,62"/><path class="me" d="M244,18 L268,18"/><path class="me" d="M244,40 L268,40"/>
+          <g class="mn"><rect x="24" y="30" width="34" height="20" rx="4"/></g><g class="mn cl"><rect x="92" y="28" width="30" height="24" rx="4"/></g><g class="mn"><rect x="186" y="10" width="58" height="16" rx="4"/></g><g class="mn do"><rect x="186" y="32" width="58" height="16" rx="4"/></g><g class="mn"><rect x="186" y="54" width="58" height="16" rx="4"/></g><g class="mn st"><rect x="268" y="10" width="26" height="16" rx="4"/></g><g class="mn st"><rect x="268" y="32" width="26" height="16" rx="4"/></g>
+        </svg></div>
+        <p>Serviços e como se relacionam. Caminhos animados (login, leitura OOH, pipeline, tempo real, deploy). Clique ↳ desce pras classes.</p>
+        <div class="tags"><span class="tag">nginx</span><span class="tag">intel</span><span class="tag">F1+F2 live</span><span class="tag">↳ drill-down</span></div>
+      </a>
+      <a class="cardlink" href="02-fluxo-dados-pipeline.html">
+        <div class="lvl">Nível 2</div>
+        <h3>Fluxo de dados — pipeline</h3>
+        <div class="mini"><svg viewBox="0 0 300 80" preserveAspectRatio="xMidYMid meet">
+          <path class="me" d="M44,40 L66,40"/><path class="me" d="M96,40 L118,40"/><path class="me" d="M148,40 L170,40"/><path class="me" d="M200,40 L222,40"/><path class="me" d="M252,40 L274,40"/>
+          <g class="mn"><rect x="14" y="30" width="30" height="20" rx="4"/></g><g class="mn do"><rect x="66" y="30" width="30" height="20" rx="4"/></g><g class="mn st"><rect x="118" y="30" width="30" height="20" rx="4"/></g><g class="mn do"><rect x="170" y="30" width="30" height="20" rx="4"/></g><g class="mn st"><rect x="222" y="30" width="30" height="20" rx="4"/></g><g class="mn cl"><rect x="274" y="30" width="22" height="20" rx="4"/></g>
+        </svg></div>
+        <p>Ingestor → raw → normalizer → core → serving → intel. Chips por estágio/épico, com counts reais do banco.</p>
+        <div class="tags"><span class="tag">raw 27 tab</span><span class="tag">core 31983</span><span class="tag">serving flat</span></div>
+      </a>
+      <a class="cardlink" href="03-tempo-real-f2.html">
+        <div class="lvl">Nível 3</div>
+        <h3>Tempo real / verificado (F2)</h3>
+        <div class="mini"><svg viewBox="0 0 300 80" preserveAspectRatio="xMidYMid meet">
+          <path class="me" d="M40,28 L62,28"/><path class="me" d="M92,28 L114,28"/><path class="me" d="M144,28 L166,28"/><path class="me" d="M196,28 L196,52"/><path class="me" d="M166,58 L106,58"/><path class="me" d="M92,58 L40,58"/>
+          <g class="mn"><rect x="14" y="18" width="26" height="20" rx="4"/></g><g class="mn do"><rect x="62" y="18" width="30" height="20" rx="4"/></g><g class="mn cl"><rect x="114" y="18" width="30" height="20" rx="4"/></g><g class="mn st"><rect x="166" y="18" width="30" height="20" rx="4"/></g><g class="mn do"><rect x="166" y="48" width="30" height="20" rx="4"/></g><g class="mn st"><rect x="106" y="48" width="30" height="20" rx="4"/></g><g class="mn"><rect x="14" y="48" width="26" height="20" rx="4"/></g>
+        </svg></div>
+        <p>Motor medido: poller → consolidador → schema medido → recompute → metodo=medida. Status live · validado e2e · pendente.</p>
+        <div class="tags"><span class="tag">GTFS-RT</span><span class="tag">consolidador</span><span class="tag">medido</span></div>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── MICRO · SERVIÇOS ──────────────────── -->
+  <div class="section">
+    <h2><b>Micro</b> · serviços (diagrama de classes)</h2>
+    <div class="grid micro">
+      <a class="mc svc" href="micro/servicos/intel.html"><div class="nm">uai-ooh-intel</div><div class="ds">API read-only do serving · hexagonal</div><div class="tg"><span>catálogo</span><span>ranking</span><span>realtime</span></div></a>
+      <a class="mc svc" href="micro/servicos/consolidator.html"><div class="nm">uai-ooh-trip-consolidator</div><div class="ds">stream Kafka headless (F2) · medido</div><div class="tg"><span>onPosition</span><span>fechamento</span><span>H3+PostGIS</span></div></a>
+      <a class="mc svc" href="micro/servicos/poller.html"><div class="nm">uai-ooh-realtime-poller</div><div class="ds">GTFS-RT → raw + Kafka · ports&amp;adapters</div><div class="tg"><span>fetch/decode</span><span>publish</span></div></a>
+      <a class="mc svc" href="micro/servicos/pipeline.html"><div class="nm">uai-ooh-pipeline</div><div class="ds">ingestor + normalizer · módulos Python</div><div class="tg"><span>ChunkedBuild</span><span>build_*</span></div></a>
+      <a class="mc svc" href="micro/servicos/auth.html"><div class="nm">uai-auth</div><div class="ds">JWT RS256 + introspection · hexagonal</div><div class="tg"><span>login</span><span>refresh</span><span>blacklist</span></div></a>
+      <a class="mc svc" href="micro/servicos/cms.html"><div class="nm">uai-cms</div><div class="ds">scaffold + módulo OOH (B3)</div><div class="tg"><span>Flyway 15 tab</span><span>OohVehicle</span></div></a>
+      <a class="mc svc" href="micro/servicos/portal.html"><div class="nm">uai-portal</div><div class="ds">SPA React · módulos · MapLibre</div><div class="tg"><span>tokenStore</span><span>intelClient</span><span>ProposalPort</span></div></a>
+    </div>
+  </div>
+
+  <!-- ── MICRO · DADOS ─────────────────────── -->
+  <div class="section">
+    <h2><b>Micro</b> · dados (ER por schema — todos os campos com descrição)</h2>
+    <div class="subnav">por banco → <a href="micro/dados/postgres-ooh.html">postgres-ooh (ooh)</a> · <a href="micro/dados/postgres.html">postgres :5432</a></div>
+    <div class="grid micro">
+      <a class="mc dat" href="micro/dados/ooh-core.html"><div class="nm">ooh · core</div><div class="ds">normalizado · EPSG:31983 · 35 tabelas</div><div class="tg"><span>line</span><span>line_metrics</span><span>reach</span></div></a>
+      <a class="mc dat" href="micro/dados/ooh-raw.html"><div class="nm">ooh · raw</div><div class="ds">landing · TEXT · sem PK/FK · 35 tabelas</div><div class="tg"><span>gtfs</span><span>censo</span><span>pbh</span><span>rt</span></div></a>
+      <a class="mc dat" href="micro/dados/ooh-serving.html"><div class="nm">ooh · serving</div><div class="ds">flat · GeoJSON 4326 · 14 tabelas</div><div class="tg"><span>ACTIVE</span><span>ooh_intel_ro</span></div></a>
+      <a class="mc dat" href="micro/dados/ooh-medido.html"><div class="nm">ooh · medido</div><div class="ds">fatos RT (F2) · dono = consolidator</div><div class="tg"><span>viagem</span><span>viagem_hex</span><span>v_real</span></div></a>
+      <a class="mc dat ext" href="micro/dados/uai_auth.html"><div class="nm">uai_auth</div><div class="ds">postgres :5432 · 3 tabelas</div><div class="tg"><span>tenant</span><span>user_account</span><span>refresh_token</span></div></a>
+      <a class="mc dat ext" href="micro/dados/uai_cms.html"><div class="nm">uai_cms</div><div class="ds">multi-tenant · FK+cascata · 15 tabelas</div><div class="tg"><span>campaign</span><span>content</span><span>ooh_active_vehicle</span></div></a>
+      <a class="mc dat ext" href="micro/dados/uai_tokenmetrics.html"><div class="nm">uai_tokenmetrics</div><div class="ds">metering de custo LLM · 3 tabelas</div><div class="tg"><span>model_pricing</span><span>token_usage</span><span>usage_aggregate</span></div></a>
+    </div>
+  </div>
+
+  <!-- ── MICRO · INFRA ─────────────────────── -->
+  <div class="section">
+    <h2><b>Micro</b> · infra (deploy + contratos do que trafega / fica salvo)</h2>
+    <div class="grid micro">
+      <a class="mc svc" href="micro/infra/uai-infra.html"><div class="nm">uai-infra — deploy</div><div class="ds">compose + nginx + GitHub Actions · push-to-deploy</div><div class="tg"><span>docker-compose</span><span>nginx rotas</span><span>cron pipeline</span></div></a>
+      <a class="mc dat" href="micro/infra/kafka.html"><div class="nm">Kafka — tópicos</div><div class="ds">contrato de payload por tópico · produtor/consumidor</div><div class="tg"><span>ooh.rt.position</span><span>trip.completed</span><span>genéricos</span></div></a>
+      <a class="mc dat" href="micro/infra/redis.html"><div class="nm">Redis — chaves</div><div class="ds">estrutura de cada chave · o que fica salvo · TTL</div><div class="tg"><span>live:vehicle</span><span>HLL reach</span><span>blacklist:jti</span></div></a>
+    </div>
+  </div>
+
+  <div class="foot">
+    Fontes: <a href="../arquitetura-plataforma-uai.md">arquitetura-plataforma-uai.md</a> ·
+    <a href="../arquitetura-servicos.md">arquitetura-servicos.md</a> ·
+    <a href="../plano-normalizacao-core.md">plano-normalizacao-core.md</a> · código dos repos <code>uai-*</code> · banco <code>ooh</code> (MCP) + DDL Flyway.
+  </div>
+</div>
+<script>
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const dark = !document.documentElement.classList.contains('dark');
+    document.documentElement.classList.toggle('dark', dark);
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+  });
+</script>
+</body>
+</html>

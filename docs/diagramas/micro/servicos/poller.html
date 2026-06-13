@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uai-ooh-realtime-poller — diagrama de classes</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>uai-ooh-realtime-poller · classes</h1>
+    <div class="sub">Python · ports &amp; adapters · poller/ · GTFS-RT → raw + Kafka (F2)</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="ciclo">Ciclo (run_once)</button>
+    <button class="chip" data-flow="replay">Replay</button>
+    <button class="chip" data-flow="health">Health</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="../../03-tempo-real-f2.html">← macro</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="legend" id="legend">
+  <h4>Tipo de classe</h4>
+  <div class="row"><span class="sw ext"></span> Adapter IN — CLI / entrypoint (driving)</div>
+  <div class="row"><span class="sw bus"></span> Port — Protocol (domain.py)</div>
+  <div class="row"><span class="sw do"></span> Application — núcleo (Poller / decode)</div>
+  <div class="row"><span class="sw store"></span> Adapter OUT — HTTP/PG/Kafka (driven)</div>
+  <div class="row"><span class="sw" style="background:var(--violet-soft);border-color:var(--violet)"></span> Domain — dataclasses / config</div>
+  <div class="hint">clique numa classe = <b>detalhe</b> · chips = <b>caminhos de modo de execução</b> · seta tracejada = <b>implements</b></div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1400 1010" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagrama de classes do uai-ooh-realtime-poller">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <!-- ── lanes ─────────────────────────────── -->
+  <g class="zone"><rect x="24" y="92" width="210" height="712" rx="14"/><text class="ztitle" x="40" y="120">Entrada / CLI</text></g>
+  <g class="zone"><rect x="246" y="92" width="200" height="712" rx="14"/><text class="ztitle" x="262" y="120">Núcleo</text></g>
+  <g class="zone"><rect x="458" y="92" width="238" height="712" rx="14"/><text class="ztitle" x="474" y="120">Ports · domain.py</text></g>
+  <g class="zone"><rect x="708" y="92" width="262" height="712" rx="14"/><text class="ztitle" x="724" y="120">Adapters OUT</text></g>
+  <g class="zone"><rect x="982" y="92" width="194" height="712" rx="14"/><text class="ztitle" x="998" y="120">Externo</text></g>
+  <g class="zone"><rect x="24" y="824" width="1152" height="172" rx="14"/><text class="ztitle" x="40" y="852">Domain · tipos &amp; config</text></g>
+
+  <!-- ── edges ─────────────────────────────── -->
+  <!-- CLI → Poller -->
+  <path class="edge" id="e-cli-poller" d="M222,206 C 232,210 236,230 246,236"/>
+  <!-- Poller → ports -->
+  <path class="edge" id="e-poller-feed" d="M434,210 C 446,200 458,190 470,186"/>
+  <path class="edge" id="e-poller-writer" d="M434,228 C 446,236 458,250 470,256"/>
+  <path class="edge" id="e-poller-pub" d="M434,250 C 446,300 458,340 470,348"/>
+  <path class="edge" id="e-poller-active" d="M434,264 C 446,380 458,438 470,446"/>
+  <!-- ports → adapters (implements) -->
+  <path class="edge impl" id="e-feed-http" d="M684,186 C 696,186 700,184 708,182"/>
+  <path class="edge impl" id="e-writer-pg" d="M684,256 C 696,256 700,256 708,256"/>
+  <path class="edge impl" id="e-pub-kafka" d="M684,348 C 696,348 700,346 708,344"/>
+  <path class="edge impl" id="e-active-kafka" d="M684,446 C 696,446 700,440 708,436"/>
+  <!-- core: poller → decode -->
+  <path class="edge" id="e-poller-decode" d="M346,278 C 346,360 346,420 346,492"/>
+  <!-- adapters → externo -->
+  <path class="edge" id="e-http-feed" d="M958,182 C 970,180 972,172 982,170"/>
+  <path class="edge" id="e-pg-raw" d="M958,258 C 970,266 972,290 982,300"/>
+  <path class="edge" id="e-kafka-pos" d="M958,344 C 970,360 972,392 982,402"/>
+  <path class="edge" id="e-kafka-status" d="M958,436 C 970,460 972,486 982,496"/>
+  <!-- replay: RawReader → publisher -->
+  <path class="edge dash" id="e-reader-pub" d="M826,560 C 760,540 740,420 826,396"/>
+  <path class="edge" id="e-reader-raw" d="M970,564 C 984,548 984,470 984,432 C 984,380 1000,340 1040,332"/>
+  <!-- heartbeat -->
+  <path class="edge" id="e-poller-hb" d="M340,278 C 320,560 700,620 826,628"/>
+  <path class="edge" id="e-cli-hb" d="M150,206 C 120,420 700,690 826,672"/>
+
+  <text class="elbl" id="l-http" x="960" y="160">HTTP</text>
+  <text class="elbl" id="l-pg" x="960" y="290">COPY</text>
+  <text class="elbl" id="l-pos" x="960" y="392">produce</text>
+  <text class="elbl" id="l-status" x="960" y="486">consume</text>
+  <text class="elbl" id="l-impl" x="690" y="178">impl</text>
+
+  <!-- ── Entrada / CLI ──────────────────────── -->
+  <g class="node ext" data-k="cli"><rect x="36" y="150" width="186" height="92" rx="9"/><text class="t" x="52" y="176">__main__</text><text class="m" x="52" y="195">run_forever · --once</text><text class="m" x="52" y="211">healthcheck · replay</text><text class="m" x="52" y="227">_build_poller (4 deps)</text></g>
+
+  <!-- ── Núcleo ─────────────────────────────── -->
+  <g class="node do" data-k="poller"><rect x="258" y="170" width="176" height="108" rx="9"/><text class="t" x="274" y="196">Poller</text><text class="m" x="274" y="215">run_once(last_ts)</text><text class="m" x="274" y="231">fetch→decode→write</text><text class="m" x="274" y="247">→refresh→publish</text><text class="m" x="274" y="263">run_forever · SIGTERM</text></g>
+  <g class="node do" data-k="decode"><rect x="258" y="492" width="176" height="56" rx="9"/><text class="t" x="274" y="518">decode</text><text class="m" x="274" y="536">protobuf → snapshot</text></g>
+
+  <!-- ── Ports · domain.py ──────────────────── -->
+  <g class="node port" data-k="p-feed"><rect x="470" y="160" width="214" height="50" rx="9"/><text class="t" x="486" y="182">FeedClient</text><text class="k" x="486" y="199">port · fetch()</text></g>
+  <g class="node port" data-k="p-writer"><rect x="470" y="232" width="214" height="48" rx="9"/><text class="t" x="486" y="254">RawWriter</text><text class="k" x="486" y="270">port · write()</text></g>
+  <g class="node port" data-k="p-pub"><rect x="470" y="324" width="214" height="48" rx="9"/><text class="t" x="486" y="346">PositionPublisher</text><text class="k" x="486" y="362">port · publish()</text></g>
+  <g class="node port" data-k="p-active"><rect x="470" y="420" width="214" height="52" rx="9"/><text class="t" x="486" y="442">ActiveRegistry</text><text class="k" x="486" y="459">port · is_active/refresh</text></g>
+
+  <!-- ── Adapters OUT ───────────────────────── -->
+  <g class="node store" data-k="a-http"><rect x="708" y="156" width="262" height="54" rx="9"/><text class="t" x="724" y="181">HttpFeedClient</text><text class="m" x="724" y="199">feed.py · retries/backoff</text></g>
+  <g class="node store" data-k="a-pg"><rect x="708" y="228" width="262" height="56" rx="9"/><text class="t" x="724" y="253">PostgresRawWriter</text><text class="m" x="724" y="271">raw_writer.py · COPY · idemp.</text></g>
+  <g class="node store" data-k="a-pub"><rect x="708" y="320" width="262" height="54" rx="9"/><text class="t" x="724" y="345">KafkaPositionPublisher</text><text class="m" x="724" y="363">publisher.py · key=vehicle_id</text></g>
+  <g class="node store" data-k="a-active"><rect x="708" y="412" width="262" height="56" rx="9"/><text class="t" x="724" y="437">KafkaActiveRegistry</text><text class="m" x="724" y="455">active.py · tópico compactado</text></g>
+  <g class="node store" data-k="a-reader"><rect x="708" y="548" width="262" height="56" rx="9"/><text class="t" x="724" y="573">RawReader · replay</text><text class="m" x="724" y="591">replay.py · re-publica raw</text></g>
+  <g class="node store" data-k="a-hb"><rect x="708" y="616" width="262" height="56" rx="9"/><text class="t" x="724" y="641">heartbeat</text><text class="m" x="724" y="659">heartbeat.py · write/check</text></g>
+
+  <!-- ── Externo ────────────────────────────── -->
+  <g class="node ext" data-k="x-feed"><rect x="994" y="146" width="170" height="56" rx="9"/><text class="t" x="1010" y="171">GTFS-RT feed</text><text class="m" x="1010" y="189">HTTP · vehicle-pos</text></g>
+  <g class="node store" data-k="x-raw"><rect x="994" y="276" width="170" height="56" rx="9"/><text class="t" x="1010" y="301" style="font-size:11px">rt__vehicle_position</text><text class="m" x="1010" y="319">raw · partição/dia</text></g>
+  <g class="node store" data-k="x-pos"><rect x="994" y="376" width="170" height="56" rx="9"/><text class="t" x="1010" y="401">ooh.rt.position</text><text class="m" x="1010" y="419">Kafka · frota</text></g>
+  <g class="node store" data-k="x-status"><rect x="994" y="470" width="170" height="56" rx="9"/><text class="t" x="1010" y="495">ooh.vehicle.status</text><text class="m" x="1010" y="513">Kafka · compactado</text></g>
+
+  <!-- ── Domain ─────────────────────────────── -->
+  <g class="node domain" data-k="m-types"><rect x="36" y="878" width="360" height="100" rx="9"/><text class="t" x="52" y="903">tipos · domain.py</text><text class="m" x="52" y="922">VehiclePosition · FeedSnapshot</text><text class="m" x="52" y="939">CycleMetrics</text><text class="m" x="52" y="956">(dataclasses frozen)</text></g>
+  <g class="node domain" data-k="m-cfg"><rect x="416" y="878" width="340" height="100" rx="9"/><text class="t" x="432" y="903">config · db</text><text class="m" x="432" y="922">PollerConfig.from_env (config.py)</text><text class="m" x="432" y="939">build_dsn · connect (db.py)</text><text class="m" x="432" y="956">100% via env (RULE-OPS-01)</text></g>
+  <g class="node domain" data-k="m-idemp"><rect x="776" y="878" width="400" height="100" rx="9"/><text class="t" x="792" y="903">propriedades do ciclo</text><text class="m" x="792" y="922">idempotente por feed_timestamp</text><text class="m" x="792" y="939">land-then-publish · at-least-once</text><text class="m" x="792" y="956">active_count = só observabilidade</text></g>
+</svg>
+
+  <div class="src">uai-ooh-realtime-poller · poller/ · jun/2026</div>
+
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique numa classe</h3>
+    <div class="meta" id="d-meta">papel + métodos</div>
+    <p id="d-body">Worker GTFS-RT em <b>ports &amp; adapters</b>: a <b>CLI</b> injeta 4 adapters no <b>Poller</b>, que orquestra o ciclo <code>fetch→decode→write→refresh→publish</code> sobre os <b>Ports</b> (Protocols em <code>domain.py</code>). Adapters OUT falam com o feed, o Postgres <code>raw</code> e o Kafka. Chips acendem os modos de execução.</p>
+  </div>
+</div>
+
+<script>
+window.DETAIL = {
+  "cli": { t:"__main__ (CLI)", m:"adapter in · entrypoint", b:"Argparse com 4 modos: <code>run_forever</code> (loop), <code>--once</code> (1 ciclo), <code>healthcheck</code> (só olha o heartbeat, sem config completa) e <code>replay</code> (<code>--speed/--from/--to/--lines</code>). <code>_build_poller(cfg)</code> instancia os 4 adapters (<b>HttpFeedClient</b>, <b>PostgresRawWriter</b>, <b>KafkaPositionPublisher</b>, <b>KafkaActiveRegistry</b>), faz o <code>registry.start()</code> e injeta no <b>Poller</b>." },
+  "poller": { t:"Poller (poller.py)", m:"application · núcleo", b:"<code>run_once(last_feed_ts)</code> = <code>fetch</code> → <code>decode</code> → <code>write</code> (land da frota) → <code>active_registry.refresh()</code> → <code>publish</code>; idempotente por <code>feed_timestamp</code> (repetido = skip sem side-effects). <code>run_forever()</code> = loop com <code>poll_interval_s</code>, heartbeat por iteração e <code>SIGTERM/SIGINT</code> com shutdown limpo. Erro de 1 ciclo loga e segue — o worker nunca cai." },
+  "decode": { t:"decode (decode.py)", m:"application · parsing", b:"Decodifica o protobuf GTFS-RT (<code>gtfs-realtime-bindings</code>) em <b>FeedSnapshot</b>. <code>HasField</code> distingue ausente de vazio (proto2); enums saem pelo NOME; entity sem <code>vehicle.id</code> ou sem <code>position</code> é pulada com warning." },
+  "p-feed": { t:"FeedClient", m:"port · Protocol", b:"<code>fetch() -&gt; bytes</code> — busca o protobuf cru do feed. Implementado por <b>HttpFeedClient</b>." },
+  "p-writer": { t:"RawWriter", m:"port · Protocol", b:"<code>write(snapshot) -&gt; int</code> — landa o snapshot no <code>raw</code> (partição do dia). Implementado por <b>PostgresRawWriter</b>." },
+  "p-pub": { t:"PositionPublisher", m:"port · Protocol", b:"<code>publish(positions) -&gt; int</code> — publica no Kafka (key=vehicle_id). Implementado por <b>KafkaPositionPublisher</b> (e reusado pelo replay)." },
+  "p-active": { t:"ActiveRegistry", m:"port · Protocol", b:"<code>is_active(code)</code> e <code>refresh()</code> — registro de veículos ativos do inventário. Implementado por <b>KafkaActiveRegistry</b>." },
+  "a-http": { t:"HttpFeedClient (feed.py)", m:"adapter out · HTTP", b:"Implementa <b>FeedClient</b> sobre <code>requests</code>: retries com backoff exponencial (1s/2s/4s) + jitter e User-Agent fixo. A URL (com accesskey) vem da config e nunca aparece em logs. <code>FeedUnavailableError</code> após esgotar os retries." },
+  "a-pg": { t:"PostgresRawWriter (raw_writer.py)", m:"adapter out · Postgres", b:"Implementa <b>RawWriter</b>: garante a partição-filha do dia (DDL idempotente) e faz <code>COPY ... FROM STDIN</code> em <code>raw.rt__vehicle_position</code>. Idempotente por <code>_feed_timestamp</code> (já landado → retorna o count sem reescrever). Conexão quebrada é descartada e refeita no ciclo seguinte." },
+  "a-pub": { t:"KafkaPositionPublisher (publisher.py)", m:"adapter out · Kafka", b:"Implementa <b>PositionPublisher</b> sobre <code>confluent-kafka</code> (producer idempotente, <code>linger.ms=50</code>): <code>key=vehicle_id</code>, value=JSON do <b>VehiclePosition</b>, <code>flush</code> no fim do lote. Erros de delivery viram <code>PublishError</code> — at-least-once, o ciclo refaz sem avançar o feed_ts." },
+  "a-active": { t:"KafkaActiveRegistry (active.py)", m:"adapter out · Kafka", b:"Implementa <b>ActiveRegistry</b>: reconstrói o set de ativos a partir do tópico <b>compactado</b> <code>ooh.vehicle.status</code> (active=true add; false/tombstone remove). <code>start()</code> faz o catch-up até o high-watermark; <code>refresh()</code> drena novas mensagens sem bloquear (<code>poll(0)</code>)." },
+  "a-reader": { t:"RawReader + replay (replay.py)", m:"adapter out · replay", b:"Lê <code>raw.rt__vehicle_position</code> <b>local</b> via cursor server-side, reagrupa por <code>_feed_timestamp</code> (1 grupo = 1 ciclo) e re-publica no Kafka local reusando o <b>KafkaPositionPublisher</b>. Determinístico, acelerado por <code>speed</code>; <b>não landa de volta</b> no raw (LOCAL-02)." },
+  "a-hb": { t:"heartbeat (heartbeat.py)", m:"adapter out · arquivo", b:"<code>write_heartbeat</code> escreve JSON de forma atômica (tmp + rename); <code>check_heartbeat</code> julga saúde pela idade (mtime) do arquivo e devolve o exit code 0/1 do <code>healthcheck</code>." },
+  "x-feed": { t:"GTFS-RT feed", m:"externo · HTTP", b:"Endpoint <code>vehicle-positions</code> (protobuf), URL com accesskey por env <code>GTFS_RT_URL</code>." },
+  "x-raw": { t:"raw.rt__vehicle_position", m:"externo · Postgres", b:"Tabela particionada por dia (UTC), schema <code>raw</code>. Land durável da frota inteira via COPY, idempotente por <code>_feed_timestamp</code>." },
+  "x-pos": { t:"ooh.rt.position", m:"externo · Kafka", b:"Tópico das posições da <b>frota inteira</b> (N do raw == N publicado), key=vehicle_id. Consumido pelo trip-consolidator (F2)." },
+  "x-status": { t:"ooh.vehicle.status", m:"externo · Kafka", b:"Tópico <b>compactado</b> do status do inventário (vehicle_code/active); fonte do <b>KafkaActiveRegistry</b> (catch-up + refresh)." },
+  "m-types": { t:"Domain · tipos (domain.py)", m:"dataclasses frozen", b:"<code>VehiclePosition</code>, <code>FeedSnapshot</code>, <code>CycleMetrics</code> — value objects imutáveis. Os Protocols (<b>FeedClient</b>, <b>RawWriter</b>, <b>PositionPublisher</b>, <b>ActiveRegistry</b>) vivem no mesmo módulo." },
+  "m-cfg": { t:"config · db", m:"PollerConfig / DSN", b:"<code>PollerConfig.from_env()</code> (config.py) lê tudo de env; <code>build_dsn()</code>/<code>connect()</code> (db.py) montam a conexão — <code>OOH_DB_URL</code> tem precedência sobre <code>DB_*</code>. Zero credencial hardcoded (RULE-OPS-01)." },
+  "m-idemp": { t:"Propriedades do ciclo", m:"garantias", b:"<b>Idempotente</b> por <code>feed_timestamp</code> (skip sem side-effects); ordem <b>land-then-publish</b>, <b>at-least-once</b> — <code>last_feed_ts</code> só avança com ciclo completo. <code>active_count</code> é só observabilidade (não filtra — frota inteira no tópico)." }
+};
+window.E2L = {
+  "e-http-feed":"l-http",
+  "e-pg-raw":"l-pg",
+  "e-kafka-pos":"l-pos",
+  "e-kafka-status":"l-status",
+  "e-feed-http":"l-impl"
+};
+window.FLOWS = {
+  ciclo: { name:"Ciclo (run_once) — fetch → decode → land → publish",
+    edges:["e-cli-poller","e-poller-feed","e-feed-http","e-http-feed","e-poller-decode","e-poller-writer","e-writer-pg","e-pg-raw","e-poller-active","e-active-kafka","e-kafka-status","e-poller-pub","e-pub-kafka","e-kafka-pos"],
+    nodes:["cli","poller","decode","p-feed","p-writer","p-pub","p-active","a-http","a-pg","a-pub","a-active","x-feed","x-raw","x-pos","x-status","m-types","m-idemp"],
+    steps:["<b>HttpFeedClient</b> faz <code>fetch()</code> no feed → <b>decode</b> vira <b>FeedSnapshot</b>","<b>PostgresRawWriter</b> landa a frota (COPY, idempotente por feed_timestamp) ANTES de publicar","<b>KafkaActiveRegistry.refresh()</b> (só anota <code>active_count</code>); <b>KafkaPositionPublisher</b> publica a frota em <code>ooh.rt.position</code>"] },
+  replay: { name:"Replay — raw local → Kafka local (LOCAL-02)",
+    edges:["e-cli-poller","e-reader-raw","e-reader-pub","e-pub-kafka","e-kafka-pos"],
+    nodes:["cli","a-reader","a-pub","x-raw","x-pos"],
+    steps:["<code>python -m poller replay</code> (<code>--speed/--from/--to/--lines</code>)","<b>RawReader</b> lê <code>raw.rt__vehicle_position</code> local e reagrupa por ciclo (cursor server-side)","Reusa o <b>KafkaPositionPublisher</b> pra re-publicar em <code>ooh.rt.position</code> — não landa de volta"] },
+  health: { name:"Health — heartbeat em arquivo",
+    edges:["e-cli-hb","e-poller-hb"],
+    nodes:["cli","poller","a-hb"],
+    steps:["<b>Poller</b> escreve o heartbeat por iteração (<code>write_heartbeat</code>, atômico)","<code>python -m poller healthcheck</code> chama <b>check_heartbeat</b>","Saúde = idade (mtime) ≤ max_age → exit 0/1, sem exigir config completa"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ooh · schema serving — ER</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<link rel="stylesheet" href="../../_assets/diagram.css">
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>ooh · serving — entidades (flat)</h1>
+    <div class="sub">espelho plano do core · geom = jsonb GeoJSON 4326 (ADR-003) · swap ACTIVE · 14 tabelas</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="ident">Identidades</button>
+    <button class="chip" data-flow="score">Score</button>
+    <button class="chip" data-flow="reach">Reach / F2</button>
+    <button class="chip" data-flow="versao">Versionamento</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="postgres-ooh.html">← postgres-ooh</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="legend" id="legend">
+  <h4>Como ler</h4>
+  <div class="row"><span class="sw store"></span> tabela — clique abre <b>todos os campos + descrição</b></div>
+  <div class="row"><span class="dotsw" style="background:var(--clay)"></span> 🔑 chave primária (PK)</div>
+  <div class="row"><span style="width:22px;border-top:1.6px solid var(--muted);display:inline-block"></span> join lógico (rótulo = chave)</div>
+  <div class="hint"><b>serving</b> é o <b>espelho plano</b> do core: geometrias viram <code>geom_geojson</code> (GeoJSON 4326, sem ST_*) e o intel só lê a versão <b>ACTIVE</b> via role <code>ooh_intel_ro</code>. Joins lógicos por <code>line_id</code> / <code>short_name</code> como no core.</div>
+</div>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1300 1050" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagrama ER do schema serving">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/></marker>
+  </defs>
+
+  <!-- grupos -->
+  <g class="zone"><rect x="24" y="92" width="236" height="936" rx="14"/><text class="ztitle" x="40" y="120">Versionamento</text></g>
+  <g class="zone"><rect x="276" y="92" width="236" height="936" rx="14"/><text class="ztitle" x="292" y="120">Identidades</text></g>
+  <g class="zone"><rect x="528" y="92" width="236" height="936" rx="14"/><text class="ztitle" x="544" y="120">Derivados do corredor</text></g>
+  <g class="zone"><rect x="780" y="92" width="236" height="936" rx="14"/><text class="ztitle" x="796" y="120">Métricas &amp; Score</text></g>
+  <g class="zone"><rect x="1032" y="92" width="236" height="936" rx="14"/><text class="ztitle" x="1048" y="120">Audiência / F2</text></g>
+
+  <!-- joins (rotulados pela chave) -->
+  <path class="edge" id="j-line-shape" d="M320,261 C 316,268 316,271 320,277"/>
+  <path class="edge" id="j-line-stop" d="M300,261 C 268,320 268,348 300,404"/>
+  <path class="edge" id="j-line-met" d="M500,200 C 620,200 672,196 792,196"/>
+  <path class="edge" id="j-line-dem" d="M500,212 C 600,236 690,250 740,260 C 772,280 776,360 792,420"/>
+  <path class="edge" id="j-line-corr" d="M500,224 C 516,260 516,292 540,316"/>
+  <path class="edge" id="j-line-poi" d="M500,236 C 514,260 520,300 520,360 C 520,410 526,440 540,444"/>
+  <path class="edge" id="j-line-reach" d="M500,248 C 560,262 640,270 720,270 C 860,270 960,272 1004,300 C 1024,330 1036,420 1044,448"/>
+  <path class="edge" id="j-veh-face" d="M500,925 C 840,925 980,640 1044,580"/>
+
+  <text class="elbl" id="le-line-met" x="640" y="188">line_id</text>
+  <text class="elbl" id="le-line-dem" x="690" y="256">line_id</text>
+  <text class="elbl" id="le-line-poi" x="504" y="336">line_id</text>
+  <text class="elbl" id="le-veh-face" x="744" y="772">vehicle_code</text>
+
+  <!-- ── Versionamento ─────────────────────── -->
+  <g class="node table" data-k="dataset_version"><rect x="36" y="150" width="212" height="111" rx="9"/><text class="th" x="50" y="172">dataset_version</text><text class="pk" x="50" y="192">🔑 version_id</text><text class="m" x="50" y="208">status · core_version_id</text><text class="m" x="50" y="223">label · activated_at</text><text class="m" x="50" y="238">IMPORTING → ACTIVE</text><text class="n" x="50" y="254">7 campos · 2 versões</text></g>
+
+  <!-- ── Identidades ───────────────────────── -->
+  <g class="node table" data-k="line"><rect x="288" y="150" width="212" height="111" rx="9"/><text class="th" x="302" y="172">line</text><text class="pk" x="302" y="192">🔑 line_id</text><text class="m" x="302" y="208">short_name · long_name</text><text class="m" x="302" y="223">categoria · extensao_m</text><text class="m" x="302" y="238">circular_sc · suplementar</text><text class="n" x="302" y="254">8 campos · 608 linhas</text></g>
+  <g class="node table" data-k="line_shape"><rect x="288" y="277" width="212" height="111" rx="9"/><text class="th" x="302" y="299">line_shape</text><text class="m" x="302" y="319">line_id ↗ · service_type</text><text class="m" x="302" y="334">direction · shape_id</text><text class="m" x="302" y="349">geom_geojson · comprim_m</text><text class="n" x="302" y="365">7 campos · 3.050</text></g>
+  <g class="node table" data-k="line_stop"><rect x="288" y="404" width="212" height="111" rx="9"/><text class="th" x="302" y="426">line_stop</text><text class="m" x="302" y="446">line_id ↗ · service_type</text><text class="m" x="302" y="461">direction · stop_sequence</text><text class="m" x="302" y="476">stop_id · geom_geojson</text><text class="n" x="302" y="492">8 campos · 169.984</text></g>
+  <g class="node table" data-k="vehicle"><rect x="288" y="877" width="212" height="96" rx="9"/><text class="th" x="302" y="899">vehicle</text><text class="pk" x="302" y="919">🔑 vehicle_code</text><text class="m" x="302" y="935">license_plate</text><text class="n" x="302" y="951">3 campos · 5.306</text></g>
+
+  <!-- ── Derivados do corredor ─────────────── -->
+  <g class="node table" data-k="line_corridor"><rect x="540" y="277" width="212" height="96" rx="9"/><text class="th" x="554" y="299">line_corridor</text><text class="m" x="554" y="319">line_id ↗</text><text class="m" x="554" y="334">geom_geojson (buffer)</text><text class="n" x="554" y="350">3 campos · 606</text></g>
+  <g class="node table" data-k="line_poi"><rect x="540" y="389" width="212" height="111" rx="9"/><text class="th" x="554" y="411">line_poi</text><text class="m" x="554" y="431">line_id ↗ · poi_id</text><text class="m" x="554" y="446">grupo_ooh · subgrupo</text><text class="m" x="554" y="461">nome · geom_geojson</text><text class="n" x="554" y="477">9 campos · 4.337.674</text></g>
+  <g class="node table" data-k="line_area"><rect x="540" y="516" width="212" height="96" rx="9"/><text class="th" x="554" y="538">line_area</text><text class="m" x="554" y="558">line_id ↗ · regional</text><text class="m" x="554" y="573">bairro · n_stops</text><text class="n" x="554" y="589">5 campos · 8.078</text></g>
+
+  <!-- ── Métricas & Score ──────────────────── -->
+  <g class="node table" data-k="line_metrics"><rect x="792" y="150" width="212" height="111" rx="9"/><text class="th" x="806" y="172">line_metrics</text><text class="m" x="806" y="192">line_id ↗ · score_total</text><text class="m" x="806" y="208">impressoes_{util,sab,dom}</text><text class="m" x="806" y="223">s_impr · s_perfil · pct_ab</text><text class="m" x="806" y="238">n_poi_total · pax_util</text><text class="n" x="806" y="254">39 campos · 606</text></g>
+  <g class="node table" data-k="line_profile_demografico"><rect x="792" y="389" width="212" height="96" rx="9"/><text class="th" x="806" y="411">line_profile_demografico</text><text class="m" x="806" y="431">line_id ↗ · classe_renda</text><text class="m" x="806" y="446">pop · pct</text><text class="n" x="806" y="462">5 campos · 2.858 (A–E)</text></g>
+
+  <!-- ── Audiência / F2 ────────────────────── -->
+  <g class="node table" data-k="exposure_cell"><rect x="1044" y="150" width="212" height="111" rx="9"/><text class="th" x="1058" y="172">exposure_cell</text><text class="m" x="1058" y="192">h3_index ↗ · hora</text><text class="m" x="1058" y="207">audiencia · footfall</text><text class="m" x="1058" y="222">pop · renda · lon/lat</text><text class="n" x="1058" y="238">11 campos · 102.902</text></g>
+  <g class="node table" data-k="line_reach"><rect x="1044" y="389" width="212" height="111" rx="9"/><text class="th" x="1058" y="411">line_reach</text><text class="m" x="1058" y="431">line_id ↗ · tipo_dia</text><text class="m" x="1058" y="446">reach_od · impressoes_mes</text><text class="m" x="1058" y="461">frequencia · selo_confianca</text><text class="n" x="1058" y="477">11 campos · 40.698</text></g>
+  <g class="node table" data-k="face_reach"><rect x="1044" y="516" width="212" height="111" rx="9"/><text class="th" x="1058" y="538">face_reach</text><text class="m" x="1058" y="558">vehicle_code ↗ · periodo</text><text class="m" x="1058" y="573">reach · impressoes</text><text class="m" x="1058" y="588">frequencia · selo</text><text class="n" x="1058" y="604">8 campos · 21.224</text></g>
+  <g class="node table" data-k="lead_prospeccao"><rect x="1044" y="643" width="212" height="111" rx="9"/><text class="th" x="1058" y="665">lead_prospeccao</text><text class="pk" x="1058" y="685">🔑 nicho · lead_id</text><text class="m" x="1058" y="701">nome · grupo_ooh · porte</text><text class="m" x="1058" y="716">score_lead · dedup_key</text><text class="n" x="1058" y="732">28 campos · 120.756</text></g>
+</svg>
+
+  <div class="src">banco ooh · schema serving · introspecção MCP (14 tabelas · ~152 colunas) · espelho plano do core (ADR-003) · jun/2026</div>
+
+  <div class="card" id="flowcap"><div class="fname" id="f-name"></div><ol id="f-steps"></ol></div>
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique numa tabela</h3>
+    <div class="meta" id="d-meta">todos os campos + descrição</div>
+    <p id="d-body">Diagrama ER do schema <b>serving</b> — o <b>espelho plano</b> do core para leitura barata pelo intel. Geometrias viram <code>geom_geojson</code> (GeoJSON 4326, sem PostGIS no consumidor); o <b>dataset_version</b> faz swap <code>IMPORTING → ACTIVE</code> e o intel só lê a versão ACTIVE via role <code>ooh_intel_ro</code>. Cada card mostra a PK e campos-chave; <b>clique</b> abre <b>todos os campos com tipo e descrição</b>.</p>
+  </div>
+</div>
+
+<script>
+const V = { n:"version_id", ty:"int", d:"FK lógica → dataset_version (espelho da versão ACTIVE)" };
+const GEOJSON = { n:"geom_geojson", ty:"jsonb", d:"geometria em GeoJSON 4326 (web; sem ST_* no consumidor)" };
+window.DETAIL = {
+  dataset_version: { t:"serving.dataset_version", m:"versionamento · 7 campos · 2", note:"Versão imutável do espelho serving; swap atômico IMPORTING→ACTIVE→ARCHIVED. core_version_id aponta a versão de origem no schema core. O intel só lê a versão ACTIVE via role ooh_intel_ro.", fields:[
+    {n:"version_id",ty:"int",pk:true,d:"PK da versão do espelho serving"},
+    {n:"label",ty:"text",nn:true,d:"rótulo legível do build"},
+    {n:"status",ty:"text",d:"IMPORTING | ACTIVE | ARCHIVED"},
+    {n:"core_version_id",ty:"int",nn:true,d:"versão de origem no schema core (procedência)"},
+    {n:"created_at",ty:"timestamptz",d:"início do import"},
+    {n:"activated_at",ty:"timestamptz",nn:true,d:"quando virou ACTIVE (swap)"},
+    {n:"notes",ty:"text",nn:true,d:"observações"} ]},
+  line: { t:"serving.line", m:"catálogo de linhas · 8 campos · 608", note:"Espelho plano de core.line. Identidade da linha; casa com métricas/demanda por short_name.", fields:[
+    {n:"line_id",ty:"text",nn:false,d:"identidade da linha (route_id do GTFS); chave de junção"},
+    {n:"short_name",ty:"text",nn:true,d:"código da linha (= route_short_name; chave de junção com demanda/embarque)"},
+    {n:"long_name",ty:"text",nn:true,d:"nome do itinerário"},
+    {n:"categoria",ty:"text",nn:true,d:"categoria da linha (route_type/rótulo)"},
+    {n:"is_circular_sc",ty:"bool",nn:true,d:"circular do centro (SC*)"},
+    {n:"is_suplementar",ty:"bool",nn:true,d:"linha suplementar (S*)"},
+    {n:"extensao_m",ty:"num",nn:true,d:"extensão em metros"}, V ]},
+  line_shape: { t:"serving.line_shape", m:"trajeto por dia/sentido · 7 · 3.050", note:"Espelho de core.line_shape — geom em GeoJSON. Shape por (service_type, direction).", fields:[
+    {n:"line_id",ty:"text",fk:true,d:"→ line"},
+    {n:"service_type",ty:"text",nn:true,d:"util | sab | dom"},
+    {n:"direction",ty:"int",nn:true,d:"sentido (0/1)"},
+    {n:"shape_id",ty:"text",nn:true,d:"shape GTFS de origem"},
+    GEOJSON,
+    {n:"comprimento_m",ty:"num",nn:true,d:"comprimento do traçado (m)"}, V ]},
+  line_stop: { t:"serving.line_stop", m:"sequência ponto×linha×dia · 8 · 169.984", note:"Espelho de core.line_stop com o ponto já materializado em GeoJSON (sem join com stop no consumidor).", fields:[
+    {n:"line_id",ty:"text",fk:true,d:"→ line"},
+    {n:"service_type",ty:"text",nn:true,d:"util | sab | dom"},
+    {n:"direction",ty:"int",nn:true,d:"sentido"},
+    {n:"stop_sequence",ty:"int",nn:true,d:"ordem na linha"},
+    {n:"stop_id",ty:"text",nn:true,d:"id do ponto (GTFS stop_id)"},
+    {n:"is_terminal",ty:"bool",nn:true,d:"terminal"}, V,
+    GEOJSON ]},
+  vehicle: { t:"serving.vehicle", m:"frota (auxiliar) · 3 · 5.306", note:"Espelho enxuto de core.vehicle: só o que o intel precisa. vehicle_code = id do feed RT, chave de junção com face_reach.", fields:[
+    {n:"vehicle_code",ty:"text",nn:false,d:"código do veículo (= id do feed RT); chave de junção com face_reach"},
+    {n:"license_plate",ty:"text",nn:true,d:"placa"}, V ]},
+  line_corridor: { t:"serving.line_corridor", m:"corredor (buffer) · 3 · 606", note:"Extra de serving: geometria do corredor (buffer do trajeto) já em GeoJSON, pronta para o mapa do intel. 1 por linha.", fields:[
+    {n:"line_id",ty:"text",fk:true,d:"→ line (1:1)"},
+    {n:"geom_geojson",ty:"jsonb",nn:true,d:"polígono do corredor (buffer do trajeto) em GeoJSON 4326"}, V ]},
+  line_poi: { t:"serving.line_poi", m:"POIs por linha · 9 · 4.337.674", note:"Extra de serving: POIs dentro do corredor de cada linha, materializados (line × poi) para o intel não cruzar geometria. Maior tabela do schema.", fields:[
+    {n:"line_id",ty:"text",fk:true,d:"→ line"},
+    {n:"poi_id",ty:"int8",nn:false,d:"id do POI (core.poi.id)"},
+    {n:"fonte",ty:"text",nn:true,d:"overture | fsq | osm"},
+    {n:"fonte_id",ty:"text",nn:true,d:"id na fonte"},
+    {n:"grupo_ooh",ty:"text",nn:true,d:"grupo OOH (alimentação/comércio/educação/saúde…)"},
+    {n:"subgrupo",ty:"text",nn:true,d:"subgrupo do POI"},
+    {n:"nome",ty:"text",nn:true,d:"nome do POI"},
+    GEOJSON, V ]},
+  line_area: { t:"serving.line_area", m:"bairros/regionais da linha · 5 · 8.078", note:"Extra de serving: cobertura da linha por (regional, bairro) com nº de paradas — pré-agregado para filtros geográficos do intel.", fields:[
+    {n:"line_id",ty:"text",fk:true,d:"→ line"},
+    {n:"regional",ty:"text",nn:true,d:"regional administrativa coberta"},
+    {n:"bairro",ty:"text",nn:true,d:"bairro coberto"},
+    {n:"n_stops",ty:"int",nn:true,d:"nº de paradas da linha nesse bairro"}, V ]},
+  line_metrics: { t:"serving.line_metrics", m:"saída do produto · 39 · 606", note:"Espelho de core.line_metrics. Ranking/score vendável; impressões absolutas ilustrativas (coef. não calibrados).", fields:[
+    {n:"line_id",ty:"text",fk:true,d:"→ line"},
+    {n:"comprimento_m",ty:"num",nn:true,d:"comprimento do trajeto"},
+    {n:"pop_corredor",ty:"num",nn:true,d:"população do corredor"},
+    {n:"pop_corredor_pond",ty:"num",nn:true,d:"pop ponderada por área"},
+    {n:"renda_media_pop",ty:"num",nn:true,d:"renda média ponderada por pop (alcance residencial)"},
+    {n:"classe_predom",ty:"char",nn:true,d:"classe predominante"},
+    {n:"pct_ab",ty:"num",nn:true,d:"% pop A+B (quintil-de-BH)"},
+    {n:"pct_de",ty:"num",nn:true,d:"% pop D+E"},
+    {n:"renda_trecho",ty:"num",nn:true,d:"renda ponderada por DISTÂNCIA do trajeto (onde o anúncio circula)"},
+    {n:"pct_trecho_ab",ty:"num",nn:true,d:"% A+B por trecho"},
+    {n:"pct_trecho_de",ty:"num",nn:true,d:"% D+E por trecho"},
+    {n:"n_poi_alimentacao",ty:"int",nn:true,d:"POIs alimentação"},
+    {n:"n_poi_comercio",ty:"int",nn:true,d:"POIs comércio"},
+    {n:"n_poi_educacao",ty:"int",nn:true,d:"POIs educação"},
+    {n:"n_poi_saude",ty:"int",nn:true,d:"POIs saúde"},
+    {n:"n_poi_total",ty:"int",nn:true,d:"POIs Overture rel≥1 no corredor (entra no score)"},
+    {n:"densidade_poi_km",ty:"num",nn:true,d:"POIs/km"},
+    {n:"n_poi_total_prospeccao",ty:"int",nn:true,d:"união multi-fonte (prospecção; NÃO entra no score)"},
+    {n:"pct_arterial",ty:"num",nn:true,d:"% do trajeto em via de alto fluxo"},
+    {n:"classe_via_predom",ty:"text",nn:true,d:"classe de via predominante"},
+    {n:"pax_util",ty:"num",nn:true,d:"passageiros dia útil"},
+    {n:"pax_sab",ty:"num",nn:true,d:"passageiros sábado"},
+    {n:"pax_dom",ty:"num",nn:true,d:"passageiros domingo"},
+    {n:"e_pop_util",ty:"num",nn:true,d:"exposição população (componente)"},
+    {n:"e_pax_util",ty:"num",nn:true,d:"exposição passageiros (componente)"},
+    {n:"impressoes_util",ty:"num",nn:true,d:"impressões dia útil (ilustrativo)"},
+    {n:"impressoes_sab",ty:"num",nn:true,d:"impressões sábado"},
+    {n:"impressoes_dom",ty:"num",nn:true,d:"impressões domingo"},
+    {n:"impressoes_mes",ty:"num",nn:true,d:"impressões/mês"},
+    {n:"faixa_indicativa_pct",ty:"int",nn:true,d:"faixa indicativa ±35% (não é margem estatística)"},
+    {n:"s_impressoes",ty:"num",nn:true,d:"sub-score alcance/impressões"},
+    {n:"s_densidade",ty:"num",nn:true,d:"sub-score densidade"},
+    {n:"s_perfil",ty:"num",nn:true,d:"sub-score perfil (A5 recalibra)"},
+    {n:"s_arterial",ty:"num",nn:true,d:"sub-score exposição arterial"},
+    {n:"s_poi",ty:"num",nn:true,d:"sub-score POI"},
+    {n:"score_total",ty:"num",nn:true,d:"score 0–100 (combinação ponderada)"},
+    {n:"metodo_versao",ty:"text",nn:true,d:"versão do método"},
+    {n:"computed_at",ty:"timestamptz",nn:true,d:"quando calculado"}, V ]},
+  line_profile_demografico: { t:"serving.line_profile_demografico", m:"distribuição A–E · 5 · 2.858", note:"Espelho de core.line_profile_demografico: distribuição de população por classe de renda da linha.", fields:[
+    {n:"line_id",ty:"text",fk:true,d:"→ line"},
+    {n:"classe_renda",ty:"char",nn:true,d:"classe A–E"},
+    {n:"pop",ty:"num",nn:true,d:"pop na classe"},
+    {n:"pct",ty:"num",nn:true,d:"% pop na classe"}, V ]},
+  exposure_cell: { t:"serving.exposure_cell", m:"superfície H3 × hora · 11 · 102.902", note:"Espelho de core.exposure_cell com a célula H3 já em GeoJSON + centróide (lon/lat). audiencia = únicos da OD por (hex,hora); footfall = densidade de POI. Base do heatmap.", fields:[
+    {n:"h3_index",ty:"text",fk:true,d:"índice H3 (res 9) da célula"},
+    {n:"hora",ty:"int2",nn:true,d:"faixa horária 0–23"},
+    {n:"audiencia",ty:"num",nn:true,d:"DISTINCT usuários da OD por (hex, hora); origem OU destino"},
+    {n:"pop",ty:"num",nn:true,d:"população do hex"},
+    {n:"renda",ty:"num",nn:true,d:"renda média do hex"},
+    {n:"classe_predom",ty:"char",nn:true,d:"classe predominante"},
+    {n:"footfall",ty:"num",nn:true,d:"densidade de POI no hex (proxy de atratividade)"},
+    GEOJSON,
+    {n:"lon",ty:"num",nn:true,d:"longitude do centróide do hex (4326)"},
+    {n:"lat",ty:"num",nn:true,d:"latitude do centróide do hex (4326)"}, V ]},
+  line_reach: { t:"serving.line_reach", m:"audiência do corredor · 11 · 40.698", note:"Espelho de core.line_reach (ADR-058: 'audiência do corredor', nunca 'alcance da linha'). selo_confianca carrega a honestidade do número.", fields:[
+    {n:"line_id",ty:"text",fk:true,d:"→ line"},
+    {n:"tipo_dia",ty:"int2",nn:false,d:"1=útil 7=sáb 8=dom"},
+    {n:"faixa_horaria",ty:"int2",nn:true,d:"faixa horária (nulo = dia inteiro)"},
+    {n:"reach_od",ty:"num",nn:true,d:"DISTINCT usuários na UNIÃO das células (diário)"},
+    {n:"reach_od_periodo",ty:"num",nn:true,d:"reach na união do período (nunca soma de dias)"},
+    {n:"impressoes_dia",ty:"num",nn:true,d:"oportunidades de ver no dia (Σ, não dedup)"},
+    {n:"impressoes_mes",ty:"num",nn:true,d:"impressões/mês"},
+    {n:"frequencia_media",ty:"num",nn:true,d:"impressões/reach"},
+    {n:"exposicao_rel",ty:"num",nn:true,d:"exposição relativa (índice comparável entre linhas)"},
+    {n:"selo_confianca",ty:"text",d:"ALTO diário · MEDIO período-união · BAIXO expansão cega (ADR-058)"}, V ]},
+  face_reach: { t:"serving.face_reach", m:"tríade por face/veículo · 8 · 21.224", note:"Espelho de core.face_reach. impressoes = SOMA (oportunidades); reach = DISTINCT na união ⇒ impressoes≥reach. Caveat ADR-058: audiência do corredor, não da face.", fields:[
+    {n:"vehicle_code",ty:"text",fk:true,d:"→ vehicle (id do feed RT)"},
+    {n:"periodo",ty:"text",nn:false,d:"recorte temporal (tipo de dia / janela)"},
+    {n:"reach",ty:"num",nn:true,d:"DISTINCT usuários na UNIÃO das células cobertas (faixa-aware)"},
+    {n:"impressoes",ty:"num",nn:true,d:"Σ exposições sobre os (hex×faixa) cobertos — oportunidades de ver"},
+    {n:"frequencia_media",ty:"num",nn:true,d:"impressoes/reach"},
+    {n:"n_linhas",ty:"int",nn:true,d:"nº de linhas que o veículo serviu no período"},
+    {n:"selo_confianca",ty:"text",d:"selo de honestidade do número (ADR-058)"}, V ]},
+  lead_prospeccao: { t:"serving.lead_prospeccao", m:"leads de prospecção · 28 · 120.756", note:"Extra de serving: tabela de prospecção comercial (leads OOH dedupados por nicho), pronta para o intel listar e filtrar. Não vem do core de métricas.", fields:[
+    {n:"nicho",ty:"text",nn:false,d:"nicho/segmento da prospecção (parte da PK)"},
+    {n:"lead_id",ty:"int8",nn:false,d:"id do lead dentro do nicho (parte da PK)"},
+    {n:"fonte",ty:"text",nn:true,d:"fonte de origem (overture/fsq/osm/…)"},
+    {n:"fonte_id",ty:"text",nn:true,d:"id na fonte"},
+    {n:"nome",ty:"text",nn:true,d:"nome do estabelecimento"},
+    {n:"nome_norm",ty:"text",nn:true,d:"nome normalizado (dedup/busca)"},
+    {n:"telefone",ty:"text",nn:true,d:"telefone (contato)"},
+    {n:"website",ty:"text",nn:true,d:"site"},
+    {n:"grupo_ooh",ty:"text",nn:true,d:"grupo OOH"},
+    {n:"subgrupo",ty:"text",nn:true,d:"subgrupo"},
+    {n:"publico_privado",ty:"text",nn:true,d:"público | privado"},
+    {n:"porte",ty:"text",nn:true,d:"porte do estabelecimento"},
+    {n:"eh_rede",ty:"bool",nn:true,d:"pertence a uma rede/franquia"},
+    {n:"relevancia",ty:"int2",nn:true,d:"relevância para prospecção"},
+    {n:"tem_contato",ty:"bool",nn:true,d:"tem canal de contato"},
+    {n:"dentro_municipio",ty:"bool",nn:true,d:"dentro do município de BH"},
+    {n:"regional",ty:"text",nn:true,d:"regional administrativa"},
+    {n:"bairro",ty:"text",nn:true,d:"bairro"},
+    {n:"q_completude",ty:"num",nn:true,d:"qualidade/completude do registro (0–1)"},
+    {n:"score_lead",ty:"num",nn:true,d:"score de priorização do lead"},
+    {n:"dedup_key",ty:"text",nn:true,d:"chave de deduplicação"},
+    {n:"dedup_is_primary",ty:"bool",nn:true,d:"registro primário do grupo dedup"},
+    {n:"dedup_suspeita",ty:"bool",nn:true,d:"duplicata suspeita (revisar)"},
+    {n:"local_key",ty:"text",nn:true,d:"chave de local (mesmo endereço)"},
+    {n:"lon",ty:"num",nn:true,d:"longitude (4326)"},
+    {n:"lat",ty:"num",nn:true,d:"latitude (4326)"},
+    GEOJSON, V ]}
+};
+window.E2L = { "j-line-met":"le-line-met","j-line-dem":"le-line-dem","j-line-poi":"le-line-poi","j-veh-face":"le-veh-face" };
+window.FLOWS = {
+  ident: { name:"Identidades — linha · trajeto · sequência",
+    edges:["j-line-shape","j-line-stop"],
+    nodes:["line","line_shape","line_stop","vehicle"],
+    steps:["<b>line</b> (608) é a âncora; <b>vehicle</b> (5.306) entra pela frente F2","<b>line_shape</b> (trajeto/dia) e <b>line_stop</b> (sequência, com o ponto já em GeoJSON) penduram em line_id","Tudo já vem flat: <code>geom_geojson</code> em vez de PostGIS — o intel não cruza geometria"] },
+  score: { name:"Score — line_metrics + derivados do corredor",
+    edges:["j-line-met","j-line-dem","j-line-corr","j-line-poi"],
+    nodes:["line","line_metrics","line_profile_demografico","line_corridor","line_poi","line_area"],
+    steps:["<b>line_metrics</b> (39 col) é o espelho do score 0–100 vendável","Derivados pré-materializados: <b>line_corridor</b> (buffer), <b>line_poi</b> (4,3M POIs no corredor), <b>line_area</b> (bairros/regionais)","<b>line_profile_demografico</b> dá a distribuição A–E da linha"] },
+  reach: { name:"Reach / F2 — exposição → audiência → face",
+    edges:["j-line-reach","j-veh-face"],
+    nodes:["exposure_cell","line_reach","face_reach","vehicle","lead_prospeccao"],
+    steps:["<b>exposure_cell</b> (H3×hora, com hex em GeoJSON + centróide) é a base do heatmap","<b>line_reach</b> (audiência do corredor) e <b>face_reach</b> (tríade impressão/reach/freq por veículo) trazem o selo_confianca (ADR-058)","<b>lead_prospeccao</b> (120.756) é a frente comercial — leads OOH dedupados por nicho"] },
+  versao: { name:"Versionamento — version_id liga tudo (swap ACTIVE)",
+    edges:[],
+    nodes:["dataset_version"],
+    steps:["<b>dataset_version</b> guarda IMPORTING/ACTIVE/ARCHIVED (swap atômico)","<code>core_version_id</code> registra a versão de origem no schema core","Toda tabela tem <code>version_id</code>; o intel só lê a versão ACTIVE via role <code>ooh_intel_ro</code>"] }
+};
+</script>
+<script src="../../_assets/diagram.js"></script>
+</body>
+</html>

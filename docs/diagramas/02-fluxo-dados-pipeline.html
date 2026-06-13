@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uAI OOH — Fluxo de dados (raw → core → serving)</title>
+<script>
+  (function () {
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<style>
+  :root {
+    --bg: #FAF9F5; --surface: #FFFFFF; --surface2: #F0EEE6;
+    --ink: #141413; --body: #3D3D3A; --muted: #87867F;
+    --line: #D1CFC5; --line-soft: #E6E3DA;
+    --clay: #D97757; --clay-soft: rgba(217,119,87,0.10);
+    --olive: #788C5D; --olive-soft: rgba(120,140,93,0.12);
+    --gold: #C9A45C; --gold-soft: rgba(201,164,92,0.13);
+    --blue: #5B7E96; --blue-soft: rgba(91,126,150,0.12);
+    --zone: rgba(20,20,19,0.025); --zone-line: #D1CFC5;
+    --serif: ui-serif, Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  html.dark {
+    --bg: #141413; --surface: #1F1F1D; --surface2: #2A2A28;
+    --ink: #FAF9F5; --body: #D1CFC5; --muted: #87867F;
+    --line: #3D3D3A; --line-soft: #2A2A28;
+    --clay: #E48A6E; --clay-soft: rgba(228,138,110,0.14);
+    --olive: #9DB07C; --olive-soft: rgba(157,176,124,0.16);
+    --gold: #D4B36F; --gold-soft: rgba(212,179,111,0.16);
+    --blue: #7FA3BC; --blue-soft: rgba(127,163,188,0.16);
+    --zone: rgba(250,249,245,0.03); --zone-line: #3D3D3A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--body); font-family: var(--sans);
+    -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  .bar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 11px 20px; border-bottom: 1px solid var(--line-soft); flex: none;
+  }
+  .bar h1 { font-family: var(--serif); font-weight: 500; font-size: 19px; color: var(--ink); letter-spacing: -0.01em; }
+  .bar .sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
+  .spacer { flex: 1; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em;
+    padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px;
+    background: transparent; color: var(--muted); cursor: pointer; transition: all .15s ease;
+  }
+  .chip:hover { color: var(--ink); border-color: var(--muted); }
+  .chip.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  #themeToggle {
+    font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--muted); }
+  .navlink { font-family: var(--mono); font-size: 10.5px; color: var(--clay); text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }
+  .navlink:hover { border-color: var(--clay); }
+
+  .stage { flex: 1; position: relative; min-height: 0; }
+  .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .zone rect { fill: var(--zone); stroke: var(--zone-line); stroke-width: 1; stroke-dasharray: 5 5; }
+  .zone .ztitle { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--muted); }
+  .zone .zsub { font-family: var(--mono); font-size: 10px; fill: var(--muted); opacity: 0.7; }
+
+  .node { cursor: pointer; }
+  .node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; transition: stroke .15s ease; }
+  .node:hover rect { stroke: var(--muted); }
+  .node.sel rect { stroke: var(--clay) !important; stroke-width: 2.4; }
+  .node .t  { font-family: var(--sans); font-size: 14px; font-weight: 650; fill: var(--ink); pointer-events: none; }
+  .node .m  { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); pointer-events: none; }
+  .node .n  { font-family: var(--mono); font-size: 10.5px; fill: var(--clay); pointer-events: none; }
+  .node .k  { font-family: var(--mono); font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase; fill: var(--clay); pointer-events: none; }
+  .node.store rect { fill: var(--surface2); }
+  .node.do rect { fill: var(--olive-soft); stroke: var(--olive); }
+  .node.ext rect { stroke-dasharray: 6 3; }
+  .node.off { opacity: 0.62; }
+  .node.off rect { stroke-dasharray: 5 4; }
+
+  .edge { stroke: var(--muted); stroke-width: 1.6; fill: none; marker-end: url(#a-mut); transition: opacity .2s ease, stroke .2s ease; }
+  .edge.dash { stroke-dasharray: 5 4; opacity: 0.6; }
+  .elbl { font-family: var(--mono); font-size: 10px; fill: var(--muted); transition: opacity .2s ease; }
+
+  .stage.flowing .edge { opacity: 0.09; }
+  .stage.flowing .elbl { opacity: 0.09; }
+  .stage.flowing .node { opacity: 0.24; }
+  .stage.flowing .zone { opacity: 0.45; }
+  .stage.flowing .edge.lit {
+    opacity: 1; stroke: var(--clay); marker-end: url(#a-clay);
+    stroke-dasharray: 7 5; animation: march 0.9s linear infinite;
+  }
+  .stage.flowing .elbl.lit { opacity: 1; fill: var(--clay); }
+  .stage.flowing .node.lit { opacity: 1; }
+  .stage.flowing .node.lit rect { stroke: var(--clay); }
+  @keyframes march { to { stroke-dashoffset: -12; } }
+  @media (prefers-reduced-motion: reduce) { .stage.flowing .edge.lit { animation: none; } }
+
+  .card {
+    position: absolute; max-width: 400px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.10);
+  }
+  #detail { right: 16px; bottom: 16px; width: 380px; }
+  #detail h3 { font-family: var(--serif); font-weight: 500; font-size: 17px; color: var(--ink); margin-bottom: 2px; }
+  #detail .meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-bottom: 8px; }
+  #detail p { font-size: 12.5px; line-height: 1.55; }
+  #detail p code, #flowcap code { font-family: var(--mono); font-size: 11px; color: var(--clay); }
+  #flowcap { left: 16px; bottom: 16px; max-width: 480px; display: none; }
+  #flowcap.show { display: block; }
+  #flowcap .fname { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--clay); margin-bottom: 6px; }
+  #flowcap ol { margin-left: 18px; }
+  #flowcap li { font-size: 12.5px; line-height: 1.55; }
+  .src { position: absolute; top: 10px; right: 16px; font-family: var(--mono); font-size: 10px; color: var(--muted); opacity: 0.8; }
+  @media (max-width: 900px) {
+    body { overflow: auto; }
+    .stage { min-height: 80vh; }
+    #detail { position: static; width: auto; margin: 10px 16px; }
+    #flowcap { position: static; margin: 0 16px 16px; }
+  }
+  .legpanel { position:absolute; top:62px; left:16px; z-index:6; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:13px 15px; box-shadow:0 6px 24px rgba(0,0,0,.1); max-width:340px; display:none; }
+  .legpanel.show { display:block; }
+  .legpanel h4 { font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:0 0 7px; }
+  .legpanel h4:not(:first-child){ margin-top:12px; }
+  .legpanel .lr { display:flex; align-items:center; gap:8px; font-size:12px; line-height:1.5; color:var(--body); margin-bottom:3px; }
+  .legpanel .sw { width:20px; height:14px; border-radius:4px; border:1.5px solid var(--line); flex:none; }
+  .legpanel .sw.gate{background:var(--clay-soft);border-color:var(--clay)} .legpanel .sw.svc{background:var(--olive-soft);border-color:var(--olive)} .legpanel .sw.store{background:var(--surface2)} .legpanel .sw.bus{background:var(--blue-soft);border-color:var(--blue)} .legpanel .sw.proc{background:var(--olive-soft);border-color:var(--olive);border-style:dashed} .legpanel .sw.ext{background:transparent;border-style:dashed}
+  .legpanel .hint{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:11px;line-height:1.6} .legpanel .hint b{color:var(--clay)}
+  .drill{cursor:pointer} .drill circle{fill:var(--clay-soft);stroke:var(--clay);stroke-width:1.3} .drill:hover circle{fill:var(--clay)} .drill text{font-family:var(--sans);font-size:13px;font-weight:700;fill:var(--clay);text-anchor:middle;pointer-events:none} .drill:hover text{fill:var(--bg)}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>uAI OOH — Fluxo de dados</h1>
+    <div class="sub">ingestor + normalizer · PostGIS · raw → core → serving · roda-e-sai</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tudo</button>
+    <button class="chip" data-flow="ingest">Ingestão</button>
+    <button class="chip" data-flow="ident">Identidades · Ép.1</button>
+    <button class="chip" data-flow="ctx">Contexto · Ép.2</button>
+    <button class="chip" data-flow="metr">Métricas &amp; Score · Ép.3</button>
+    <button class="chip" data-flow="serving">Serving · Ép.4</button>
+    <button class="chip" data-flow="medido">Medido · F2</button>
+  </div>
+  <button id="legendBtn">Legenda</button>
+  <a class="navlink" href="index.html">⌂ Home</a>
+  <a class="navlink" href="01-arquitetura-microservicos.html">← Nível 1</a>
+  <a class="navlink" href="03-tempo-real-f2.html">Nível 3 · F2 →</a>
+  <button id="themeToggle">Tema</button>
+</div>
+
+<div class="stage" id="stage">
+<div class="legpanel" id="legpanel">
+  <h4>Tipo</h4>
+  <div class="lr"><span class="sw ext"></span> fonte externa</div>
+  <div class="lr"><span class="sw proc"></span> processo (ingestor/normalizer)</div>
+  <div class="lr"><span class="sw store"></span> tabela / schema</div>
+  <div class="lr"><span class="sw svc"></span> serviço (intel/portal)</div>
+  <div class="hint">clique = <b>detalhe</b> · <b>↳</b> = classes do serviço · chips = <b>épicos/estágios</b></div>
+</div>
+<svg viewBox="0 0 1840 1000" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Fluxo de dados da pipeline OOH">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/>
+    </marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/>
+    </marker>
+  </defs>
+
+  <!-- ── zones (colunas do pipeline) ───────── -->
+  <g class="zone">
+    <rect x="28" y="120" width="252" height="770" rx="16"/>
+    <text class="ztitle" x="48" y="148">Fontes brutas</text>
+  </g>
+  <g class="zone">
+    <rect x="306" y="120" width="170" height="770" rx="16"/>
+    <text class="ztitle" x="326" y="148">Ingestor</text>
+  </g>
+  <g class="zone">
+    <rect x="502" y="120" width="262" height="770" rx="16"/>
+    <text class="ztitle" x="522" y="148">raw · landing</text>
+    <text class="zsub" x="522" y="165">TEXT · sem PK/FK</text>
+  </g>
+  <g class="zone">
+    <rect x="790" y="120" width="180" height="770" rx="16"/>
+    <text class="ztitle" x="810" y="148">Normalizer</text>
+  </g>
+  <g class="zone">
+    <rect x="996" y="120" width="334" height="770" rx="16"/>
+    <text class="ztitle" x="1016" y="148">core · normalizado</text>
+    <text class="zsub" x="1016" y="165">PostGIS · EPSG:31983</text>
+  </g>
+  <g class="zone">
+    <rect x="1356" y="120" width="252" height="770" rx="16"/>
+    <text class="ztitle" x="1376" y="148">serving · flat</text>
+    <text class="zsub" x="1376" y="165">jsonb GeoJSON 4326</text>
+  </g>
+  <g class="zone">
+    <rect x="1634" y="120" width="178" height="770" rx="16"/>
+    <text class="ztitle" x="1654" y="148">Consumo</text>
+  </g>
+
+  <!-- ── edges: fontes → ingestor ──────────── -->
+  <path class="edge" id="e-gtfs-ing"  d="M258,202 C 286,260 300,360 330,382"/>
+  <path class="edge" id="e-censo-ing" d="M258,372 C 286,390 300,400 330,408"/>
+  <path class="edge" id="e-pbh-ing"   d="M258,473 C 286,460 300,442 330,432"/>
+  <path class="edge" id="e-poi-ing"   d="M258,572 C 286,540 300,490 330,458"/>
+  <!-- poller (F2) fontes RT → raw direto -->
+  <path class="edge dash" id="e-rt-rrt" d="M258,287 C 292,300 292,440 292,560 C 292,600 400,580 528,580"/>
+
+  <!-- ── edges: ingestor → raw ─────────────── -->
+  <path class="edge" id="e-ing-rgtfs"  d="M460,382 C 488,300 500,222 528,200"/>
+  <path class="edge" id="e-ing-rcenso" d="M460,402 C 488,344 500,300 528,294"/>
+  <path class="edge" id="e-ing-rpbh"   d="M460,440 C 488,420 500,402 528,398"/>
+  <path class="edge" id="e-ing-rpoi"   d="M460,456 C 488,480 500,496 528,498"/>
+
+  <!-- ── edges: raw → normalizer ───────────── -->
+  <path class="edge" id="e-rgtfs-norm"  d="M752,200 C 784,282 798,382 820,402"/>
+  <path class="edge" id="e-rcenso-norm" d="M752,294 C 784,344 798,402 820,422"/>
+  <path class="edge" id="e-rpbh-norm"   d="M752,398 C 784,420 802,432 820,442"/>
+  <path class="edge" id="e-rpoi-norm"   d="M752,498 C 784,480 802,466 820,460"/>
+
+  <!-- ── edges: normalizer → core ──────────── -->
+  <path class="edge" id="e-norm-cident" d="M960,402 C 988,300 1000,222 1026,214"/>
+  <path class="edge" id="e-norm-cctx"   d="M960,422 C 988,362 1000,352 1026,348"/>
+  <path class="edge" id="e-norm-cmetr"  d="M960,460 C 988,470 1008,484 1026,492"/>
+
+  <!-- ── edges: core interno (score) ───────── -->
+  <path class="edge dash" id="e-cident-cmetr" d="M1162,278 C 1162,340 1162,400 1162,416"/>
+  <path class="edge dash" id="e-cctx-cmetr"   d="M1245,404 C 1245,408 1245,412 1245,416"/>
+
+  <!-- ── edges: core → serving ─────────────── -->
+  <path class="edge" id="e-cident-serv" d="M1330,214 C 1346,262 1356,326 1382,300"/>
+  <path class="edge" id="e-cmetr-serv"  d="M1330,492 C 1346,420 1356,360 1382,326"/>
+
+  <!-- ── edges: serving → consumo ──────────── -->
+  <path class="edge" id="e-serv-intel"  d="M1602,300 C 1622,292 1636,288 1658,288"/>
+  <path class="edge" id="e-intel-portal" d="M1722,338 C 1722,352 1722,362 1722,374"/>
+
+  <!-- edge labels -->
+  <text class="elbl" id="l-ing"    x="332" y="498">COPY</text>
+  <text class="elbl" id="l-rt"     x="315" y="572">poller GTFS-RT (F2)</text>
+  <text class="elbl" id="l-rawnorm" x="770" y="540">índices na raw ao rodar</text>
+  <text class="elbl" id="l-normcore" x="966" y="250">INSERT…SELECT server-side</text>
+  <text class="elbl" id="l-score"  x="1172" y="372">score = identidades + contexto</text>
+  <text class="elbl" id="l-coreserv" x="1338" y="250">materializa flat · swap</text>
+  <text class="elbl" id="l-servintel" x="1612" y="276">ooh_intel_ro · só ACTIVE</text>
+  <text class="elbl" id="l-intelportal" x="1730" y="362">/api/ooh</text>
+
+  <!-- ── nodes: fontes ─────────────────────── -->
+  <g class="node ext" data-k="f-gtfs">
+    <rect x="50" y="166" width="208" height="74" rx="10"/>
+    <text class="t" x="70" y="192">GTFS estático</text>
+    <text class="m" x="70" y="212">routes 304 · trips 107k</text>
+    <text class="m" x="70" y="228">shapes 231k · stops 9.650</text>
+  </g>
+  <g class="node ext" data-k="f-rt">
+    <rect x="50" y="255" width="208" height="64" rx="10"/>
+    <text class="t" x="70" y="281">GTFS-RT</text>
+    <text class="m" x="70" y="301">posições de veículo · ~15s</text>
+  </g>
+  <g class="node ext" data-k="f-censo">
+    <rect x="50" y="335" width="208" height="74" rx="10"/>
+    <text class="t" x="70" y="361">Censo IBGE 2022</text>
+    <text class="m" x="70" y="381">setores + agregados</text>
+    <text class="m" x="70" y="397">renda do responsável</text>
+  </g>
+  <g class="node ext" data-k="f-pbh">
+    <rect x="50" y="425" width="208" height="96" rx="10"/>
+    <text class="t" x="70" y="451">PBH / CKAN</text>
+    <text class="m" x="70" y="471">MCO 815k · pontos 70k</text>
+    <text class="m" x="70" y="487">trechos 55k · embarque · OD</text>
+    <text class="m" x="70" y="503">velocidade · radar · regional</text>
+  </g>
+  <g class="node ext" data-k="f-poi">
+    <rect x="50" y="537" width="208" height="64" rx="10"/>
+    <text class="t" x="70" y="563">OSM · Overture · FSQ</text>
+    <text class="m" x="70" y="583">pontos de interesse (POI)</text>
+  </g>
+
+  <!-- ── node: ingestor ────────────────────── -->
+  <g class="node do" data-k="ing">
+    <rect x="330" y="320" width="130" height="222" rx="10"/>
+    <text class="t" x="350" y="350">ingestor</text>
+    <text class="k" x="350" y="368">ooh_pipeline</text>
+    <text class="m" x="350" y="392">1 loader / fonte</text>
+    <text class="m" x="350" y="410">fontes: MinIO,</text>
+    <text class="m" x="350" y="426">CKAN, Overpass</text>
+    <text class="m" x="350" y="450">COPY → raw</text>
+    <text class="m" x="350" y="468">tudo TEXT</text>
+    <text class="m" x="350" y="486">sem PK/FK</text>
+    <text class="m" x="350" y="510">fiel à fonte</text>
+  </g>
+
+  <!-- ── nodes: raw ────────────────────────── -->
+  <g class="node store" data-k="r-gtfs">
+    <rect x="528" y="154" width="226" height="92" rx="10"/>
+    <text class="t" x="548" y="180">raw.gtfs__*</text>
+    <text class="n" x="660" y="180">8 tab</text>
+    <text class="m" x="548" y="200">stop_times 6,21M · shapes 231k</text>
+    <text class="m" x="548" y="216">trips 107k · routes 304</text>
+    <text class="m" x="548" y="232">stops 9.650 · calendar</text>
+  </g>
+  <g class="node store" data-k="r-censo">
+    <rect x="528" y="256" width="226" height="78" rx="10"/>
+    <text class="t" x="548" y="282">raw.censo__*</text>
+    <text class="n" x="660" y="282">3 tab</text>
+    <text class="m" x="548" y="302">setores 5.167 · agregados</text>
+    <text class="m" x="548" y="318">renda_responsavel ✅ Ép.0</text>
+  </g>
+  <g class="node store" data-k="r-pbh">
+    <rect x="528" y="344" width="226" height="110" rx="10"/>
+    <text class="t" x="548" y="370">raw.pbh__*</text>
+    <text class="n" x="660" y="370">10 tab</text>
+    <text class="m" x="548" y="390">mco 815k · ponto 70k</text>
+    <text class="m" x="548" y="406">trecho 55k · embarque · OD</text>
+    <text class="m" x="548" y="422">velocidade · radar</text>
+    <text class="m" x="548" y="438">estacao · regional</text>
+  </g>
+  <g class="node store" data-k="r-poi">
+    <rect x="528" y="464" width="226" height="62" rx="10"/>
+    <text class="t" x="548" y="490" style="font-size:12px">raw.{osm,overture,fsq}__poi</text>
+    <text class="m" x="548" y="510">3 fontes de POI</text>
+  </g>
+  <g class="node store off" data-k="r-rt">
+    <rect x="528" y="540" width="226" height="80" rx="10"/>
+    <text class="t" x="548" y="566">raw.rt__vehicle_position</text>
+    <text class="n" x="548" y="586">5,68M · particionado/dia</text>
+    <text class="m" x="548" y="604">p20260610-12 · consolidação = F2</text>
+  </g>
+
+  <!-- ── node: normalizer ──────────────────── -->
+  <g class="node do" data-k="norm">
+    <rect x="820" y="250" width="140" height="360" rx="10"/>
+    <text class="t" x="840" y="280">normalizer</text>
+    <text class="k" x="840" y="298">ooh_pipeline</text>
+    <text class="m" x="840" y="322">raw → core →</text>
+    <text class="m" x="840" y="338">serving</text>
+    <text class="m" x="840" y="362">PostGIS no banco</text>
+    <text class="m" x="840" y="378">EPSG:31983</text>
+    <text class="m" x="840" y="402">ChunkedBuild +</text>
+    <text class="m" x="840" y="418">build_progress</text>
+    <text class="m" x="840" y="434">(resume por chave)</text>
+    <text class="m" x="840" y="458">Python orquestra</text>
+    <text class="m" x="840" y="474">(~41 MB RSS)</text>
+    <text class="k" x="840" y="500">subpacotes</text>
+    <text class="m" x="840" y="518">Identid·Contexto</text>
+    <text class="m" x="840" y="534">Métricas · Serving</text>
+    <text class="m" x="840" y="558">dono do core</text>
+  </g>
+
+  <!-- ── nodes: core ───────────────────────── -->
+  <g class="node store" data-k="c-ident">
+    <rect x="1026" y="158" width="290" height="120" rx="10"/>
+    <text class="t" x="1046" y="184">core — Identidades</text>
+    <text class="m" x="1046" y="206">line 304 · stop 9.650 (KNN≤50m)</text>
+    <text class="m" x="1046" y="222">line_shape 1.525 · line_stop</text>
+    <text class="m" x="1046" y="238">trip_pattern · pattern_stop</text>
+    <text class="m" x="1046" y="254">vehicle · vehicle_line_history</text>
+    <text class="m" x="1046" y="270">reconcilia GTFS ↔ PBH ↔ RT</text>
+  </g>
+  <g class="node store" data-k="c-ctx">
+    <rect x="1026" y="290" width="290" height="110" rx="10"/>
+    <text class="t" x="1046" y="316">core — Contexto</text>
+    <text class="m" x="1046" y="338">census_sector 5.166 (renda A–E)</text>
+    <text class="m" x="1046" y="354">poi 248.353</text>
+    <text class="m" x="1046" y="370">road_segment 55.143 (arterial)</text>
+    <text class="m" x="1046" y="386">regional</text>
+  </g>
+  <g class="node store" data-k="c-metr">
+    <rect x="1026" y="416" width="290" height="150" rx="10"/>
+    <text class="t" x="1046" y="442">core — Métricas &amp; Score</text>
+    <text class="m" x="1046" y="464">line_metrics 303 (39 col)</text>
+    <text class="m" x="1046" y="480">line_profile_demografico (A–E)</text>
+    <text class="m" x="1046" y="496">line_demand_daily (MCO)</text>
+    <text class="m" x="1046" y="512">line_boarding_profile (curva h)</text>
+    <text class="m" x="1046" y="528">line_reach · exposure_cell</text>
+    <text class="m" x="1046" y="544">line_area · impressões + score 0–100</text>
+  </g>
+  <g class="node store off" data-k="c-ver">
+    <rect x="1026" y="580" width="290" height="56" rx="10"/>
+    <text class="t" x="1046" y="606" style="font-size:13px">core.dataset_version</text>
+    <text class="m" x="1046" y="624">+ build_progress · v1 BUILDING</text>
+  </g>
+
+  <!-- ── nodes: serving ────────────────────── -->
+  <g class="node store" data-k="s-flat">
+    <rect x="1382" y="180" width="208" height="250" rx="10"/>
+    <text class="t" x="1402" y="206">serving.* — flat</text>
+    <text class="n" x="1402" y="224">14 tabelas</text>
+    <text class="m" x="1402" y="244">line 608 · line_metrics 606</text>
+    <text class="m" x="1402" y="260">line_shape · line_stop</text>
+    <text class="m" x="1402" y="276">line_profile_demografico</text>
+    <text class="m" x="1402" y="292">line_reach · line_poi</text>
+    <text class="m" x="1402" y="308">line_corridor · line_area</text>
+    <text class="m" x="1402" y="324">exposure_cell · face_reach</text>
+    <text class="m" x="1402" y="340">vehicle · lead_prospeccao</text>
+    <text class="m" x="1402" y="362">geom = jsonb GeoJSON 4326</text>
+    <text class="m" x="1402" y="378">(ADR-003 · sem ST_*)</text>
+    <text class="n" x="1402" y="402">606 = 2 dataset_versions</text>
+    <text class="m" x="1402" y="418">v8 ACTIVE · v7 ARCHIVED</text>
+  </g>
+  <g class="node store" data-k="s-ver">
+    <rect x="1382" y="446" width="208" height="74" rx="10"/>
+    <text class="t" x="1402" y="472" style="font-size:13px">serving.dataset_version</text>
+    <text class="m" x="1402" y="492">swap IMPORTING → ACTIVE</text>
+    <text class="m" x="1402" y="508">o intel só enxerga ACTIVE</text>
+  </g>
+
+  <!-- ── nodes: consumo ────────────────────── -->
+  <g class="node do" data-k="intel">
+    <rect x="1658" y="240" width="128" height="96" rx="10"/>
+    <text class="t" x="1676" y="266">uai-ooh-intel</text>
+    <text class="m" x="1676" y="286">lê só ACTIVE</text>
+    <text class="m" x="1676" y="302">ooh_intel_ro</text>
+    <text class="m" x="1676" y="318">JDBC RO · :8085</text>
+  </g>
+  <g class="node" data-k="portal">
+    <rect x="1658" y="374" width="128" height="78" rx="10"/>
+    <text class="t" x="1676" y="400">uai-portal</text>
+    <text class="m" x="1676" y="420">catálogo · score</text>
+    <text class="m" x="1676" y="436">ficha · ranking</text>
+  </g>
+
+  <!-- F2: consolidador → medido (trajetória medida) -->
+  <path class="edge rt" id="e-rt-cons"  d="M754,584 C 778,600 792,680 808,700"/>
+  <path class="edge rt" id="e-cons-med" d="M958,710 C 985,710 1000,712 1026,712"/>
+  <path class="edge dash" id="e-med-core" d="M1026,690 C 982,660 982,540 1026,505"/>
+  <text class="elbl" id="le-rt-cons" x="746" y="652">reconstrói viagem</text>
+  <text class="elbl" id="le-med-core" x="1016" y="536" text-anchor="end">recompute → medida</text>
+  <g class="node do" data-k="cons">
+    <rect x="808" y="660" width="150" height="128" rx="10"/>
+    <text class="t" x="826" y="686" style="font-size:12px">trip-consolidator</text>
+    <text class="k" x="826" y="704">F2 · stream</text>
+    <text class="m" x="826" y="726">consome raw.rt</text>
+    <text class="m" x="826" y="742">h3 + snap PostGIS</text>
+    <text class="m" x="826" y="758">escreve medido</text>
+    <text class="m" x="826" y="774">+ Redis live:{}</text>
+  </g>
+  <g class="node store" data-k="medido">
+    <rect x="1026" y="656" width="290" height="150" rx="10"/>
+    <text class="t" x="1046" y="682">medido (fatos RT · F2)</text>
+    <text class="k" x="1046" y="700">dono: consolidator (Flyway)</text>
+    <text class="m" x="1046" y="722">viagem 8.528 · viagem_hex 287.826</text>
+    <text class="m" x="1046" y="738">viagem_track 359.800</text>
+    <text class="m" x="1046" y="754">parada_velocidade 226.395 (v_real)</text>
+    <text class="m" x="1046" y="774">recompute D-1 → core metodo=medida</text>
+    <text class="n" x="1046" y="792">line_reach medida 13.437</text>
+  </g>
+
+  <g class="drills">
+    <a class="drill" href="micro/servicos/intel.html"><circle cx="1770" cy="262" r="11"/><text x="1770" y="267">↳</text></a>
+    <a class="drill" href="micro/servicos/portal.html"><circle cx="1770" cy="392" r="11"/><text x="1770" y="397">↳</text></a>
+    <a class="drill" href="micro/servicos/consolidator.html"><circle cx="940" cy="680" r="11"/><text x="940" y="685">↳</text></a>
+    <a class="drill" href="micro/dados/ooh-medido.html"><circle cx="1298" cy="676" r="11"/><text x="1298" y="681">↳</text></a>
+  </g>
+</svg>
+
+  <div class="src">plano-normalizacao-core.md · arquitetura-servicos.md · banco ooh (jun/2026)</div>
+
+  <div class="card" id="flowcap">
+    <div class="fname" id="f-name"></div>
+    <ol id="f-steps"></ol>
+  </div>
+
+  <div class="card" id="detail">
+    <h3 id="d-title">Clique em qualquer caixa</h3>
+    <div class="meta" id="d-meta">fonte · estágio · grupo de tabelas</div>
+    <p id="d-body">O pipeline flui da esquerda para a direita: <b>fontes → ingestor → raw → normalizer → core → serving → consumo</b>. Os chips no topo acendem cada estágio / épico. Counts reais do banco <code>ooh</code> (jun/2026).</p>
+  </div>
+</div>
+
+<script>
+const DETAIL = {
+  "f-gtfs":  { t:"GTFS estático", m:"fonte · feed de transporte BH", b:"Feed GTFS da BHTrans/PBH: <code>routes</code> (304 linhas), <code>trips</code> (107k), <code>shapes</code> (231k pontos), <code>stops</code> (9.650), <code>calendar</code>. É a espinha dorsal das <b>identidades</b> (linha, itinerário, ponto, sequência). Vem em <b>EPSG:4326</b>." },
+  "f-rt":    { t:"GTFS-RT", m:"fonte · tempo real (F2)", b:"Posições de veículo ao vivo (protobuf), polladas a cada ~15s. Hoje já <b>landam</b> em <code>raw.rt__vehicle_position</code> (5,68M, partição diária). A <b>reconstrução de viagens</b> (trip-consolidator → <code>core.trip_executed</code>) é roadmap <b>F2</b> — em F1 o RT só serve para casar <code>veiculo ↔ vehicle_id</code> (~81%)." },
+  "f-censo": { t:"Censo IBGE 2022", m:"fonte · socioeconômico", b:"Setores censitários de BH + agregados + <b>renda do responsável pelo domicílio</b> (universo 2022). É a âncora da <b>classe social A–E</b> (A3/A5). A renda foi a lacuna fechada no <b>Épico 0</b> (<code>raw.censo__renda_responsavel_bh</code>). Vem em <b>EPSG:4674</b> → transform p/ 31983." },
+  "f-pbh":   { t:"PBH / CKAN", m:"fonte · dados abertos da prefeitura", b:"Vários datasets: <b>MCO</b> (815k, volume de viagens set/2025), <b>ponto_onibus</b> (70k, geometria SRID=0), <b>trecho_logradouro</b> (55k, malha viária → exposição arterial), <b>embarque</b> (distribuição horária), <b>matriz O-D</b>, <b>velocidade_corredores</b>, <b>radar</b> (fiscalização). Geometrias PBH têm <b>SRID=0</b> → <code>ST_SetSRID(...,31983)</code>." },
+  "f-poi":   { t:"POIs — OSM · Overture · FSQ", m:"fonte · pontos de interesse", b:"Três fontes de POI (OpenStreetMap via Overpass, Overture Maps, Foursquare) cruzadas e taxonomizadas em <code>core.poi</code> (248k). Alimentam o sub-score de POIs no trajeto (A7). Vêm em <b>EPSG:4326</b>." },
+  "ing":     { t:"Ingestor", m:"ooh_pipeline · estágio 1", b:"Um <b>loader por fonte</b>. Resolve as fontes em runtime (bucket <code>uai-ooh</code> no MinIO, CKAN, Overpass), decodifica e faz <code>COPY</code> para o schema <code>raw</code>: <b>tudo TEXT, sem PK/FK</b>, fiel à fonte (27 tabelas). Não cruza nada — é só pouso. O cruzamento espacial é trabalho do normalizer." },
+  "r-gtfs":  { t:"raw.gtfs__* (8 tab)", m:"landing · fiel ao feed", b:"<code>stop_times</code> <b>6,21M</b> (a maior), <code>shapes</code> 231k, <code>trips</code> 107k, <code>routes</code> 304, <code>stops</code> 9.650, <code>calendar</code>, <code>agency</code>, <code>feed_info</code>. A normalização cria os índices que precisa ao rodar (<code>trip_id</code>, <code>shape_id</code>, <code>route_id</code> + ANALYZE)." },
+  "r-censo": { t:"raw.censo__* (3 tab)", m:"landing · censo 2022", b:"<code>setores_bh</code> 5.167 (malha + geom 4674), <code>agregados_basico_bh</code> (população/domicílios), <code>renda_responsavel_bh</code> (renda — <b>fechado no Épico 0</b> ✅). Join por <code>cd_setor</code>; geometria materializada em temp-table GiST na normalização." },
+  "r-pbh":   { t:"raw.pbh__* (10 tab)", m:"landing · dados abertos PBH", b:"<code>mco_consolidado</code> <b>815k</b> (volume), <code>ponto_onibus</code> 70k, <code>trecho_logradouro</code> 55k, <code>embarque_ped_sublinha</code> (curva horária <code>c_0..c_23</code>), <code>matriz_od</code>, <code>velocidade_corredores</code>, <code>fiscalizacao_eletronica</code> (radar), <code>estacao_onibus</code>, <code>regional</code>, pesquisas. <b>SRID=0</b> nas geometrias." },
+  "r-poi":   { t:"raw.{osm,overture,fsq}__poi", m:"landing · 3 fontes de POI", b:"<code>osm__poi</code>, <code>overture__poi</code>, <code>fsq__poi</code> — três origens de pontos de interesse, depois unificadas e classificadas por taxonomia em <code>core.poi</code>. Em EPSG:4326." },
+  "r-rt":    { t:"raw.rt__vehicle_position", m:"landing · particionado/dia · F2", b:"<b>5,68M</b> posições, <b>particionado por dia</b> (<code>p20260610</code>, <code>p20260611</code>, <code>p20260612</code>) com retenção. O poller já está landando, mas a <b>reconstrução de viagens</b> (snap no shape → <code>trip_executed</code>) é do <b>trip-consolidator (F2)</b>. Em F1 só serve para o match veículo↔linha." },
+  "norm":    { t:"Normalizer", m:"ooh_pipeline · estágio 2 · dono do core", b:"Transforma <code>raw → core → serving</code>. Trabalho pesado (KNN, <code>ST_DWithin</code>, <code>ST_Buffer</code>, agregações) roda <b>server-side no Postgres</b> via <code>INSERT…SELECT</code> — Python só orquestra (~41 MB RSS). <code>ChunkedBuild</code> + <code>core.build_progress</code> dão commit incremental e <b>resume por chave</b>; <code>--rebuild</code> força do zero. Regra de ouro: <code>ST_SetSRID(...,31983)</code> nas PBH (SRID=0), <code>ST_Transform</code> nas 4326/4674." },
+  "c-ident": { t:"core — Identidades (Ép.1)", m:"normalizado · EPSG:31983", b:"As identidades canônicas: <code>line</code> (304), <code>stop</code> (9.650, casado por <b>KNN ≤50m</b> GTFS↔ponto_onibus — mediana 0m, p90 3,9m), <code>line_shape</code> (1.525, itinerário por dia/sentido), <code>line_stop</code> (sequência), <code>trip_pattern</code>, <code>pattern_stop</code>, <code>vehicle</code>. Reconcilia os universos de ID de GTFS, PBH e RT." },
+  "c-ctx":   { t:"core — Contexto (Ép.2)", m:"normalizado · camadas espaciais", b:"O contexto cruzado com o trajeto: <code>census_sector</code> (5.166, com <b>renda medida + classe A–E</b>), <code>poi</code> (248.353), <code>road_segment</code> (55.143, classificado <b>arterial/coletora/local</b> por tipo+largura → exposição arterial), <code>regional</code>. Tudo em EPSG:31983 para cálculo métrico." },
+  "c-metr":  { t:"core — Métricas & Score (Ép.3)", m:"produto · 304 linhas", b:"O coração do produto: <code>line_metrics</code> (303 linhas × <b>39 colunas</b>) com pop do corredor, renda média, classe predominante, %POI, <b>exposição arterial</b>, passageiros e <b>impressões</b> por tipo de dia, e o <b>score 0–100</b> (5 sub-scores). <code>line_profile_demografico</code> dá a distribuição A–E. ⚠️ O <b>ranking/score é vendável</b>; o <b>absoluto de impressões é ilustrativo</b> (coeficientes não calibrados)." },
+  "c-ver":   { t:"core.dataset_version", m:"versionamento + resume", b:"Controla a versão imutável do build (<code>BUILDING / ACTIVE / ARCHIVED</code>) e, com <code>build_progress</code>, a idempotência/resume do <code>ChunkedBuild</code>. O core materializa uma versão; o serving recebe o swap." },
+  "s-flat":  { t:"serving.* — flat (14 tab)", m:"leitura barata · GeoJSON 4326", b:"Espelho <b>plano</b> do core para o intel ler com <code>SELECT</code> puro: geometrias viram <b>jsonb GeoJSON 4326</b>, <b>nada de ST_* no consumidor</b> (ADR-003). <code>line</code> 608 e <code>line_metrics</code> 606 = <b>2 dataset_versions coexistindo</b> (303×2). Acesso pela role read-only <code>ooh_intel_ro</code>. Inclui extras como <code>lead_prospeccao</code> e <code>face_reach</code>." },
+  "s-ver":   { t:"serving.dataset_version", m:"swap atômico", b:"Promove a nova materialização com swap <b>IMPORTING → ACTIVE</b> atômico. Hoje: <b>v8 ACTIVE</b>, v7 ARCHIVED. O uai-ooh-intel resolve o ACTIVE (<code>ActiveVersionResolver</code>, cache TTL curto) e só enxerga essa versão." },
+  "intel":   { t:"uai-ooh-intel", m:"consumo · API read-only", b:"Lê <b>só o <code>serving</code> ACTIVE</b> via role <code>ooh_intel_ro</code>, com <code>JdbcTemplate</code> read-only (sem JPA, <code>ddl-auto=none</code>). O contrato pipeline↔intel é <b>o próprio banco serving</b> — não há HTTP nem Kafka entre eles. Expõe <code>/lines</code>, <code>/lines/ranking</code>, <code>/lines/{id}</code>, <code>/regions</code>." },
+  "portal":  { t:"uai-portal", m:"consumo · SPA", b:"Consome o intel direto (<code>/api/ooh</code>, Bearer) e entrega o módulo OOH: catálogo pontuado, ranking re-ranqueável por pesos/público-alvo, ficha de linha com mapa (MapLibre), cesta e proposta PDF client-side." },
+  "cons":    { t:"uai-ooh-trip-consolidator (F2)", m:"stream Java · escreve medido", b:"Consome o GTFS-RT landado em <code>raw.rt</code>, reconstrói as viagens (h3 local + snap PostGIS no shape) e <b>cria o schema <code>medido</code></b> (fatos do mundo real) + acumula estado ao vivo no Redis <code>live:{}</code>. Único escritor do <code>medido</code>. Detalhe no diagrama de classes (↳) e no Nível 3." },
+  "medido":  { t:"schema medido (F2)", m:"fatos do mundo real · Flyway", b:"Criado pelo consolidador: <code>viagem</code> (8.528), <code>viagem_hex</code> (287.826 — o grão face-centric), <code>viagem_track</code> (359.800), <code>parada_velocidade</code> (226.395, <code>v_real</code>). O <b>recompute D-1</b> (pipeline) cruza o <code>medido</code> com o core e re-deriva <code>core.line_reach</code>/<code>face_reach</code> com <code>metodo=medida</code> (coexiste com a estimada). Ver o ER (↳) e o Nível 3." }
+};
+
+const FLOWS = {
+  ingest: {
+    name: "Ingestão — fontes → raw (landing fiel)",
+    edges: ["e-gtfs-ing","e-censo-ing","e-pbh-ing","e-poi-ing","e-ing-rgtfs","e-ing-rcenso","e-ing-rpbh","e-ing-rpoi","e-rt-rrt"],
+    nodes: ["f-gtfs","f-censo","f-pbh","f-poi","f-rt","ing","r-gtfs","r-censo","r-pbh","r-poi","r-rt"],
+    steps: ["Um <b>loader por fonte</b> resolve dados de MinIO/CKAN/Overpass e faz <code>COPY</code> para <code>raw</code>","27 tabelas, <b>tudo TEXT, sem PK/FK</b> — fiel à fonte, nada cruzado ainda","O RT é caso à parte: o poller landa <code>rt__vehicle_position</code> (5,68M, particionado/dia) — consolidação é F2"]
+  },
+  ident: {
+    name: "Identidades — Épico 1",
+    edges: ["e-rgtfs-norm","e-rpbh-norm","e-norm-cident"],
+    nodes: ["r-gtfs","r-pbh","norm","c-ident"],
+    steps: ["O normalizer cruza GTFS + PBH: <code>stop</code> casado por <b>KNN ≤50m</b> (resolve o atrito de IDs)","Itinerário reconstruído (<code>ST_MakeLine</code> ordenado) → <code>line_shape</code> por dia/sentido","Saída: <code>line</code> 304, <code>stop</code> 9.650, <code>line_shape</code> 1.525, <code>line_stop</code>, <code>vehicle</code>"]
+  },
+  ctx: {
+    name: "Contexto — Épico 2",
+    edges: ["e-rcenso-norm","e-rpoi-norm","e-rpbh-norm","e-norm-cctx"],
+    nodes: ["r-censo","r-poi","r-pbh","norm","c-ctx"],
+    steps: ["Censo → <code>census_sector</code> com <b>renda medida + classe A–E</b> (geom 4674→31983)","POIs das 3 fontes → <code>poi</code> (248k) taxonomizado","Malha viária → <code>road_segment</code> (55k) classificada <b>arterial/coletora/local</b> (proxy de hierarquia)"]
+  },
+  metr: {
+    name: "Métricas & Score — Épico 3",
+    edges: ["e-norm-cmetr","e-cident-cmetr","e-cctx-cmetr"],
+    nodes: ["c-ident","c-ctx","norm","c-metr"],
+    steps: ["Corredor <code>ST_Buffer(shape,300)</code> ∩ censo/POI/vias → pop ponderada, renda, %POI, exposição arterial","Impressões por tipo de dia = E_pop + E_pax (E_traf adiado p/ v2) + <b>score 0–100</b> (5 sub-scores)","Saída: <code>line_metrics</code> (303 × 39 col) + <code>line_profile_demografico</code>. ⚠️ ranking vendável, absoluto ilustrativo"]
+  },
+  serving: {
+    name: "Serving — Épico 4 (flat → intel → portal)",
+    edges: ["e-cident-serv","e-cmetr-serv","e-serv-intel","e-intel-portal"],
+    nodes: ["c-ident","c-metr","s-flat","intel","portal"],
+    steps: ["O normalizer materializa o <b>espelho plano</b>: geom vira <b>jsonb GeoJSON 4326</b> (ADR-003)","Swap atômico <code>IMPORTING → ACTIVE</code> (hoje v8 ACTIVE) — o intel resolve e só lê o ACTIVE","O intel serve com <code>SELECT</code> puro (role <code>ooh_intel_ro</code>) e o portal renderiza catálogo/score/ficha"]
+  },
+  medido: {
+    name: "Medido (F2) — o consolidador cria o schema medido",
+    edges: ["e-rt-rrt","e-rt-cons","e-cons-med","e-med-core"],
+    nodes: ["f-rt","r-rt","cons","medido","c-metr"],
+    steps: ["O poller landa o GTFS-RT em <code>raw.rt</code>; o <b>trip-consolidator</b> consome e reconstrói as viagens","<b>Snap PostGIS</b> no fechamento → grava o schema <b>medido</b> (viagem/viagem_hex/viagem_track/parada_velocidade)","O <b>recompute D-1</b> (pipeline) re-deriva <code>core.line_reach</code>/<code>face_reach</code> com <code>metodo=medida</code> — coexiste com a estimada"]
+  }
+};
+
+const stage = document.getElementById('stage');
+const nodes = document.querySelectorAll('.node');
+const edges = document.querySelectorAll('.edge');
+const elbls = document.querySelectorAll('.elbl');
+const chips = document.querySelectorAll('.chip');
+const fcap = document.getElementById('flowcap');
+const E2L = { "e-ing-rgtfs":"l-ing","e-rt-rrt":"l-rt","e-rgtfs-norm":"l-rawnorm","e-norm-cident":"l-normcore","e-cident-cmetr":"l-score","e-cident-serv":"l-coreserv","e-serv-intel":"l-servintel","e-intel-portal":"l-intelportal","e-rt-cons":"le-rt-cons","e-med-core":"le-med-core" };
+
+function setFlow(key) {
+  chips.forEach(c => c.classList.toggle('on', c.dataset.flow === key));
+  edges.forEach(e => e.classList.remove('lit'));
+  elbls.forEach(l => l.classList.remove('lit'));
+  nodes.forEach(n => n.classList.remove('lit'));
+  if (key === 'all') { stage.classList.remove('flowing'); fcap.classList.remove('show'); return; }
+  const f = FLOWS[key];
+  stage.classList.add('flowing');
+  f.edges.forEach(id => { document.getElementById(id)?.classList.add('lit'); document.getElementById(E2L[id])?.classList.add('lit'); });
+  f.nodes.forEach(k => document.querySelector(`.node[data-k="${k}"]`)?.classList.add('lit'));
+  document.getElementById('f-name').textContent = f.name;
+  document.getElementById('f-steps').innerHTML = f.steps.map(s => `<li>${s}</li>`).join('');
+  fcap.classList.add('show');
+}
+chips.forEach(c => c.addEventListener('click', () => setFlow(c.dataset.flow)));
+
+nodes.forEach(n => n.addEventListener('click', () => {
+  nodes.forEach(x => x.classList.remove('sel'));
+  n.classList.add('sel');
+  const d = DETAIL[n.dataset.k];
+  if (!d) return;
+  document.getElementById('d-title').textContent = d.t;
+  document.getElementById('d-meta').textContent = d.m;
+  document.getElementById('d-body').innerHTML = d.b;
+}));
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const dark = !document.documentElement.classList.contains('dark');
+  document.documentElement.classList.toggle('dark', dark);
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+});
+(function(){ const b=document.getElementById('legendBtn'), p=document.getElementById('legpanel');
+  if(b&&p){ b.addEventListener('click',()=>p.classList.toggle('show')); document.addEventListener('keydown',e=>{if(e.key==='Escape')p.classList.remove('show');}); } })();
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>postgres :5432 — bancos</title>
+<script>(function(){const s=localStorage.getItem('theme');const d=s?s==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);})();</script>
+<style>
+  :root{--bg:#FAF9F5;--surface:#FFFFFF;--surface2:#F0EEE6;--ink:#141413;--body:#3D3D3A;--muted:#87867F;--line:#D1CFC5;--line-soft:#E6E3DA;--clay:#D97757;--violet:#8A6FA8;--serif:ui-serif,Georgia,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+  html.dark{--bg:#141413;--surface:#1F1F1D;--surface2:#2A2A28;--ink:#FAF9F5;--body:#D1CFC5;--muted:#87867F;--line:#3D3D3A;--line-soft:#2A2A28;--clay:#E48A6E;--violet:#B49BD0;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--body);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;padding:44px 24px 64px;display:flex;flex-direction:column;align-items:center}
+  .wrap{max-width:1000px;width:100%}
+  .head{display:flex;align-items:flex-start;gap:16px;margin-bottom:8px}
+  .head h1{font-family:var(--serif);font-weight:500;font-size:28px;color:var(--ink);letter-spacing:-0.02em}
+  .head .sub{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;margin-top:8px;line-height:1.7}
+  .spacer{flex:1}
+  .navlink,#themeToggle{font-family:var(--mono);font-size:10.5px;letter-spacing:0.06em;padding:6px 11px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;text-decoration:none;flex:none}
+  .navlink{color:var(--clay)} .navlink:hover,#themeToggle:hover{border-color:var(--clay)}
+  .flow{font-family:var(--mono);font-size:11px;color:var(--muted);margin:18px 0 22px} .flow b{color:var(--clay)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+  .card{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;border-left:3px solid var(--violet);transition:border-color .15s,transform .15s}
+  .card:hover{border-color:var(--clay);transform:translateY(-3px)}
+  .card.dis{opacity:.55;cursor:not-allowed;border-left-color:var(--muted)} .card.dis:hover{transform:none;border-color:var(--line)}
+  .card .nm{font-family:var(--mono);font-size:15px;font-weight:650;color:var(--ink)}
+  .card .ds{font-size:12.5px;line-height:1.5;color:var(--body);margin-top:6px}
+  .card .tg{margin-top:11px;display:flex;flex-wrap:wrap;gap:5px}
+  .card .tg span{font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 7px}
+  .foot{margin-top:22px;font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1>postgres · servidor :5432</h1>
+      <div class="sub">postgres:16-alpine · 127.0.0.1:5432 · um DB por serviço, sem cross-DB join (ADR-052) · Flyway no startup</div>
+    </div>
+    <div class="spacer"></div>
+    <a class="navlink" href="../../index.html">⌂ Home</a>
+    <a class="navlink" href="../../01-arquitetura-microservicos.html">← macro</a>
+    <button id="themeToggle">Tema</button>
+  </div>
+  <div class="flow">servidor → <b>banco</b> → tabela → campos &nbsp;·&nbsp; clique num banco para o diagrama ER</div>
+  <div class="grid">
+    <a class="card" href="uai_auth.html"><div class="nm">uai_auth</div><div class="ds">identidade — tenants, usuários, refresh tokens. multi-tenant (tenant_id no JWT). 3 tabelas.</div><div class="tg"><span>tenant</span><span>user_account</span><span>refresh_token</span></div></a>
+    <a class="card" href="uai_cms.html"><div class="nm">uai_cms</div><div class="ds">gestor multi-vertical — clientes, campanhas, conteúdo, OOH. tenant_id + FK/cascata (sem RLS). 15 tabelas.</div><div class="tg"><span>campaign</span><span>content</span><span>ooh_active_vehicle</span></div></a>
+    <a class="card" href="uai_tokenmetrics.html"><div class="nm">uai_tokenmetrics</div><div class="ds">metering de custo LLM — uso de tokens, preço, agregado por trigger. 3 tabelas.</div><div class="tg"><span>model_pricing</span><span>token_usage</span><span>usage_aggregate</span></div></a>
+    <span class="card dis"><div class="nm">uai_buslines</div><div class="ds">legado congelado (app de linhas) — não evoluído; aposentado pós-F1.</div><div class="tg"><span>🗄️ legado</span></div></span>
+  </div>
+  <div class="foot">Cada serviço é dono do seu banco; integração entre serviços por HTTP/<code style="color:var(--clay)">X-UAI-Internal-Key</code> ou Kafka, nunca por join entre bancos (ADR-052).</div>
+</div>
+<script>document.getElementById('themeToggle').addEventListener('click',()=>{const d=!document.documentElement.classList.contains('dark');document.documentElement.classList.toggle('dark',d);localStorage.setItem('theme',d?'dark':'light');});</script>
+</body>
+</html>
